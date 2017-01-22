@@ -1,0 +1,66 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+
+unit mTimerulerGraphics;
+
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
+interface
+
+uses
+  Classes,
+  Graphics;
+
+procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
+
+implementation
+
+uses
+  mGraphicsUtility, SysUtils, Math, Windows {$IFDEF FPC},graphutil{$ENDIF};
+
+procedure DrawBox(ACanvas: TCanvas; ARect: TRect);
+var
+  lack : integer;
+begin
+  ACanvas.FillRect(ARect);
+  ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+  ACanvas.Line(ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
+  lack := (ARect.Top - ARect.Bottom) div 4;
+  ACanvas.Line(ARect.Left, ARect.Bottom + lack, ARect.Left, ARect.Top - lack);
+end;
+
+procedure WriteText(ACanvas: TCanvas; ARect: TRect; const Text: string; Flags: Cardinal);
+begin
+  SetBkMode(ACanvas.Handle, TRANSPARENT);
+  ACanvas.Font.Size := max(8, (ARect.Bottom - ARect.Top) - 10);
+  if DrawText(ACanvas.Handle, PChar(Text), -1, ARect, Flags) = 0 then
+    RaiseLastOSError;
+end;
+
+
+procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
+var
+  TempFlags: cardinal;
+begin
+  DrawBox(ACanvas, ARect);
+  InflateRect(ARect, -2, -2);
+  TempFlags := 0;
+  case TextAlignment of
+    taLeftJustify: TempFlags := DT_LEFT;
+    taRightJustify: TempFlags := DT_RIGHT;
+    taCenter: TempFlags := DT_CENTER;
+  end;
+  TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE + DT_WORD_ELLIPSIS);
+  WriteText(ACanvas, ARect, Text, TempFlags);
+end;
+
+end.

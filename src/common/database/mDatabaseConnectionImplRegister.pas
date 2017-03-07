@@ -27,11 +27,12 @@ type
     destructor Destroy; override;
 
     procedure RegisterImplementations (const AName : String; const VendorType : TmDatabaseVendor; const ConnectionImplementationClass : TmDatabaseConnectionImplClass;
-      const QueryImplementationClass : TmDatabaseQueryImplClass);
+      const QueryImplementationClass : TmDatabaseQueryImplClass; const CommandImplementationClass : TmDatabaseCommandImplClass);
 
 
     function GetConnectionImpl (const VendorType : TmDatabaseVendor) : TmDatabaseConnectionImpl;
     function GetQueryImpl(const AName : String): TmDatabaseQueryImpl;
+    function GetCommandImpl(const AName : String) : TmDatabaseCommandImpl;
   end;
 
   function GetDataConnectionClassesRegister : TmDatabaseConnectionImplRegister;
@@ -48,6 +49,7 @@ type
     VendorType : TmDatabaseVendor;
     ConnectionClass : TmDatabaseConnectionImplClass;
     QueryClass : TmDatabaseQueryImplClass;
+    CommandClass : TmDatabaseCommandImplClass;
   end;
 
 var
@@ -74,7 +76,7 @@ begin
 end;
 
 procedure TmDatabaseConnectionImplRegister.RegisterImplementations (const AName : String; const VendorType : TmDatabaseVendor; const ConnectionImplementationClass : TmDatabaseConnectionImplClass;
-    const QueryImplementationClass : TmDatabaseQueryImplClass);
+    const QueryImplementationClass : TmDatabaseQueryImplClass; const CommandImplementationClass : TmDatabaseCommandImplClass);
 var
   temp : TImplementationClassesShell;
 begin
@@ -115,6 +117,23 @@ begin
     if CompareText(TempShell.Name, AName) = 0 then
     begin
       Result := TempShell.QueryClass.Create;
+      exit;
+    end;
+  end;
+  Result := nil;
+end;
+
+function TmDatabaseConnectionImplRegister.GetCommandImpl(const AName: String): TmDatabaseCommandImpl;
+var
+  i : integer;
+  TempShell : TImplementationClassesShell;
+begin
+  for i := 0 to FImplementationsList.Count -1 do
+  begin
+    TempShell := FImplementationsList[i] as TImplementationClassesShell;
+    if CompareText(TempShell.Name, AName) = 0 then
+    begin
+      Result := TempShell.CommandClass.Create;
       exit;
     end;
   end;

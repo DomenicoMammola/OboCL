@@ -28,6 +28,9 @@ type
       procedure Connect; virtual; abstract;
       procedure Close; virtual; abstract;
       function GetName : String; virtual; abstract;
+      procedure StartTransaction; virtual; abstract;
+      procedure Commit; virtual; abstract;
+      procedure Rollback; virtual; abstract;
 
       property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write FConnectionInfo;
   end;
@@ -62,7 +65,25 @@ type
 
   TmDatabaseQueryImplClass = class of TmDatabaseQueryImpl;
 
+  TmDatabaseCommandImpl = class abstract
+  protected
+    procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); virtual; abstract;
+    function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; virtual; abstract;
+  public
+    constructor Create; virtual; abstract;
 
+    procedure Execute; virtual; abstract;
+    procedure SetSQL (aValue : TStringList); virtual; abstract;
+    function SameSQL (aValue : TStringList): boolean; virtual; abstract;
+    procedure Prepare; virtual; abstract;
+    function ParamByName(const Value: string): TParam; virtual; abstract;
+    function Prepared : boolean; virtual; abstract;
+    procedure Unprepare; virtual; abstract;
+
+    property DatabaseConnectionImpl : TmDatabaseConnectionImpl read GetDatabaseConnectionImpl write SetDatabaseConnectionImpl;
+  end;
+
+  TmDatabaseCommandImplClass = class of TmDatabaseCommandImpl;
 
 implementation
 

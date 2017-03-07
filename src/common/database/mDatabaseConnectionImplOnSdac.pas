@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 //
-// To enable database access throw the SDAC components, you must purchase
+// To enable database access throw the SDAC components, you must purchase a copy of
 // the SDAC components library from Devart here:
 // https://www.devart.com/sdac/
 
@@ -39,6 +39,10 @@ type
     procedure Connect; override;
     procedure Close; override;
     function GetName : String; override;
+    procedure StartTransaction; override;
+    procedure Commit; override;
+    procedure Rollback; override;
+
     class function GetImplementationName : String;
   end;
 
@@ -70,6 +74,30 @@ type
     function Prepared : boolean; override;
   end;
 
+  { TSdacDatabaseCommandImpl }
+
+  TSdacDatabaseCommandImpl = class (TmDatabaseCommandImpl)
+  private
+    FConnectionImpl : TSdacDatabaseConnectionImpl;
+    FCommand : TMSSQL;
+  protected
+    procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); override;
+    function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; override;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+
+    procedure SetSQL (aValue : TStringList); override;
+    function SameSQL (aValue : TStringList): boolean; override;
+
+    procedure Execute; override;
+
+    procedure Prepare; override;
+    procedure Unprepare; override;
+    function ParamByName(const Value: string): TParam; override;
+    function Prepared : boolean; override;
+  end;
+
 
 
 implementation
@@ -77,6 +105,68 @@ implementation
 uses
   mDatabaseConnectionClasses, mDatabaseConnectionImplRegister,
   SysUtils;
+
+{ TSdacDatabaseCommandImpl }
+
+procedure TSdacDatabaseCommandImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
+begin
+  FConnectionImpl := value as TSdacDatabaseConnectionImpl;
+  FCommand.Connection := FConnectionImpl.FConnection;
+end;
+
+function TSdacDatabaseCommandImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
+begin
+  Result := FConnectionImpl;
+end;
+
+constructor TSdacDatabaseCommandImpl.Create;
+begin
+  FCommand := TMSSQL.Create(nil);
+end;
+
+destructor TSdacDatabaseCommandImpl.Destroy;
+begin
+  FCommand.Free;
+  inherited Destroy;
+end;
+
+procedure TSdacDatabaseCommandImpl.SetSQL(aValue: TStringList);
+begin
+  FCommand.SQL.Clear;
+  FCommand.SQL.AddStrings(aValue);
+end;
+
+function TSdacDatabaseCommandImpl.SameSQL(aValue: TStringList): boolean;
+begin
+  Result := FCommand.SQL.Count <> aValue.Count;
+  if (not Result) then
+    Result := (CompareStr(FCommand.SQL.Text, aValue.Text) = 0);
+end;
+
+procedure TSdacDatabaseCommandImpl.Execute;
+begin
+  FCommand.Execute();
+end;
+
+procedure TSdacDatabaseCommandImpl.Prepare;
+begin
+  FCommand.Prepare;
+end;
+
+procedure TSdacDatabaseCommandImpl.Unprepare;
+begin
+  FCommand.Unprepare;
+end;
+
+function TSdacDatabaseCommandImpl.ParamByName(const Value: string): TParam;
+begin
+  Result := FCommand.ParamByName(Value);
+end;
+
+function TSdacDatabaseCommandImpl.Prepared: boolean;
+begin
+  Result := FCommand.Prepared;
+end;
 
 { TSdacDatabaseQueryImpl }
 
@@ -213,6 +303,21 @@ begin
   Result := TSdacDatabaseConnectionImpl.GetImplementationName;
 end;
 
+procedure TSdacDatabaseConnectionImpl.StartTransaction;
+begin
+  FConnection.StartTransaction;
+end;
+
+procedure TSdacDatabaseConnectionImpl.Commit;
+begin
+  FConnection.Commit;
+end;
+
+procedure TSdacDatabaseConnectionImpl.Rollback;
+begin
+  FConnection.Rollback;
+end;
+
 class function TSdacDatabaseConnectionImpl.GetImplementationName: String;
 begin
   Result := 'sdac';
@@ -220,6 +325,6 @@ end;
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TSdacDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TSdacDatabaseConnectionImpl, TSdacDatabaseQueryImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TSdacDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TSdacDatabaseConnectionImpl, TSdacDatabaseQueryImpl, TSdacDatabaseCommandImpl);
 
 end.

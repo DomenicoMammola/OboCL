@@ -37,50 +37,43 @@ type
 
   TmDatabaseConnectionImplClass = class of TmDatabaseConnectionImpl;
 
-
-  { TmDatabaseQueryImpl }
-
-  TmDatabaseQueryImpl = class abstract
+  TmAbstractDatabaseCommandImpl = class abstract
   protected
     procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); virtual; abstract;
     function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; virtual; abstract;
   public
     constructor Create; virtual; abstract;
 
-    procedure Open; virtual; abstract;
-    procedure Close; virtual; abstract;
-    procedure First; virtual; abstract;
-    procedure Next; virtual; abstract;
-    function Eof : boolean; virtual; abstract;
-    function AsDataset : TDataset; virtual; abstract;
     procedure SetSQL (aValue : TStringList); virtual; abstract;
     function SameSQL (aValue : TStringList): boolean; virtual; abstract;
     procedure Prepare; virtual; abstract;
-    function ParamByName(const Value: string): TParam; virtual; abstract;
+    //function ParamByName(const Value: string): TParam; virtual; abstract;
+    function ParamCount : integer; virtual; abstract;
+    function GetParam (aIndex : integer) : TParam; virtual; abstract;
+    procedure SetParamValue(aParam : TmQueryParameter); virtual; abstract;
     function Prepared : boolean; virtual; abstract;
     procedure Unprepare; virtual; abstract;
 
     property DatabaseConnectionImpl : TmDatabaseConnectionImpl read GetDatabaseConnectionImpl write SetDatabaseConnectionImpl;
   end;
 
+  { TmDatabaseQueryImpl }
+
+  TmDatabaseQueryImpl = class (TmAbstractDatabaseCommandImpl)
+  public
+    procedure Open; virtual; abstract;
+    procedure Close; virtual; abstract;
+    procedure First; virtual; abstract;
+    procedure Next; virtual; abstract;
+    function Eof : boolean; virtual; abstract;
+    function AsDataset : TDataset; virtual; abstract;
+  end;
+
   TmDatabaseQueryImplClass = class of TmDatabaseQueryImpl;
 
-  TmDatabaseCommandImpl = class abstract
-  protected
-    procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); virtual; abstract;
-    function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; virtual; abstract;
+  TmDatabaseCommandImpl = class (TmAbstractDatabaseCommandImpl)
   public
-    constructor Create; virtual; abstract;
-
-    procedure Execute; virtual; abstract;
-    procedure SetSQL (aValue : TStringList); virtual; abstract;
-    function SameSQL (aValue : TStringList): boolean; virtual; abstract;
-    procedure Prepare; virtual; abstract;
-    function ParamByName(const Value: string): TParam; virtual; abstract;
-    function Prepared : boolean; virtual; abstract;
-    procedure Unprepare; virtual; abstract;
-
-    property DatabaseConnectionImpl : TmDatabaseConnectionImpl read GetDatabaseConnectionImpl write SetDatabaseConnectionImpl;
+    function Execute : integer; virtual; abstract;
   end;
 
   TmDatabaseCommandImplClass = class of TmDatabaseCommandImpl;

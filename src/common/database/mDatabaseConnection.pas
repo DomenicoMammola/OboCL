@@ -10,8 +10,10 @@
 
 unit mDatabaseConnection;
 
+{$IFDEF FPC}
 {$MODE DELPHI}
 // {$MODE DELPHIUNICODE}
+{$ENDIF}
 
 interface
 
@@ -42,18 +44,38 @@ type
       property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write FConnectionInfo;
   end;
 
+  { TmAbstractDatabaseCommand }
+
+  TmAbstractDatabaseCommand = class abstract
+  protected
+    FImplementation : TmAbstractDatabaseCommandImpl;
+    FDatabaseConnection : TmDatabaseConnection;
+    FSQL : TStringList;
+    FParameters : TmQueryParameters;
+    procedure CreateImplementation; virtual; abstract;
+    function PrepareIfNecessary : Boolean;
+    procedure ReloadParameters;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Prepare;
+    procedure Unprepare;
+    function Prepared : boolean;
+    function ParamByName(const Value: string): TmQueryParameter;
+
+    property DatabaseConnection : TmDatabaseConnection read FDatabaseConnection write FDatabaseConnection;
+    property SQL : TStringList read FSQL;
+  end;
+
 
   { TmDatabaseQuery }
 
-  TmDatabaseQuery = class
-  private
-    FDatabaseConnection : TmDatabaseConnection;
-    FSQL : TStringList;
-
-    FImplementation : TmDatabaseQueryImpl;
-    procedure CreateImplementation;
+  TmDatabaseQuery = class (TmAbstractDatabaseCommand)
+  protected
+    procedure CreateImplementation; override;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
 
     procedure Open;
@@ -62,40 +84,106 @@ type
     procedure Next;
     function Eof : boolean;
     function AsDataset : TDataset;
-    procedure Prepare;
-    function Prepared : boolean;
-    function ParamByName(const Value: string): TParam;
-
-    property DatabaseConnection : TmDatabaseConnection read FDatabaseConnection write FDatabaseConnection;
-    property SQL : TStringList read FSQL;
   end;
 
   { TmDatabaseCommand }
 
-  TmDatabaseCommand = class abstract
-  private
-    FDatabaseConnection : TmDatabaseConnection;
-    FSQL : TStringList;
-
-    FImplementation : TmDatabaseCommandImpl;
-    procedure CreateImplementation;
+  TmDatabaseCommand = class (TmAbstractDatabaseCommand)
+  protected
+    procedure CreateImplementation; override;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
 
-    function Execute : integer; virtual; abstract;
-    procedure Prepare;
-    function Prepared : boolean;
-    function ParamByName(const Value: string): TParam;
-
-    property DatabaseConnection : TmDatabaseConnection read FDatabaseConnection write FDatabaseConnection;
-    property SQL : TStringList read FSQL;
+    function Execute : integer;
   end;
 
 implementation
 
 uses
   SysUtils, mDatabaseConnectionImplRegister;
+
+  { TmAbstractDatabaseCommand }
+
+  function TmAbstractDatabaseCommand.PrepareIfNecessary: Boolean;
+  begin
+    Result := false;
+    if (not FImplementation.Prepared) then
+    begin
+      Self.Prepare;
+      Result := true;
+    end
+    else
+    begin
+      if (not FImplementation.SameSQL(FSQL)) then
+      begin
+        Self.Unprepare;
+        Self.Prepare;
+        Result := true;
+      end;
+    end;
+  end;
+
+  procedure TmAbstractDatabaseCommand.ReloadParameters;
+  var
+    i : integer;
+  begin
+    FParameters.Clear;
+    for i := 0 to FImplementation.ParamCount - 1 do
+    begin
+      FParameters.Add(FImplementation.GetParam(i));
+    end;
+  end;
+
+  constructor TmAbstractDatabaseCommand.Create;
+  begin
+    FSQL := TStringList.Create;
+    FParameters := TmQueryParameters.Create;
+  end;
+
+  destructor TmAbstractDatabaseCommand.Destroy;
+  begin
+    FreeAndNil(FSQL);
+    FreeAndNil(FParameters);
+    inherited Destroy;
+  end;
+
+  procedure TmAbstractDatabaseCommand.Prepare;
+  begin
+    CreateImplementation;
+    if FImplementation.Prepared then
+      FImplementation.Unprepare;
+    FImplementation.SetSQL(FSQL);
+    FImplementation.Prepare;
+    ReloadParameters;
+  end;
+
+  procedure TmAbstractDatabaseCommand.Unprepare;
+  begin
+    CreateImplementation;
+    FImplementation.Unprepare;
+    FParameters.Clear;
+  end;
+
+  function TmAbstractDatabaseCommand.Prepared: boolean;
+  begin
+    CreateImplementation;
+    Result := FImplementation.Prepared;
+  end;
+
+  function TmAbstractDatabaseCommand.ParamByName(const Value: string): TmQueryParameter;
+  var
+    i : integer;
+    TempParam : TmQueryParameter;
+  begin
+    CreateImplementation;
+    if PrepareIfNecessary then
+    begin
+      // must reload FParameters
+      ReloadParameters;
+    end;
+    Result := FParameters.FindByName(Value);
+  end;
 
   { TmDatabaseCommand }
 
@@ -110,38 +198,30 @@ uses
 
   constructor TmDatabaseCommand.Create;
   begin
+    inherited;
     FImplementation := nil;
-    FSQL := TStringList.Create;
   end;
 
   destructor TmDatabaseCommand.Destroy;
   begin
     if Assigned(FImplementation) then
       FreeAndNil(FImplementation);
-    FSQL.Free;
     inherited Destroy;
   end;
 
-  procedure TmDatabaseCommand.Prepare;
+  function TmDatabaseCommand.Execute: integer;
+  var
+    i : integer;
   begin
     CreateImplementation;
-    if FImplementation.Prepared then
-      FImplementation.Unprepare;
-    FImplementation.SetSQL(FSQL);
-    FImplementation.Prepare;
+    PrepareIfNecessary;
+    for i := 0 to FParameters.Count -1 do
+    begin
+      FImplementation.SetParamValue(FParameters.GetParam(i));
+    end;
+    Result := (FImplementation as TmDatabaseCommandImpl).Execute;
   end;
 
-  function TmDatabaseCommand.Prepared: boolean;
-  begin
-    CreateImplementation;
-    Result := FImplementation.Prepared;
-  end;
-
-  function TmDatabaseCommand.ParamByName(const Value: string): TParam;
-  begin
-    CreateImplementation;
-    Result := FImplementation.ParamByName(Value);
-  end;
 
   { TmDatabaseQuery }
 
@@ -156,76 +236,62 @@ uses
 
   constructor TmDatabaseQuery.Create;
   begin
+    inherited;
     FImplementation := nil;
-    FSQL := TStringList.Create;
   end;
 
   destructor TmDatabaseQuery.Destroy;
   begin
     if Assigned(FImplementation) then
       FreeAndNil(FImplementation);
-    FSQL.Free;
     inherited Destroy;
   end;
 
   procedure TmDatabaseQuery.Open;
+  var
+    i : integer;
   begin
     CreateImplementation;
-    if (not FImplementation.Prepared) or (not FImplementation.SameSQL(FSQL)) then
-      Self.Prepare;
-    FImplementation.Open;
+    PrepareIfNecessary;
+    for i := 0 to FParameters.Count -1 do
+    begin
+      FImplementation.SetParamValue(FParameters.GetParam(i));
+    end;
+    (FImplementation as TmDatabaseQueryImpl).Open;
   end;
 
   procedure TmDatabaseQuery.Close;
   begin
     CreateImplementation;
-    FImplementation.Close;
+    (FImplementation as TmDatabaseQueryImpl).Close;
   end;
 
   procedure TmDatabaseQuery.First;
   begin
     CreateImplementation;
-    FImplementation.First;
+    (FImplementation as TmDatabaseQueryImpl).First;
   end;
 
   procedure TmDatabaseQuery.Next;
   begin
     CreateImplementation;
-    FImplementation.Next;
+    (FImplementation as TmDatabaseQueryImpl).Next;
   end;
 
   function TmDatabaseQuery.Eof: boolean;
   begin
     CreateImplementation;
-    Result := FImplementation.Eof;
+    Result := (FImplementation as TmDatabaseQueryImpl).Eof;
   end;
 
   function TmDatabaseQuery.AsDataset: TDataset;
   begin
     CreateImplementation;
-    Result := FImplementation.AsDataset;
+    Result := (FImplementation as TmDatabaseQueryImpl).AsDataset;
   end;
 
-  procedure TmDatabaseQuery.Prepare;
-  begin
-    CreateImplementation;
-    if FImplementation.Prepared then
-      FImplementation.Unprepare;
-    FImplementation.SetSQL(FSQL);
-    FImplementation.Prepare;
-  end;
 
-  function TmDatabaseQuery.Prepared: boolean;
-  begin
-    CreateImplementation;
-    Result := FImplementation.Prepared;
-  end;
 
-  function TmDatabaseQuery.ParamByName(const Value: string): TParam;
-  begin
-    CreateImplementation;
-    Result := FImplementation.ParamByName(Value);
-  end;
 
   { TmDatabaseConnection }
 

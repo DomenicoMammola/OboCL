@@ -14,15 +14,18 @@
 
 unit mDatabaseConnectionImplOnSdac;
 
-interface
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
 
-{$MODE DELPHI}
+interface
 
 uses
   Classes, DB,
 
   MSAccess, MsClasses,
 
+  mDatabaseConnectionClasses,
   mDatabaseConnectionImpl;
 
 type
@@ -70,7 +73,10 @@ type
     procedure Next; override;
     function Eof : boolean; override;
     function AsDataset : TDataset; override;
-    function ParamByName(const Value: string): TParam; override;
+    //function ParamByName(const Value: string): TParam; override;
+    function ParamCount : integer; override;
+    procedure SetParamValue(aParam : TmQueryParameter); override;
+    function GetParam (aIndex : integer) : TParam; override;
     function Prepared : boolean; override;
   end;
 
@@ -90,11 +96,15 @@ type
     procedure SetSQL (aValue : TStringList); override;
     function SameSQL (aValue : TStringList): boolean; override;
 
-    procedure Execute; override;
+    function Execute : integer; override;
 
     procedure Prepare; override;
     procedure Unprepare; override;
-    function ParamByName(const Value: string): TParam; override;
+//    function ParamByName(const Value: string): TParam; override;
+    function ParamCount : integer; override;
+    procedure SetParamValue(aParam : TmQueryParameter); override;
+    function GetParam (aIndex : integer) : TParam; override;
+
     function Prepared : boolean; override;
   end;
 
@@ -103,7 +113,7 @@ type
 implementation
 
 uses
-  mDatabaseConnectionClasses, mDatabaseConnectionImplRegister,
+  mDatabaseConnectionImplRegister, mSQLServerSQLDialect,
   SysUtils;
 
 { TSdacDatabaseCommandImpl }
@@ -143,9 +153,10 @@ begin
     Result := (CompareStr(FCommand.SQL.Text, aValue.Text) = 0);
 end;
 
-procedure TSdacDatabaseCommandImpl.Execute;
+function TSdacDatabaseCommandImpl.Execute : integer;
 begin
   FCommand.Execute();
+  Result := FCommand.RowsAffected;
 end;
 
 procedure TSdacDatabaseCommandImpl.Prepare;
@@ -158,10 +169,44 @@ begin
   FCommand.Unprepare;
 end;
 
+function TSdacDatabaseCommandImpl.ParamCount: integer;
+begin
+  Result := FCommand.ParamCount;
+end;
+
+procedure TSdacDatabaseCommandImpl.SetParamValue(aParam: TmQueryParameter);
+var
+  TmpParam : TMSParam;
+begin
+  TmpParam := FCommand.ParamByName(aParam.Name);
+  case aParam.DataType of
+    ptDate:
+      // SQLServer error : "La conversione implicita del tipo dati da sql_variant a datetime non è consentita."
+      TmpParam.AsString:= DateToSQLString(aParam.AsDateTime);
+    ptDateTime:
+      // SQLServer error : "La conversione implicita del tipo dati da sql_variant a datetime non è consentita."
+      TmpParam.AsString := DateTimeToSQLString(aParam.AsDateTime);
+    ptString:
+      TmpParam.AsString := aParam.AsString;
+    ptWideString:
+      TmpParam.AsWideString:= aParam.AsWideString;
+    ptInteger:
+      TmpParam.AsInteger:= aParam.AsInteger;
+    ptFloat:
+      TmpParam.AsFloat:= aParam.AsFloat;
+  end;
+end;
+
+function TSdacDatabaseCommandImpl.GetParam(aIndex: integer): TParam;
+begin
+  Result := FCommand.Params[aIndex];
+end;
+
+(*
 function TSdacDatabaseCommandImpl.ParamByName(const Value: string): TParam;
 begin
   Result := FCommand.ParamByName(Value);
-end;
+end;*)
 
 function TSdacDatabaseCommandImpl.Prepared: boolean;
 begin
@@ -245,9 +290,42 @@ begin
   Result := FQuery;
 end;
 
-function TSdacDatabaseQueryImpl.ParamByName(const Value: string): TParam;
+(*procedure TSdacDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
 begin
   Result := FQuery.ParamByName(Value);
+end;*)
+
+function TSdacDatabaseQueryImpl.ParamCount: integer;
+begin
+  Result := FQuery.ParamCount;
+end;
+
+procedure TSdacDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
+var
+  TmpParam : TMSParam;
+begin
+  TmpParam := FQuery.ParamByName(aParam.Name);
+  case aParam.DataType of
+    ptDate:
+      // SQLServer error : "La conversione implicita del tipo dati da sql_variant a datetime non è consentita."
+      TmpParam.AsString:= DateToSQLString(aParam.AsDateTime);
+    ptDateTime:
+      // SQLServer error : "La conversione implicita del tipo dati da sql_variant a datetime non è consentita."
+      TmpParam.AsString := DateTimeToSQLString(aParam.AsDateTime);
+    ptString:
+      TmpParam.AsString := aParam.AsString;
+    ptWideString:
+      TmpParam.AsWideString:= aParam.AsWideString;
+    ptInteger:
+      TmpParam.AsInteger:= aParam.AsInteger;
+    ptFloat:
+      TmpParam.AsFloat:= aParam.AsFloat;
+  end;
+end;
+
+function TSdacDatabaseQueryImpl.GetParam(aIndex: integer): TParam;
+begin
+  Result := FQuery.Params[aIndex];
 end;
 
 function TSdacDatabaseQueryImpl.Prepared: boolean;

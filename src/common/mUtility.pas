@@ -12,15 +12,19 @@ unit mUtility;
 
 interface
 
-{$IFDEF FPC}{$MODE DELPHI} {$ENDIF}
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
 
 uses SysUtils;
 
 const
   TheDayWhenTimeStarted = 730120; //01/01/2000 (starting from 01/01/01)
 
-function GetUniqueString : string; overload;
-function GetUniqueString(aLength : integer): string; overload;
+function GenerateRandomIdString : string; overload;
+function GenerateRandomIdString(aLength : integer): string; overload;
+
+function AddZerosFront (aValue : integer; aLength : integer) : String;
 
 function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted) : integer;
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
@@ -40,22 +44,35 @@ implementation
 uses
   DateUtils;
 
-function GetUniqueString(aLength : integer): string;
+function AddZerosFront (aValue : integer; aLength : integer) : String;
 var
-  i: Byte;
-  s: string;
+  i, l : integer;
 begin
-  Result := '';
-  s := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  for i := 0 to aLength - 1 do
-    Result := Result + s[Random(35)+1];
+  Result := IntToStr(aValue);
+  l := Length(Result);
+  if l < aLength then
+  begin
+    for i := 1 to (aLength - l) do
+    begin
+      Result := '0' + Result;
+    end;
+  end;
 end;
 
-function GetUniqueString : string;
-const
-  intMAX_PW_LEN = 10;
+function GenerateRandomIdString(aLength : integer): string;
+var
+  Temp: string;
+  i: integer;
 begin
-  Result := GetUniqueString(intMAX_PW_LEN);
+  Result := '';
+  Temp := 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  for i := 0 to aLength - 1 do
+    Result := Result + Temp[Random(35)+1];
+end;
+
+function GenerateRandomIdString : string;
+begin
+  Result := GenerateRandomIdString(10);
 end;
 
 (*
@@ -141,100 +158,6 @@ begin
     raise Exception.Create ('invalid data type ' + IntToStr(AValue.VType));
   end;
 end;
-
-(*
-function VariantToTypedVarRec(const Item: Variant; VarType: TVarType): TVarRec;
-var
-W: WideString;
-begin
-case VarType of
-varInteger, varSmallint, varShortInt, varByte, varWord, varLongWord:
-begin
-Result.VType:=vtInteger;
-Result.VInteger:=Item;
-end;
-varNull, varUnknown, varEmpty:
-begin
-Result.VType:=vtInteger;
-Result.VInteger:=0;
-end;
-varBoolean:
-begin
-Result.VType:=vtBoolean;
-Result.VBoolean:=Item;
-end;
-varDouble, varSingle:
-begin
-Result.VType:=vtExtended;
-New(Result.VExtended);
-Result.VExtended^ := Item;
-end;
-varString:
-begin
-Result.VType:=vtString;
-New(Result.VString);
-Result.VString^ := ShortString(Item);
-end;
-varCurrency:
-begin
-Result.VType:=vtCurrency;
-New(Result.VCurrency);
-Result.VCurrency^ := Item;
-end;
-varVariant:
-begin
-Result.VType:=vtVariant;
-New(Result.VVariant);
-Result.VVariant^ := Item;
-end;
-varOleStr:
-begin
-Result.VType:=vtWideString;
-Result.VWideString := nil;
-WideString(Result.VWideString) := WideString(Item);
-end;
-varInt64:
-begin
-Result.VType:=vtInt64;
-New(Result.VInt64);
-Result.VInt64^ := Item;
-end;
-{$IFDEF UNICODE}
-varUString:
-begin
-Result.VType:=vtUnicodeString;
-Result.VUnicodeString:=nil;
-UnicodeString(Result.VUnicodeString) := UnicodeString(Item);
-end;
-{$ENDIF}
-end;
-end;
-
-function VariantToVarRec(const Item: Variant): TVarRec;
-begin
-Result:=VariantToTypedVarRec(Item, TVarData(Item).VType);
-end;
-
-procedure FinalizeVarRec(var Item: TVarRec);
-begin
-case Item.VType of
-vtExtended: Dispose(Item.VExtended);
-vtString: Dispose(Item.VString);
-vtPChar: StrDispose(Item.VPChar);
-vtPWideChar: FreeMem(Item.VPWideChar);
-vtAnsiString: AnsiString(Item.VAnsiString) := '';
-vtCurrency: Dispose(Item.VCurrency);
-vtVariant: Dispose(Item.VVariant);
-vtInterface: IInterface(Item.VInterface) := nil;
-vtWideString: WideString(Item.VWideString) := '';
-vtInt64: Dispose(Item.VInt64);
-{$IFDEF UNICODE}
-vtUnicodeString: UnicodeString(Item.VUnicodeString) := '';
-{$ENDIF}
-end;
-Item.VInteger := 0;
-end;
-*)
 
 (*
 http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11

@@ -1,46 +1,83 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+
 unit mDatabaseConnectionClasses;
 
+{$IFDEF FPC}
 {$MODE DELPHI}
+{$ENDIF}
 
 interface
 
 uses
-  DB, SysUtils;
+  DB, Contnrs, SysUtils;
 
 type
   TmDataConnectionException = class (Exception);
 
   TmDatabaseVendor = (dvUnknown, dvSQLServer);
 
+  TmParameterDataType = (ptUnknown, ptDate, ptDateTime, ptInteger, ptFloat, ptString, ptWideString);
+
 { TmQueryParameter }
 
   TmQueryParameter = class
   strict private
+    FName : String;
     FValue : Variant;
-    FFieldType : TFieldType;
+    FDataType : TmParameterDataType;
+    function GetAsDate: TDate;
     function GetAsDateTime: TDateTime;
-    function GetAsDouble: Double;
+    function GetAsFloat: Double;
     function GetAsInteger: Integer;
     function GetAsString: String;
     function GetAsWideString: WideString;
+    procedure SetAsDate(AValue: TDate);
     procedure SetAsDateTime(AValue: TDateTime);
-    procedure SetAsDouble(AValue: Double);
+    procedure SetAsFloat(AValue: Double);
     procedure SetAsInteger(AValue: Integer);
     procedure SetAsString(AValue: String);
     procedure SetAsWideString(AValue: WideString);
-    procedure SetFieldType (value : TFieldType);
-    function GetFieldType : TFieldType;
+    procedure SetParameterDataType (value : TmParameterDataType);
+    function GetParameterDataType : TmParameterDataType;
     function ValueAsDouble : Double;
   public
     constructor Create;
+    procedure ImportFromParam (aSource : TParam);
 
     procedure SetNull;
-    property FieldType : TFieldType read GetFieldType write SetFieldType;
+    function IsNull : boolean;
+    property Name : String read FName write FName;
+    property DataType : TmParameterDataType read GetParameterDataType write SetParameterDataType;
     property AsString : String read GetAsString write SetAsString;
     property AsWideString : WideString read GetAsWideString write SetAsWideString;
     property AsInteger : Integer read GetAsInteger write SetAsInteger;
-    property AsDouble : Double read GetAsDouble write SetAsDouble;
+    property AsFloat : Double read GetAsFloat write SetAsFloat;
     property AsDateTime : TDateTime read GetAsDateTime write SetAsDateTime;
+    property AsDate : TDate read GetAsDate write SetAsDate;
+  end;
+
+  { TmQueryParameters }
+
+  TmQueryParameters = class
+  strict private
+    FList : TObjectList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Add (aSource : TParam); overload;
+    procedure Add (aParam : TmQueryParameter); overload;
+    function FindByName (const aName : String): TmQueryParameter;
+    procedure Clear;
+    function Count : integer;
+    function GetParam (aIndex : integer) : TmQueryParameter;
   end;
 
   { TmDatabaseConnectionInfo }
@@ -75,7 +112,87 @@ type
   end;
 
 
+function DataTypeToParameterDataType (aValue : TFieldType) : TmParameterDataType;
+
 implementation
+
+function DataTypeToParameterDataType(aValue: TFieldType): TmParameterDataType;
+begin
+  case aValue of
+    ftUnknown:
+      Result := ptUnknown;
+    ftInteger:
+      Result := ptInteger;
+    ftFloat:
+      Result := ptFloat;
+    ftDate:
+      Result := ptDate;
+    ftDateTime:
+      Result := ptDateTime;
+    ftWideString:
+      Result := ptWideString;
+    else
+      Result := ptString;
+  end;
+end;
+
+{ TmQueryParameters }
+
+constructor TmQueryParameters.Create;
+begin
+  FList:= TObjectList.Create;
+
+end;
+
+destructor TmQueryParameters.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+procedure TmQueryParameters.Add(aSource: TParam);
+var
+  TempParam : TmQueryParameter;
+begin
+  TempParam := TmQueryParameter.Create;
+  FList.Add(TempParam);
+  TempParam.ImportFromParam(aSource);
+end;
+
+procedure TmQueryParameters.Add(aParam: TmQueryParameter);
+begin
+  FList.Add(aParam);
+end;
+
+function TmQueryParameters.FindByName(const aName: String): TmQueryParameter;
+var
+  i : integer;
+begin
+  Result := nil;
+  for i := 0 to FList.Count - 1 do
+  begin
+    if CompareText((FList.Items[i] as TmQueryParameter).Name, aName) = 0 then
+    begin
+      Result := FList.Items[i] as TmQueryParameter;
+      exit;
+    end;
+  end;
+end;
+
+procedure TmQueryParameters.Clear;
+begin
+  FList.Clear;
+end;
+
+function TmQueryParameters.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+function TmQueryParameters.GetParam(aIndex: integer): TmQueryParameter;
+begin
+  Result := FList.Items[aIndex] as TmQueryParameter;
+end;
 
 { TmDatabaseConnectionInfo }
 
@@ -87,38 +204,50 @@ end;
 
 { TmQueryParameter }
 
-procedure TmQueryParameter.SetFieldType(value: TFieldType);
+procedure TmQueryParameter.SetParameterDataType(value: TmParameterDataType);
 begin
-  FFieldType:= value;
+  FDataType:= value;
 end;
 
 function TmQueryParameter.GetAsDateTime: TDateTime;
 begin
-  if (FFieldType = ftDate) or (FFieldType = ftDateTime) then
+  if (FDataType = ptDate) or (FDataType = ptDateTime) then
   begin
     Result := ValueAsDouble;
   end
   else
   begin
-    raise TmDataConnectionException.Create('Fieldtype of parameter is not ftDate or ftDateTime');
+    raise TmDataConnectionException.Create('Datatype of parameter is not date or dateTime');
   end;
 end;
 
-function TmQueryParameter.GetAsDouble: Double;
+function TmQueryParameter.GetAsDate: TDate;
 begin
-  if (FFieldType = ftFloat) then
+  if (FDataType = ptDate) or (FDataType = ptDateTime) then
+  begin
+    Result := trunc(ValueAsDouble);
+  end
+  else
+  begin
+    raise TmDataConnectionException.Create('Datatype of parameter is not date or dateTime');
+  end;
+end;
+
+function TmQueryParameter.GetAsFloat: Double;
+begin
+  if (FDataType = ptFloat) then
   begin
     Result := ValueAsDouble;
   end
   else
   begin
-    raise TmDataConnectionException.Create('Fieldtype of parameter is not ftFloat');
+    raise TmDataConnectionException.Create('Datatype of parameter is not float');
   end;
 end;
 
 function TmQueryParameter.GetAsInteger: Integer;
 begin
-  if (FieldType = ftInteger) then
+  if (FDataType = ptInteger) then
   begin
     if (FValue = Null) then
       Result := 0
@@ -127,13 +256,13 @@ begin
   end
   else
   begin
-    raise TmDataConnectionException.Create('Fieldtype of parameter is not ftInteger');
+    raise TmDataConnectionException.Create('Datatype of parameter is not integer');
   end;
 end;
 
 function TmQueryParameter.GetAsString: String;
 begin
-  if (FieldType = ftString) then
+  if (FDataType = ptString) then
   begin
     if (FValue = Null) then
       Result := ''
@@ -142,13 +271,13 @@ begin
   end
   else
   begin
-    raise TmDataConnectionException.Create('Fieldtype of parameter is not ftString');
+    raise TmDataConnectionException.Create('Datatype of parameter is not string');
   end;
 end;
 
 function TmQueryParameter.GetAsWideString: WideString;
 begin
-  if (FieldType = ftString) or (FieldType = ftWideString) then
+  if (FDataType = ptString) or (FDataType = ptWideString) then
   begin
     if (FValue = Null) then
       Result := ''
@@ -157,43 +286,49 @@ begin
   end
   else
   begin
-    raise TmDataConnectionException.Create('Fieldtype of parameter is not ftWideString or ftString');
+    raise TmDataConnectionException.Create('Datatype of parameter is not wideString or string');
   end;
+end;
+
+procedure TmQueryParameter.SetAsDate(AValue: TDate);
+begin
+  FValue := AValue;
+  FDataType:= ptDate;
 end;
 
 procedure TmQueryParameter.SetAsDateTime(AValue: TDateTime);
 begin
   FValue := AValue;
-  FFieldType:= ftDateTime;
+  FDataType:= ptDateTime;
 end;
 
-procedure TmQueryParameter.SetAsDouble(AValue: Double);
+procedure TmQueryParameter.SetAsFloat(AValue: Double);
 begin
   FValue := AValue;
-  FFieldType:= ftFloat;
+  FDataType:= ptFloat;
 end;
 
 procedure TmQueryParameter.SetAsInteger(AValue: Integer);
 begin
   FValue := AValue;
-  FFieldType:= ftInteger;
+  FDataType:= ptInteger;
 end;
 
 procedure TmQueryParameter.SetAsString(AValue: String);
 begin
   FValue := AValue;
-  FFieldType := ftString;
+  FDataType := ptString;
 end;
 
 procedure TmQueryParameter.SetAsWideString(AValue: WideString);
 begin
   FValue := AValue;
-  FFieldType := ftWideString;
+  FDataType := ptWideString;
 end;
 
-function TmQueryParameter.GetFieldType: TFieldType;
+function TmQueryParameter.GetParameterDataType: TmParameterDataType;
 begin
-  Result := FFieldType;
+  Result := FDataType;
 end;
 
 function TmQueryParameter.ValueAsDouble: Double;
@@ -206,13 +341,24 @@ end;
 
 constructor TmQueryParameter.Create;
 begin
-  FFieldType:= ftUnknown;
+  FDataType:= ptUnknown;
   FValue:= Null;
+end;
+
+procedure TmQueryParameter.ImportFromParam(aSource: TParam);
+begin
+  Self.Name:= aSource.Name;
+  Self.DataType:= DataTypeToParameterDataType(aSource.DataType);
 end;
 
 procedure TmQueryParameter.SetNull;
 begin
   FValue := Null;
+end;
+
+function TmQueryParameter.IsNull: boolean;
+begin
+  Result := (FValue = Null);
 end;
 
 

@@ -10,6 +10,10 @@
 
 unit mDatabaseConnectionImplRegister;
 
+{$IFDEF FPC}
+{$MODE DELPHI}
+{$ENDIF}
+
 interface
 
 uses
@@ -85,6 +89,7 @@ begin
   temp.VendorType:= VendorType;
   temp.ConnectionClass:= ConnectionImplementationClass;
   temp.QueryClass:= QueryImplementationClass;
+  temp.CommandClass:= CommandImplementationClass;
   FImplementationsList.Add(temp);
 end;
 

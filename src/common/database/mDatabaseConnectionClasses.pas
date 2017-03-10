@@ -113,6 +113,7 @@ type
 
 
 function DataTypeToParameterDataType (aValue : TFieldType) : TmParameterDataType;
+function ParameterDataTypeToDataType(aValue : TmParameterDataType) : TFieldType;
 
 implementation
 
@@ -134,6 +135,26 @@ begin
     else
       Result := ptString;
   end;
+end;
+
+function ParameterDataTypeToDataType(aValue: TmParameterDataType): TFieldType;
+begin
+  case aValue of
+    ptUnknown:
+      Result := ftUnknown;
+    ptInteger:
+      Result := ftInteger;
+    ptFloat:
+      Result := ftFloat;
+    ptDate:
+      Result := ftDate;
+    ptDateTime:
+      Result := ftDateTime;
+    ptWideString:
+      Result := ftWideString;
+    else
+      Result := ftString;
+    end;
 end;
 
 { TmQueryParameters }

@@ -179,6 +179,14 @@ var
   TmpParam : TMSParam;
 begin
   TmpParam := FCommand.ParamByName(aParam.Name);
+
+  if aParam.IsNull then
+  begin
+    TmpParam.DataType:= ParameterDataTypeToDataType(aParam.DataType);
+    TmpParam.Clear;
+    exit;
+  end;
+
   case aParam.DataType of
     ptDate:
       TmpParam.AsDate := aParam.AsDate;
@@ -305,6 +313,14 @@ var
   TmpParam : TMSParam;
 begin
   TmpParam := FQuery.ParamByName(aParam.Name);
+
+  if aParam.IsNull then
+  begin
+    TmpParam.DataType:= ParameterDataTypeToDataType(aParam.DataType);
+    TmpParam.Clear;
+    exit;
+  end;
+
   case aParam.DataType of
     ptDate:
       TmpParam.AsDate:= aParam.AsDate;

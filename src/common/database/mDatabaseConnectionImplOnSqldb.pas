@@ -92,6 +92,7 @@ type
   private
     FConnectionImpl : TSqldbDatabaseConnectionImpl;
     FCommand : TSQLQuery;
+    FPrepared : boolean;
   protected
     procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); override;
     function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; override;
@@ -138,6 +139,7 @@ end;
 constructor TSqldbDatabaseCommandImpl.Create;
 begin
   FCommand := TSQLQuery.Create(nil);
+  FPrepared := false;
 end;
 
 destructor TSqldbDatabaseCommandImpl.Destroy;
@@ -150,6 +152,7 @@ procedure TSqldbDatabaseCommandImpl.SetSQL(aValue: TStringList);
 begin
   FCommand.SQL.Clear;
   FCommand.SQL.AddStrings(aValue);
+  FPrepared := false;
 end;
 
 function TSqldbDatabaseCommandImpl.SameSQL(aValue: TStringList): boolean;
@@ -163,16 +166,19 @@ function TSqldbDatabaseCommandImpl.Execute: integer;
 begin
   FCommand.ExecSQL();
   Result := FCommand.RowsAffected;
+  FPrepared := true;
 end;
 
 procedure TSqldbDatabaseCommandImpl.Prepare;
 begin
   FCommand.Prepare;
+  FPrepared := true;
 end;
 
 procedure TSqldbDatabaseCommandImpl.Unprepare;
 begin
   FCommand.Unprepare;
+  FPrepared := false;
 end;
 
 function TSqldbDatabaseCommandImpl.ParamCount: integer;
@@ -185,6 +191,14 @@ var
   TmpParam : TParam;
 begin
   TmpParam := FCommand.ParamByName(aParam.Name);
+
+  if aParam.IsNull then
+  begin
+    TmpParam.DataType:= ParameterDataTypeToDataType(aParam.DataType);
+    TmpParam.Clear;
+    exit;
+  end;
+
   case aParam.DataType of
     ptDate:
       TmpParam.AsDate := aParam.AsDate;
@@ -210,7 +224,7 @@ end;
 
 function TSqldbDatabaseCommandImpl.Prepared: boolean;
 begin
-  Result := FCommand.Prepared;
+  Result := FPrepared;
 end;
 
 { TSqldbDatabaseQueryImpl }
@@ -304,6 +318,14 @@ var
   TmpParam : TParam;
 begin
   TmpParam := FQuery.ParamByName(aParam.Name);
+
+  if aParam.IsNull then
+  begin
+    TmpParam.DataType:= ParameterDataTypeToDataType(aParam.DataType);
+    TmpParam.Clear;
+    exit;
+  end;
+
   case aParam.DataType of
     ptDate:
       TmpParam.AsDate:= aParam.AsDate;

@@ -8,11 +8,11 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 //
-// To enable database access throw the SDAC components, you must purchase a copy of
-// the SDAC components library from Devart here:
-// https://www.devart.com/sdac/
+// To enable database access throw the sqldb components to MsSqlServer
+// please check:
+// http://wiki.freepascal.org/mssqlconn
 
-unit mDatabaseConnectionImplOnSdac;
+unit mDatabaseConnectionImplOnSqldb;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -23,18 +23,22 @@ interface
 uses
   Classes, DB,
 
-  MSAccess, MsClasses,
+  sqldb,
 
   mDatabaseConnectionClasses,
   mDatabaseConnectionImpl;
 
 type
 
-  { TSdacDatabaseConnectionImpl }
 
-  TSdacDatabaseConnectionImpl = class(TmDatabaseConnectionImpl)
+  { TSqldbDatabaseConnectionImpl }
+
+  TSqldbDatabaseConnectionImpl = class(TmDatabaseConnectionImpl)
   private
-    FConnection : TMSConnection;
+    FConnection : TSQLConnection;
+    FTransaction : TSQLTransaction;
+  protected
+    procedure SetConnectionInfo(AValue: TmDatabaseConnectionInfo); override;
   public
     constructor Create(); override;
     destructor Destroy; override;
@@ -49,12 +53,13 @@ type
     class function GetImplementationName : String;
   end;
 
-  { TSdacDatabaseQueryImpl }
+  { TSqldbDatabaseQueryImpl }
 
-  TSdacDatabaseQueryImpl = class (TmDatabaseQueryImpl)
+  TSqldbDatabaseQueryImpl = class (TmDatabaseQueryImpl)
   private
-    FConnectionImpl : TSdacDatabaseConnectionImpl;
-    FQuery: TMSQuery;
+    FConnectionImpl : TSqldbDatabaseConnectionImpl;
+    FQuery: TSQLQuery;
+    FPrepared : boolean;
   protected
     procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); override;
     function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; override;
@@ -73,7 +78,6 @@ type
     procedure Next; override;
     function Eof : boolean; override;
     function AsDataset : TDataset; override;
-    //function ParamByName(const Value: string): TParam; override;
     function ParamCount : integer; override;
     procedure SetParamValue(aParam : TmQueryParameter); override;
     function GetParam (aIndex : integer) : TParam; override;
@@ -82,10 +86,12 @@ type
 
   { TSdacDatabaseCommandImpl }
 
-  TSdacDatabaseCommandImpl = class (TmDatabaseCommandImpl)
+  { TSqldbDatabaseCommandImpl }
+
+  TSqldbDatabaseCommandImpl = class (TmDatabaseCommandImpl)
   private
-    FConnectionImpl : TSdacDatabaseConnectionImpl;
-    FCommand : TMSSQL;
+    FConnectionImpl : TSqldbDatabaseConnectionImpl;
+    FCommand : TSQLQuery;
   protected
     procedure SetDatabaseConnectionImpl (value : TmDatabaseConnectionImpl); override;
     function GetDatabaseConnectionImpl : TmDatabaseConnectionImpl; override;
@@ -100,7 +106,6 @@ type
 
     procedure Prepare; override;
     procedure Unprepare; override;
-//    function ParamByName(const Value: string): TParam; override;
     function ParamCount : integer; override;
     procedure SetParamValue(aParam : TmQueryParameter); override;
     function GetParam (aIndex : integer) : TParam; override;
@@ -113,70 +118,71 @@ type
 implementation
 
 uses
+  mssqlconn,
   mDatabaseConnectionImplRegister, mSQLServerSQLDialect,
   SysUtils;
 
-{ TSdacDatabaseCommandImpl }
+{ TSqldbDatabaseCommandImpl }
 
-procedure TSdacDatabaseCommandImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
+procedure TSqldbDatabaseCommandImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
 begin
-  FConnectionImpl := value as TSdacDatabaseConnectionImpl;
-  FCommand.Connection := FConnectionImpl.FConnection;
+  FConnectionImpl := value as TSqldbDatabaseConnectionImpl;
+  FCommand.DataBase := FConnectionImpl.FConnection;
 end;
 
-function TSdacDatabaseCommandImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
+function TSqldbDatabaseCommandImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
 begin
   Result := FConnectionImpl;
 end;
 
-constructor TSdacDatabaseCommandImpl.Create;
+constructor TSqldbDatabaseCommandImpl.Create;
 begin
-  FCommand := TMSSQL.Create(nil);
+  FCommand := TSQLQuery.Create(nil);
 end;
 
-destructor TSdacDatabaseCommandImpl.Destroy;
+destructor TSqldbDatabaseCommandImpl.Destroy;
 begin
-  FCommand.Free;
+  FreeAndNil(FCommand);
   inherited Destroy;
 end;
 
-procedure TSdacDatabaseCommandImpl.SetSQL(aValue: TStringList);
+procedure TSqldbDatabaseCommandImpl.SetSQL(aValue: TStringList);
 begin
   FCommand.SQL.Clear;
   FCommand.SQL.AddStrings(aValue);
 end;
 
-function TSdacDatabaseCommandImpl.SameSQL(aValue: TStringList): boolean;
+function TSqldbDatabaseCommandImpl.SameSQL(aValue: TStringList): boolean;
 begin
   Result := FCommand.SQL.Count <> aValue.Count;
   if (not Result) then
     Result := (CompareStr(FCommand.SQL.Text, aValue.Text) = 0);
 end;
 
-function TSdacDatabaseCommandImpl.Execute : integer;
+function TSqldbDatabaseCommandImpl.Execute: integer;
 begin
-  FCommand.Execute();
+  FCommand.ExecSQL();
   Result := FCommand.RowsAffected;
 end;
 
-procedure TSdacDatabaseCommandImpl.Prepare;
+procedure TSqldbDatabaseCommandImpl.Prepare;
 begin
   FCommand.Prepare;
 end;
 
-procedure TSdacDatabaseCommandImpl.Unprepare;
+procedure TSqldbDatabaseCommandImpl.Unprepare;
 begin
   FCommand.Unprepare;
 end;
 
-function TSdacDatabaseCommandImpl.ParamCount: integer;
+function TSqldbDatabaseCommandImpl.ParamCount: integer;
 begin
-  Result := FCommand.ParamCount;
+  Result := FCommand.Params.Count;
 end;
 
-procedure TSdacDatabaseCommandImpl.SetParamValue(aParam: TmQueryParameter);
+procedure TSqldbDatabaseCommandImpl.SetParamValue(aParam: TmQueryParameter);
 var
-  TmpParam : TMSParam;
+  TmpParam : TParam;
 begin
   TmpParam := FCommand.ParamByName(aParam.Name);
   case aParam.DataType of
@@ -197,112 +203,105 @@ begin
   end;
 end;
 
-function TSdacDatabaseCommandImpl.GetParam(aIndex: integer): TParam;
+function TSqldbDatabaseCommandImpl.GetParam(aIndex: integer): TParam;
 begin
   Result := FCommand.Params[aIndex];
 end;
 
-(*
-function TSdacDatabaseCommandImpl.ParamByName(const Value: string): TParam;
-begin
-  Result := FCommand.ParamByName(Value);
-end;*)
-
-function TSdacDatabaseCommandImpl.Prepared: boolean;
+function TSqldbDatabaseCommandImpl.Prepared: boolean;
 begin
   Result := FCommand.Prepared;
 end;
 
-{ TSdacDatabaseQueryImpl }
+{ TSqldbDatabaseQueryImpl }
 
-procedure TSdacDatabaseQueryImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
+procedure TSqldbDatabaseQueryImpl.SetDatabaseConnectionImpl(value: TmDatabaseConnectionImpl);
 begin
-  FConnectionImpl := value as TSdacDatabaseConnectionImpl;
-  FQuery.Connection := FConnectionImpl.FConnection;
+  FConnectionImpl := value as TSqldbDatabaseConnectionImpl;
+  FQuery.DataBase := FConnectionImpl.FConnection;
 end;
 
-function TSdacDatabaseQueryImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
+function TSqldbDatabaseQueryImpl.GetDatabaseConnectionImpl: TmDatabaseConnectionImpl;
 begin
   Result := FConnectionImpl;
 end;
 
-constructor TSdacDatabaseQueryImpl.Create;
+constructor TSqldbDatabaseQueryImpl.Create;
 begin
-  FQuery :=  TMSQuery.Create(nil);
+  FQuery := TSQLQuery.Create(nil);
+  FPrepared := false;
 end;
 
-destructor TSdacDatabaseQueryImpl.Destroy;
+destructor TSqldbDatabaseQueryImpl.Destroy;
 begin
-  FQuery.Free;
   inherited Destroy;
 end;
 
-procedure TSdacDatabaseQueryImpl.SetSQL(aValue: TStringList);
+procedure TSqldbDatabaseQueryImpl.SetSQL(aValue: TStringList);
 begin
   FQuery.SQL.Clear;
   FQuery.SQL.AddStrings(aValue);
 end;
 
-function TSdacDatabaseQueryImpl.SameSQL(aValue: TStringList): boolean;
+function TSqldbDatabaseQueryImpl.SameSQL(aValue: TStringList): boolean;
 begin
   Result := FQuery.SQL.Count <> aValue.Count;
   if (not Result) then
     Result := (CompareStr(FQuery.SQL.Text, aValue.Text) = 0);
 end;
 
-procedure TSdacDatabaseQueryImpl.Open;
+procedure TSqldbDatabaseQueryImpl.Open;
 begin
+  if not FPrepared then
+    FPrepared := true;
   FQuery.Open;
 end;
 
-procedure TSdacDatabaseQueryImpl.Close;
+procedure TSqldbDatabaseQueryImpl.Close;
 begin
   FQuery.Close;
 end;
 
-procedure TSdacDatabaseQueryImpl.Prepare;
+procedure TSqldbDatabaseQueryImpl.Prepare;
 begin
   FQuery.Prepare;
+  FPrepared := true;
 end;
 
-procedure TSdacDatabaseQueryImpl.Unprepare;
+procedure TSqldbDatabaseQueryImpl.Unprepare;
 begin
   FQuery.UnPrepare;
+  FPrepared := false;
 end;
 
-procedure TSdacDatabaseQueryImpl.First;
+procedure TSqldbDatabaseQueryImpl.First;
 begin
   FQuery.First;
 end;
 
-procedure TSdacDatabaseQueryImpl.Next;
+procedure TSqldbDatabaseQueryImpl.Next;
 begin
   FQuery.Next;
 end;
 
-function TSdacDatabaseQueryImpl.Eof: boolean;
+function TSqldbDatabaseQueryImpl.Eof: boolean;
 begin
   Result := FQuery.EOF;
 end;
 
-function TSdacDatabaseQueryImpl.AsDataset: TDataset;
+function TSqldbDatabaseQueryImpl.AsDataset: TDataset;
 begin
   Result := FQuery;
 end;
 
-(*procedure TSdacDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
+function TSqldbDatabaseQueryImpl.ParamCount: integer;
 begin
-  Result := FQuery.ParamByName(Value);
-end;*)
-
-function TSdacDatabaseQueryImpl.ParamCount: integer;
-begin
-  Result := FQuery.ParamCount;
+  Result := FQuery.Params.Count;
 end;
 
-procedure TSdacDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
+procedure TSqldbDatabaseQueryImpl.SetParamValue(aParam: TmQueryParameter);
 var
-  TmpParam : TMSParam;
+  TmpParam : TParam;
 begin
   TmpParam := FQuery.ParamByName(aParam.Name);
   case aParam.DataType of
@@ -318,91 +317,98 @@ begin
       TmpParam.AsInteger:= aParam.AsInteger;
     ptFloat:
       TmpParam.AsFloat:= aParam.AsFloat;
-    else
-      raise TmDataConnectionException.Create('Unknown parameter type');
+  else
+    raise TmDataConnectionException.Create('Unknown parameter type');
   end;
 end;
 
-function TSdacDatabaseQueryImpl.GetParam(aIndex: integer): TParam;
+function TSqldbDatabaseQueryImpl.GetParam(aIndex: integer): TParam;
 begin
   Result := FQuery.Params[aIndex];
 end;
 
-function TSdacDatabaseQueryImpl.Prepared: boolean;
+function TSqldbDatabaseQueryImpl.Prepared: boolean;
 begin
-  Result := FQuery.Prepared;
+  Result := FPrepared;
 end;
 
+{ TSqldbDatabaseConnectionImpl }
 
-{ TSdacDatabaseConnection }
-
-constructor TSdacDatabaseConnectionImpl.Create;
+procedure TSqldbDatabaseConnectionImpl.SetConnectionInfo(AValue: TmDatabaseConnectionInfo);
 begin
-  FConnection := TMSConnection.Create(nil);
-  FConnection.Options.DefaultLockTimeout := 60000;
+  inherited SetConnectionInfo(AValue);
+  if Assigned(FConnection) then
+    FreeAndNil(FConnection);
+  if (FConnectionInfo.VendorType = dvSQLServer) then
+  begin
+    FConnection := TMSSQLConnection.Create(nil);
+    FTransaction.DataBase := FConnection;
+  end;
 end;
 
-destructor TSdacDatabaseConnectionImpl.Destroy;
+constructor TSqldbDatabaseConnectionImpl.Create;
 begin
-  FConnection.Free;
+  FConnection := nil;
+  FTransaction := TSQLTransaction.Create(nil);
+end;
+
+destructor TSqldbDatabaseConnectionImpl.Destroy;
+begin
+  FreeAndNil(FTransaction);
+  FreeAndNil(FConnection);
   inherited Destroy;
 end;
 
-procedure TSdacDatabaseConnectionImpl.Connect;
+procedure TSqldbDatabaseConnectionImpl.Connect;
 begin
   if (not FConnection.Connected) then
   begin
-    FConnection.Server:= FConnectionInfo.Server;
-    FConnection.Database:= FConnectionInfo.DatabaseName;
-    FConnection.Options.Provider:= MSClasses.prAuto;
-    if (FConnectionInfo.WindowsIntegratedSecurity) then
-    begin
-      FConnection.Options.PersistSecurityInfo:= true;
-      FConnection.Authentication:= auWindows;
-    end
-    else
+    FConnection.HostName:= FConnectionInfo.Server;
+    FConnection.DatabaseName:= FConnectionInfo.DatabaseName;
+    if (not FConnectionInfo.WindowsIntegratedSecurity) then
     begin
       FConnection.Username := FConnectionInfo.UserName;
       FConnection.Password := FConnectionInfo.Password;
     end;
 
-    FConnection.Connect;
+    FConnection.Open;
   end;
 end;
 
-procedure TSdacDatabaseConnectionImpl.Close;
+procedure TSqldbDatabaseConnectionImpl.Close;
 begin
   if FConnection.Connected then
-    FConnection.Close();
+    FConnection.Close(false);
 end;
 
-function TSdacDatabaseConnectionImpl.GetName: String;
+function TSqldbDatabaseConnectionImpl.GetName: String;
 begin
-  Result := TSdacDatabaseConnectionImpl.GetImplementationName;
+  Result := TSqldbDatabaseConnectionImpl.GetImplementationName;
 end;
 
-procedure TSdacDatabaseConnectionImpl.StartTransaction;
+procedure TSqldbDatabaseConnectionImpl.StartTransaction;
 begin
-  FConnection.StartTransaction;
+  FTransaction.StartTransaction;
 end;
 
-procedure TSdacDatabaseConnectionImpl.Commit;
+procedure TSqldbDatabaseConnectionImpl.Commit;
 begin
-  FConnection.Commit;
+  FTransaction.Commit;
 end;
 
-procedure TSdacDatabaseConnectionImpl.Rollback;
+procedure TSqldbDatabaseConnectionImpl.Rollback;
 begin
-  FConnection.Rollback;
+  FTransaction.Rollback;
 end;
 
-class function TSdacDatabaseConnectionImpl.GetImplementationName: String;
+class function TSqldbDatabaseConnectionImpl.GetImplementationName: String;
 begin
-  Result := 'sdac';
+  Result := 'sqldb';
 end;
+
 
 initialization
 
-  GetDataConnectionClassesRegister.RegisterImplementations(TSdacDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TSdacDatabaseConnectionImpl, TSdacDatabaseQueryImpl, TSdacDatabaseCommandImpl);
+  GetDataConnectionClassesRegister.RegisterImplementations(TSqldbDatabaseConnectionImpl.GetImplementationName, dvSQLServer, TSqldbDatabaseConnectionImpl, TSqldbDatabaseQueryImpl, TSqldbDatabaseCommandImpl);
 
 end.

@@ -20,9 +20,13 @@ uses
 
 type
 
+  { TmDatabaseConnectionImpl }
+
   TmDatabaseConnectionImpl = class abstract
+  private
     protected
       FConnectionInfo : TmDatabaseConnectionInfo;
+      procedure SetConnectionInfo(AValue: TmDatabaseConnectionInfo); virtual;
     public
       constructor Create; virtual; abstract;
       procedure Connect; virtual; abstract;
@@ -32,7 +36,7 @@ type
       procedure Commit; virtual; abstract;
       procedure Rollback; virtual; abstract;
 
-      property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write FConnectionInfo;
+      property ConnectionInfo : TmDatabaseConnectionInfo read FConnectionInfo write SetConnectionInfo;
   end;
 
   TmDatabaseConnectionImplClass = class of TmDatabaseConnectionImpl;
@@ -79,5 +83,13 @@ type
   TmDatabaseCommandImplClass = class of TmDatabaseCommandImpl;
 
 implementation
+
+{ TmDatabaseConnectionImpl }
+
+procedure TmDatabaseConnectionImpl.SetConnectionInfo(AValue: TmDatabaseConnectionInfo);
+begin
+  if FConnectionInfo=AValue then Exit;
+  FConnectionInfo:=AValue;
+end;
 
 end.

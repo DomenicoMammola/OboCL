@@ -12,7 +12,7 @@ unit TestmXML;
 interface
 
 uses
-  Classes, SysUtils, mXML, mUtility
+  Classes, SysUtils, mXML, mUtility, mFloatsManagement
   {$IFNDEF FPC}, IOUtils, TestFramework
   {$ELSE}
   ,fpcunit, testutils, testregistry

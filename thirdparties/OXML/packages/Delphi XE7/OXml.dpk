@@ -1,0 +1,56 @@
+package OXml;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'OXml - XML library by Kluug.net'}
+{$LIBSUFFIX '_XE7'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl;
+
+contains
+  OBufferedStreams in '..\..\units\OBufferedStreams.pas',
+  ODictionary in '..\..\units\ODictionary.pas',
+  OEncoding in '..\..\units\OEncoding.pas',
+  OHashedStrings in '..\..\units\OHashedStrings.pas',
+  OTextReadWrite in '..\..\units\OTextReadWrite.pas',
+  OWideSupp in '..\..\units\OWideSupp.pas',
+  OXmlCDOM in '..\..\units\OXmlCDOM.pas',
+  OXmlLng in '..\..\units\OXmlLng.pas',
+  OXmlPDOM in '..\..\units\OXmlPDOM.pas',
+  OXmlReadWrite in '..\..\units\OXmlReadWrite.pas',
+  OXmlRTTISerialize in '..\..\units\OXmlRTTISerialize.pas',
+  OXmlSAX in '..\..\units\OXmlSAX.pas',
+  OXmlPSeq in '..\..\units\OXmlPSeq.pas',
+  OXmlCSeq in '..\..\units\OXmlCSeq.pas',
+  OXmlSerialize in '..\..\units\OXmlSerialize.pas',
+  OXmlUtils in '..\..\units\OXmlUtils.pas',
+  OXmlXPath in '..\..\units\OXmlXPath.pas';
+
+end.
+

@@ -1,0 +1,52 @@
+package OXml;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'OXml - XML library by Kluug.net'}
+{$LIBSUFFIX '_7'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  rtl,
+  vcl;
+
+contains
+  ODictionary in '..\..\units\ODictionary.pas',
+  OEncoding in '..\..\units\OEncoding.pas',
+  OHashedStrings in '..\..\units\OHashedStrings.pas',
+  OWideSupp in '..\..\units\OWideSupp.pas',
+  OXmlCDOM in '..\..\units\OXmlCDOM.pas',
+  OXmlLng in '..\..\units\OXmlLng.pas',
+  OXmlPDOM in '..\..\units\OXmlPDOM.pas',
+  OXmlSAX in '..\..\units\OXmlSAX.pas',
+  OXmlPSeq in '..\..\units\OXmlPSeq.pas',
+  OXmlCSeq in '..\..\units\OXmlCSeq.pas',
+  OXmlSerialize in '..\..\units\OXmlSerialize.pas',
+  OXmlUtils in '..\..\units\OXmlUtils.pas',
+  OXmlXPath in '..\..\units\OXmlXPath.pas',
+  OXmlReadWrite in '..\..\units\OXmlReadWrite.pas',
+  OTextReadWrite in '..\..\units\OTextReadWrite.pas',
+  OBufferedStreams in '..\..\units\OBufferedStreams.pas';
+
+end.

@@ -1,0 +1,288 @@
+OXml Change Log
+---------------
+
+Version 1.10 2016-04-06 [SVN commit: 126, https://sourceforge.net/p/oxml/code/126/]
+  - Implement extensive namespace support for DOM reading.
+  - Check length of string/buffer before calling SetLength (small performance gain).
+  - Fix TOHashedStringObjDictionary.Delete, delete also fObjects item.
+  - Add TCustomXMLWriterSettings.EscapeQuotes to force escaping single and double quotes. Patch from Luis Moreno
+  - Add TXMLNode.SelectNodesNS
+  - Fix memory leak in OXmlSAX when reading an empty document.
+  - Updated demos, added Delphi 5 demo and added information about why OXmlDOMVendor isn't supported on Delphi 5.
+
+
+Version 1.9 2015-12-07 [SVN commit: 112, https://sourceforge.net/p/oxml/code/112/]
+  ! Breaking change: TXMLNode.GetElementsByTagName (OXmlPDOM.pas and OXmlCDOM.pas) now uses recoursive search by default to comply with XML standards.
+  ! Breaking change: Fixed bug in TXMLSerializer and TXMLDeserializer: UseRoot is True now by default !
+  - Added OTrim in OWideSupp.pas.
+  - Fixed missing Math unit under non-Win FPC.
+  - Fixed bug in OXmlDOMVendor.pas: TOXmlDOMElement.getElementsByTagName and TOXmlDOMDocument.getElementsByTagName
+  - OXmlSAX.pas: added support for an external class handler that can be nestable.
+  - JSON code reworked: deleted JSON.pas, added OJsonUtils.pas, OJsonReadWrite.pas and OJsonUtf8ReadWrite.pas
+  - Added OnProgress event handlers to OXmlCDOM.pas and OXmlPDOM.pas
+  - Lazarus 1.2/FPC 2.x compatibility issues solved
+  - OXmlRTTISerialize.pas: splitted TCustomXMLRTTISerDes.Visibility into ObjectVisibility and RecordVisibility.
+  - OXmlSerialize.pas: added support for TStrings.
+  - Added TXMLNode.NodePath property (OXmlCDOM.pas, OXmlPDOM.pas).
+  - Added TXMLDeserializer.ErrorHandling property (OXmlSerialize.pas).
+  - Added TXMLRTTIDeserializer.ErrorHandling property (OXmlRTTISerialize.pas).
+  - Added TXMLDeserializeErrorHandling.dehIgnore
+  - OXmlSerialize: added support for SerDes of TCollection and TStrings when used as root object.
+  - OXmlCDOM: added TXMLNode.NodePath property
+  - Fixed xml and xmlns namespaces. They cannot be defined in an XML document.
+  - With this change, OXml should be able to be used as vendor for SOAP in Delphi.
+  - Fixed setting the xmlns attribute with SetAttributeNS.
+  - Added TSAXParser.WhiteSpaceHandling
+  - Fixed Delphi 2005 compilation
+
+
+Version 1.8 2015-05-28 [SVN commit: 86, https://sourceforge.net/p/oxml/code/86/]
+  - Added OXmlCSeq.pas (sequential parser based on OXmlCDOM).
+  ! File OXmlSeq.pas renamed to OXmlPSeq.pas to have te same format with OXmlPDOM.
+  - Added TXMLNode.CloneNode with an IXMLDocument overloaded parameter.
+  - ISOFloatToStr for Delphi 6 fixed.
+  - Fixed bug in TSAXParser.OnXMLDeclaration.
+  - Delphi XE7 packages recreated.
+  - Delphi XE8 packages recreated.
+
+
+Version 1.7 2015-04-28 [SVN commit: 76, https://sourceforge.net/p/oxml/code/76/]
+  - Compatibility with XE8.
+  - Fixed FileList demo.
+  - Completely rewritten TOVirtualHashIndex -> it's called TOVirtualHashedStrings now
+    and it has the same properties as TOHashedStrings.
+  - TOHashedStrings with object dictionary split into TOHashedStringObjDictionary. You can now use Pointer dictionary on ARC as well.
+  - Fixed various bugs on NextGEN/ARC (OJSON.pas, OTextReadWrite.pas, OXmlCDOM.pas, OXmlPDOM.pas, OXmlReadWrite.pas, OXmlRTTISerialize.pas).
+  - Unit tests now sucessfully run on all supported Delphi versions, including non-unicode, unicode, ARC and FPC/Lazarus.
+  - Added more properties to TOBufferedWriteStream.
+  - Added TOHashedStrings.OwnsObjects
+  - Added a setter to TXMLNode.NodeName and TXMLNode.NodeNameId (OXmlPDOM, OXmlCDOM).
+  - Added TSAXParser.OnXMLDeclaration
+  - Fixed bug in WideStringReplace
+  - Fixed demos
+  - C++ Builder compatibility.
+  - TOTextBuffer inserted back.
+  - Delphi packages changed with use of LIBSUFFIX. OXml.dpk is a runtime package, OXml_Designtime.dpk is a design-time package.
+
+
+Version 1.6 2015-03-25 [SVN commit: 64, https://sourceforge.net/p/oxml/code/64/]
+  - Added JSON reader/writer (beta).
+  - Compatibility with FPC trunk (3.1.1).
+  - Generics disabled in Delphi 2009 due to Delphi bugs.
+
+
+Version 1.5 2015-01-07 [SVN commit: 60, https://sourceforge.net/p/oxml/code/60/]
+  - TEncoding.GetSupportedEncodings modified to a function.
+  - Fixed bug in TEncoding in Delphi 2009 and 2010.
+  - Some Delphi 5 issues solved.
+
+
+Version 1.4 2014-12-10 [SVN commit: 58, https://sourceforge.net/p/oxml/code/58/]
+  - Fixed bug in TOWideStringList (only Delphi 5-2007).
+  - OEncoding.pas: added support for Big Endian UTF-16.
+  - OEncoding.pas: added support for UTF-7 (only Delphi 2009+ or Windows platform).
+  - OXmlSerialize.pas: added support for TCollection.
+  - OXmlRTTISerialize.pas: added support for TCollection.
+  - Small bug in TXMLWriterElement fixed.
+
+
+Version 1.3 2014-12-04 [SVN commit: 57, https://sourceforge.net/p/oxml/code/57/]
+  - Case-insensitive TOHashedStrings.
+  - Fixed bug when reading file with last #10 character.
+  - Fixed bug when reading &#0; entity (this invalid entity can be read only with StrictXML = False).
+
+
+Version 1.2 2014-11-20 [SVN commit: 56, https://sourceforge.net/p/oxml/code/56/]
+  - SelectNodeCreate can handle a whole path now. E.g. "element1/element2/@attribute".
+  - Added the aToDocument parameter to TXMLNode.CloneNode.
+  - Default line break handling of the writer changed! 
+    Now WriterSettings.LineBreak is lbLF to comply with XML standards. 
+    The functions SaveToXML use always the system line breaks.
+  - Fixed bug in ISOTryStrToBool.
+  - TXMLNode.AbsolutePath and TXMLNode.NodeLevel properties added.
+  - Resolved bugs in Delphi 2009-XE.
+  - Faster ISOStrToFloat and ISOFloatToStr functions, they are still thread-safe.
+  - FPC writer optimalizations.
+  - ORealWideString renamed to OUnicodeString
+  - Characters that are not in the target encoding are written as XML entities to the file. Works only for text nodes, cdata and attribute values.
+  - Fixed bug in OXmlSerialize.pas
+  - Removed UseIndex property from TXMLDeserializer and TXMLRTTIDeserializer (not used any more).
+  - Added XML declaration and encoding support to TXMLSerializer and TXMLRTTISerializer.
+  - Added TXMLNode.SortChildNodes, SortAttributeNodes, SortChildNodesByName, SortAttributeNodesByName
+  - Added TXMLSerializer.UseRoot and TXMLDeserializer.UseRoot + more options/attributes in WriteObject and ReadObject (ReadObjectFromNode)
+  - Added TXMLRTTISerializer.UseRoot and TXMLRTTISerializer.UseRoot + more options/attributes in WriteObject and ReadObject (ReadObjectFromNode)
+  - Fixed bug in TXMLReader.NodePathAsString
+  - RTTI serializer - added TObject in records support.
+  - RTTI serializer generic record support.
+  - OXmlPDOM and OXmlCDOM - added TXMLNode.FindChildWithIndex* functions for fast searching within ChildNodes.
+  - Added TSerializableObjectDictionary.
+  - Added TSerializableDictionary.
+
+
+Version 1.1 2014-09-24 [SVN commit: 33, https://sourceforge.net/p/oxml/code/33/]
+  - Added OXmlSerialize.pas and OXmlRTTISerialize.pas - XML serializers
+  - Added Delphi XE7 packages
+    ! because some of the OXml backend files are now part of the Delphi RTL
+      and they have the same filenames, you cannot install the design-time
+      package in XE7 any more. I am solving this issue with Embarcadero now.
+
+
+Version 1.0 2014-07-10 [SVN commit: 30, https://sourceforge.net/p/oxml/code/30/]
+  - First stable release. Leaving beta.
+  - Some bug fixes and library enhancements.
+  - License change to "CPAL 1.0" or commercial. Please refer to "\license.txt" file!
+
+
+Version 0.12 2014-04-22 [SVN commit: 27, https://sourceforge.net/p/oxml/code/27/]
+  - Compatibility bugs in connection with various compilers resolved (Delphi 2009, FPC).
+
+
+Version 0.11 2014-04-14 [SVN commit: 25, https://sourceforge.net/p/oxml/code/25/]
+  - OASIS testing suite added. OXml offers 100% XML feature coverage (without DTD's)
+    according to OASIS tests.
+  - Partial DTD support: user-defined entities can be automatically read from the DTD.
+    Not supported DTD features:
+      - Externally defined user entities (entities linking to other files).
+        (Internally defined user entities are supported!)
+      - Entity definition referencing a later defined entity.
+      - CDATA in entities.
+      - Any kind of validation is not supported for now.
+  - EntityReference node added (OXmlPDOM.pas, OXmlCDOM.pas).
+  - Some bug fixes (mostly in connection to the OASIS test suite).
+  - License change to "CPAL 1.0" or commercial. Please refer to "\license.txt" file!
+  - Probably the last version (or one of the last versions) before production state.
+
+
+Version 0.10 2014-04-09 [SVN commit: 21, https://sourceforge.net/p/oxml/code/21/]
+  - Big file (> 4 GB) support also on 32bit systems.
+  - Delphi 4 and Delphi 5 support.
+  - Namespace support.
+  - Some bug fixes.
+  - License change to MPL 1.1 only.
+
+
+Version 0.9 2014-03-11 [SVN commit: 18, https://sourceforge.net/p/oxml/code/18/]
+  - Optimized XPath engine. Now OXml's XPath is faster than OmniXML's and MSXML's.
+  - Test functions for OXmlCDOM.pas. Now OXmlCDOM can be used as well.
+    Remember that OXmlCDOM is a TObject-based DOM for OXml. 
+    The advantages are: usual programming concept, no need to dereference the nodes in FPC.
+    The disadvantages are: small performance penalty and higher memory consumption.
+    But still OXmlCDOM is faster than other interface-based DOMs.
+
+
+Version 0.8 2014-02-26 [SVN commit: 16, https://sourceforge.net/p/oxml/code/16/]
+  - New unit OXmlCDOM.pas: a testing DOM model with nodes as TObject descendants.
+  - Various bug fixes.
+
+
+Version 0.7 2014-02-14 [SVN commit: 14, https://sourceforge.net/p/oxml/code/14/]
+  - New unit OXmlDOMVendor.pas: a DOM vendor for Delphi's own TXMLDocument
+    based on OXml - the fastest DOM vendor available for Delphi.
+  - Error handling rewritten: see the ReaderSettings.ErrorHandling property.
+    OXml can simulate MSXML's, OmniXML's or DelphiXML's error handling.
+  - Added new overloaded functions:
+      * TXMLNode.XML(const aIndentType: TXMLIndentType);
+      * IXMLDocument.XML(const aIndentType: TXMLIndentType);
+
+
+Version 0.6 2014-02-11 [SVN commit: 11, https://sourceforge.net/p/oxml/code/11/]
+  - Renamed TXMLNode.SelectNodeNull to SelectNodeDummy
+  - Renamed TXMLSeqParser.PassNextChildElementHeader to SkipNextChildElementHeader
+  - Renamed TXMLSeqParser.PassNextChildNode to SkipNextChildNode
+  - D2009+: Deleted all anonymous events from TSAXParser. Old classic events were
+    replaced with anonymous events (they can be used as anonymous methods or
+    normal events).
+  - Completely reworked the TSAXAttributes list and TSAXAttribute, please see 
+    the source code or the demo if you need more information.
+  - Fixed bug in reading attributes with space before or after the equal sign.
+  
+
+Version 0.5 [SVN commit: 9, https://sourceforge.net/p/oxml/code/9/]
+  Comment in the beginning:
+  This is a commit with big changes to make OXml simpler and easier to use. I renamed
+  some units/classes/properties in order to reduce confusion and make things more straightforward.
+  I hope this is the last commit with big interface changes before the production state.
+  Sorry for the big changes, but you know, beta version... :)
+
+
+  - Renamed OXmlDOM.pas back to OXmlPDOM.pas - sorry for the confusion, I like the "OXmlDOM.pas" much more
+    but I wasn't aware that a unit of the same name ("oxmldom.pas") is already present in Delphi 6 and
+    thus OXml fails to compile there.
+  - Renamed etXMLDeclarationFinishClose to etFinishXMLDeclarationClose.
+  - Renamed TOXmlReader to TXMLReader.
+  - Renamed TOXmlWriter to TXMLWriter.
+  - Renamed all TOXml* classes to TXML*.
+  - Deleted TOXmlReader.CreateFrom* constructors:
+      Now a more "standardized" approach is used:
+      1. Create a XML reader with TOXmlReader.Create;
+      2. Open a file for parsing with TOXmlReader.Init*
+      3. Use TOXmlReader like in Version 0.4.
+      + You can call Init* on the same TOXmlReader multiple times and so
+        parse more files with the same reader.
+  - Deleted TOXmlWriter.CreateFrom* constructors:
+      Now a more "standardized" approach is used:
+      1. Create a XML writer with TOXmlWriter.Create;
+      2. Open a file for writing with TOXmlWriter.Init*
+      3. Use TOXmlWriter like in Version 0.4.
+      + You can call Init* on the same TOXmlWriter multiple times and so
+        write more files with the same reader.
+  - Deleted TXMLSeqParser.CreateFrom* constructors:
+      Now a more "standardized" approach is used:
+      1. Create a sequential parser with TXMLSeqParser.Create;
+      2. Open a file for parsing with TXMLSeqParser.Init*
+      3. Use TXMLSeqParser like in Version 0.4.
+      + You can call Init* on the same TXMLSeqParser multiple times and so
+        parse more files with the same parser.
+  - Deleted TSAXParser.CreateFrom* constructors:
+      Now a more "standardized" approach is used:
+      1. Create SAX parser with TSAXParser.Create;
+      2. Open a file and start parsing with TSAXParser.Parse* (run where you used TSAXParser.Parse).
+      3. If you stopped parsing continue with TSAXParser.ContinueParsing.
+      + You can call Parse* on the same TSAXParser multiple times and so
+        parse more files with the same parser.
+  - Removed aStop parameter from all TSAXParser events/anonymous methods. Use the StopParsing procedure instead.
+  - Added to all TSAXParser anonymous methods: the aSaxParser (= Sender) parameter.
+  - Fixed bug: TOXmlReader.ReadNextNode for NodeType=etFinishOpenElementClose the NodeName was empty.
+  - Added unit testing project for D6, D2009, FPC/Lazarus, see "unittest" directory.
+  - Changed function parameter prefixes:
+      - "a"..... constant parameter/attribute (in)
+      - "out"... variable parameter/attribute (out)
+      - "io".... variable parameter/attribute (in/out)
+      + I don't use the "out" keyword - e.g. like "SomeMethod(out outVariable: Integer) 
+        due to C++Builder compatibility.
+        Such procedures are declared as "SomeMethod(var outVariable: Integer)".
+  - More performance optimizations. In Delphi 2009+ OXmlPDOM is even faster than pure MS XML.
+    Furthermore OXmlPDOM is in D2009+ as fast as SimpleXML - maybe a little bit faster :)!
+
+Version 0.4 [SVN commit: 5, https://sourceforge.net/p/oxml/code/5/]
+  - Deleted OXmlIntfDOM.pas
+  - Renamed OXmlPDOM.pas to OXmlDOM.pas
+  - Deleted aIndentType and other parameters from IXMLDocument.SaveTo* functions, use IXMLDocument.WriterSettings instead
+  - Renamed TXmlNodeType.ntDOMDocument to ntDocument (compatibility to Delphi XML)
+  - Renamed IXMLDocument.DOMDocument to Node (compatibility to Delphi XML)
+  - Renamed IXMLDocument.DocumentNode to DocumentElement (compatibility to OmniXML/Delphi XML)
+  - Renamed IXMLNode.SelectNodesNull to SelectNodes (the same functionality as OmniXML)
+  - Moved IXMLDocument.StrictXML to IXMLDocument.WriterSettings.StrictXML or IXMLDocument.ReaderSettings.StrictXML
+  - Added IXMLDocument.ReaderSettings
+  - Added IXMLDocument.WriterSettings
+  - Added IXMLDocument.AddChild()
+  - Added IXMLNodeList.Get()
+  - Added IXMLNode.IsTextElement()
+
+Version 0.3 [SVN commit: 4, https://sourceforge.net/p/oxml/code/4/]
+  - OutputFormat: TXmlOutputFormat = (ofNone, ofFlat, ofIndent) renamed to:
+    IndentType: TXmlIndentType = (itNone, itFlat, itIndent)
+  - TOXmlWriterIndentation and TOXmlWriter merged: now TOXmlWriter supports automatic indentation.
+    Use TOXmlWriter.IndentType and TOXmlWriter.IndentString for automatic indentation.
+  - OXmlSeq.pas performance optimization - now TXMLSeqParser is as fast as OXmlPDOM.IXmlDocument.
+  - OXmlSAX.pas: changed Sender attribute in events from TObject to TSAXParser.
+  - OXmlSAX.pas: added NodePath* support - now you can get the current path in the XML document
+    in a SAX event.
+  - Added 2 demo applications (converted from OmniXML demos).
+
+Version 0.2 [SVN commit: 3, https://sourceforge.net/p/oxml/code/3/]
+  - Added OmniXML (original version) - ported to iOS/Android with some OXml units.
+  - Added "OmniXML by Kluug.net"
+
+Version 0.1
+  - initial release

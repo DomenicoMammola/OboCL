@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="OXml_Lazarus"/>
+    <Type Value="RunTimeOnly"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <OtherUnitFiles Value="..\..\units"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <Files Count="19">
+      <Item1>
+        <Filename Value="..\..\units\OBufferedStreams.pas"/>
+        <UnitName Value="OBufferedStreams"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\..\units\ODictionary.pas"/>
+        <UnitName Value="ODictionary"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\..\units\OEncoding.pas"/>
+        <UnitName Value="OEncoding"/>
+      </Item3>
+      <Item4>
+        <Filename Value="..\..\units\OHashedStrings.pas"/>
+        <UnitName Value="OHashedStrings"/>
+      </Item4>
+      <Item5>
+        <Filename Value="..\..\units\OTextReadWrite.pas"/>
+        <UnitName Value="OTextReadWrite"/>
+      </Item5>
+      <Item6>
+        <Filename Value="..\..\units\OWideSupp.pas"/>
+        <UnitName Value="OWideSupp"/>
+      </Item6>
+      <Item7>
+        <Filename Value="..\..\units\OXmlCDOM.pas"/>
+        <UnitName Value="OXmlCDOM"/>
+      </Item7>
+      <Item8>
+        <Filename Value="..\..\units\OXmlLng.pas"/>
+        <UnitName Value="OXmlLng"/>
+      </Item8>
+      <Item9>
+        <Filename Value="..\..\units\OXmlPDOM.pas"/>
+        <UnitName Value="OXmlPDOM"/>
+      </Item9>
+      <Item10>
+        <Filename Value="..\..\units\OXmlReadWrite.pas"/>
+        <UnitName Value="OXmlReadWrite"/>
+      </Item10>
+      <Item11>
+        <Filename Value="..\..\units\OXmlSAX.pas"/>
+        <UnitName Value="OXmlSAX"/>
+      </Item11>
+      <Item12>
+        <Filename Value="..\..\units\OXmlUtils.pas"/>
+        <UnitName Value="OXmlUtils"/>
+      </Item12>
+      <Item13>
+        <Filename Value="..\..\units\OXmlXPath.pas"/>
+        <UnitName Value="OXmlXPath"/>
+      </Item13>
+      <Item14>
+        <Filename Value="..\..\units\OXmlSerialize.pas"/>
+        <UnitName Value="OXmlSerialize"/>
+      </Item14>
+      <Item15>
+        <Filename Value="..\..\units\OXmlCSeq.pas"/>
+        <UnitName Value="OXmlCSeq"/>
+      </Item15>
+      <Item16>
+        <Filename Value="..\..\units\OXmlPSeq.pas"/>
+        <UnitName Value="OXmlPSeq"/>
+      </Item16>
+      <Item17>
+        <Filename Value="..\..\units\OJsonReadWrite.pas"/>
+        <UnitName Value="OJsonReadWrite"/>
+      </Item17>
+      <Item18>
+        <Filename Value="..\..\units\OJsonUtf8ReadWrite.pas"/>
+        <UnitName Value="OJsonUtf8ReadWrite"/>
+      </Item18>
+      <Item19>
+        <Filename Value="..\..\units\OJsonUtils.pas"/>
+        <UnitName Value="OJsonUtils"/>
+      </Item19>
+    </Files>
+    <RequiredPkgs Count="2">
+      <Item1>
+        <PackageName Value="LazUtils"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

@@ -83,7 +83,7 @@ type
 implementation
 
 uses
-  SysUtils, ISOTime;
+  SysUtils, mISOTime;
 
 { TImpl_oxml_mXmlElement }
 
@@ -181,7 +181,7 @@ end;
 
 procedure TImpl_oxml_mXmlElement._SetDateTimeAttribute(Name: TmXmlString; Value : TDateTime);
 begin
-  FNode^.SetAttribute(Name, ISOTime.ISODateTimeToStr(Value));
+  FNode^.SetAttribute(Name, mISOTime.ISODateTimeToStr(Value));
 end;
 
 procedure TImpl_oxml_mXmlElement._SetIntegerAttribute(Name: TmXmlString; Value: integer);

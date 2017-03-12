@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{26B71A1C-7380-4204-8A09-489F02043470}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="OXml.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="OXml_Designtime.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="OXml">
+        <MSBuild Projects="OXml.dproj"/>
+    </Target>
+    <Target Name="OXml:Clean">
+        <MSBuild Projects="OXml.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="OXml:Make">
+        <MSBuild Projects="OXml.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="OXml_Designtime">
+        <MSBuild Projects="OXml_Designtime.dproj"/>
+    </Target>
+    <Target Name="OXml_Designtime:Clean">
+        <MSBuild Projects="OXml_Designtime.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="OXml_Designtime:Make">
+        <MSBuild Projects="OXml_Designtime.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="OXml;OXml_Designtime"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="OXml:Clean;OXml_Designtime:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="OXml:Make;OXml_Designtime:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

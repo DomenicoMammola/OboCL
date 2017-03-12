@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <PersonalityInfo>
+    <Option>
+      <Option Name="Personality">Default.Personality</Option>
+      <Option Name="ProjectType"></Option>
+      <Option Name="Version">1.0</Option>
+      <Option Name="GUID">{2E759449-8E52-4016-92FF-A2CF57C62D14}</Option>
+    </Option>
+  </PersonalityInfo>
+  <Default.Personality>
+    
+    <Projects>
+      <Projects Name="OXml_2007.bpl">OXml.bdsproj</Projects>
+      <Projects Name="OXml_Designtime_2007.bpl">OXml_Designtime.bdsproj</Projects>
+      <Projects Name="Targets">OXml_2007.bpl OXml_Designtime_2007.bpl</Projects>
+    </Projects>
+    <Dependencies/>
+  </Default.Personality>
+</BorlandProject>

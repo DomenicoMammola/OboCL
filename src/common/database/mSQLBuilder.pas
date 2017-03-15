@@ -123,6 +123,10 @@ var
   i : integer;
   tempString : String;
 begin
+
+  if not Assigned(FSQLDialectExpert) then
+    raise TmDataConnectionException.Create('No database vendor was set. Unable to build definitive sql command');
+
   Result := FSQL;
   for i := 0 to FParameters.Count - 1 do
   begin

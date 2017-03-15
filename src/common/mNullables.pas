@@ -28,6 +28,20 @@ type
     property IsNull : Boolean read FIsNull write FIsNull;
   end;
 
+  { TNullableString }
+
+  TNullableString = class(TAbstractNullable)
+  private
+    FValue : String;
+    function GetValue: String;
+    procedure SetValue(AValue: String);
+  public
+    class function CreateNew(aValue: String): TNullableString; overload;
+    class function CreateNew(): TNullableString; overload;
+
+    property Value : String read GetValue write SetValue;
+  end;
+
   { TNullableUnicodeString }
 
   TNullableUnicodeString = class (TAbstractNullable)
@@ -87,6 +101,36 @@ type
 
 
 implementation
+
+{ TNullableString }
+
+function TNullableString.GetValue: String;
+begin
+  if (FIsNull) then
+       Result := null
+    else
+      Result := FValue;
+end;
+
+procedure TNullableString.SetValue(AValue: String);
+begin
+  FValue:= aValue;
+  FIsNull := False;
+end;
+
+class function TNullableString.CreateNew(aValue: String): TNullableString;
+var
+  tmp : TNullableString;
+begin
+  tmp := TNullableString.Create();
+  tmp.Value := aValue;
+  Result := tmp;
+end;
+
+class function TNullableString.CreateNew: TNullableString;
+begin
+  Result := TNullableString.Create();
+end;
 
 { TNullableDouble }
 

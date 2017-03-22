@@ -172,9 +172,6 @@ uses
   end;
 
   function TmAbstractDatabaseCommand.ParamByName(const Value: string): TmQueryParameter;
-  var
-    i : integer;
-    TempParam : TmQueryParameter;
   begin
     CreateImplementation;
     if PrepareIfNecessary then

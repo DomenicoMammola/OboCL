@@ -31,4 +31,39 @@ type
 
 implementation
 
+{ TmStringDictionaryImplDelphi }
+
+constructor TmStringDictionaryImplDelphi.Create;
+begin
+  inherited;
+  FInternalDictionary := TObjectDictionary<String,TObject>.Create();
+end;
+
+destructor TmStringDictionaryImplDelphi.Destroy;
+begin
+  FInternalDictionary.Free;
+  inherited;
+end;
+
+procedure TmStringDictionaryImplDelphi._Add(const aStringKey: String; aObject: TObject);
+begin
+  FInternalDictionary.Add(aStringKey, aObject);
+
+end;
+
+procedure TmStringDictionaryImplDelphi._Clear;
+begin
+  FInternalDictionary.Clear;
+end;
+
+function TmStringDictionaryImplDelphi._Find(const aStringKey: String): TObject;
+var
+  tmp : TObject;
+begin
+  if FInternalDictionary.TryGetValue(aStringKey, tmp) then
+    Result := tmp
+  else
+    Result := nil;
+end;
+
 end.

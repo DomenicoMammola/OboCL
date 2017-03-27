@@ -1,6 +1,8 @@
 unit TestCase1;
 
+{$IFDEF FPC}
 {$mode objfpc}{$H+}
+{$ENDIF}
 
 interface
 
@@ -57,10 +59,10 @@ begin
       obj := TMyFakeObj.Create('c');
       objList.Add(obj);
       dic.Add('c', obj);
-      AssertEquals((dic.Find('b') as TMyFakeObj).value, 'b');
-      AssertEquals((dic.Find('a') as TMyFakeObj).value, 'a');
-      AssertEquals((dic.Find('c') as TMyFakeObj).value, 'c');
-      AssertTrue(dic.Find('z') = nil);
+      CheckEquals((dic.Find('b') as TMyFakeObj).value, 'b');
+      CheckEquals((dic.Find('a') as TMyFakeObj).value, 'a');
+      CheckEquals((dic.Find('c') as TMyFakeObj).value, 'c');
+      CheckTrue(dic.Find('z') = nil);
     finally
       dic.Free;
     end;
@@ -72,7 +74,10 @@ end;
 
 
 initialization
-
+{$IFDEF FPC}
   RegisterTest(TTestCase1);
+{$ELSE}
+  RegisterTest(TTestCase1.Suite);
+{$ENDIF}
 end.
 

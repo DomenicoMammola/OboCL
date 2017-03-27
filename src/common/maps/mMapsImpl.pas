@@ -42,6 +42,7 @@ begin
   {$IFDEF FPC}
     Result := TmStringDictionaryImplFPC.Create;
   {$ELSE}
+    Result := TmStringDictionaryImplDelphi.Create;
   {$ENDIF}
 end;
 

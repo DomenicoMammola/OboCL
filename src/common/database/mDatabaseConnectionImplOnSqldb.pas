@@ -248,6 +248,7 @@ end;
 
 destructor TSqldbDatabaseQueryImpl.Destroy;
 begin
+  FreeAndNil(FQuery);
   inherited Destroy;
 end;
 

@@ -55,7 +55,31 @@ type
     property Value : UnicodeString read FValue write FValue;
   end;
 
+  { TStringObject }
+
+  TStringObject = class
+  strict private
+    FValue : String;
+  public
+    constructor Create(); overload;
+    constructor Create(aValue : String); overload;
+
+    property Value : String read FValue write FValue;
+  end;
+
 implementation
+
+{ TStringObject }
+
+constructor TStringObject.Create;
+begin
+  FValue := '';
+end;
+
+constructor TStringObject.Create(aValue: String);
+begin
+  FValue := aValue;
+end;
 
 { TUnicodeStringObject }
 

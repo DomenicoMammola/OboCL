@@ -23,9 +23,11 @@ type
   TAbstractNullable = class abstract
   protected
     FIsNull : Boolean;
+    function GetNotNull : Boolean;
   public
     constructor Create(); virtual;
     property IsNull : Boolean read FIsNull write FIsNull;
+    property NotNull : Boolean read GetNotNull;
   end;
 
   { TNullableString }
@@ -99,8 +101,49 @@ type
     property Value : Double read GetValue write SetValue;
   end;
 
+  { TNullableBoolean }
+
+  TNullableBoolean = class (TAbstractNullable)
+  private
+    FValue : Boolean;
+    function GetValue : Boolean;
+    procedure SetValue (AValue : Boolean);
+  public
+    class function CreateNew(aValue : Boolean): TNullableBoolean; overload;
+    class function CreateNew(): TNullableBoolean; overload;
+
+    property Value : Boolean read GetValue write SetValue;
+  end;
+
 
 implementation
+
+{ TNullableBoolean }
+
+function TNullableBoolean.GetValue: Boolean;
+begin
+  Result := FValue;
+end;
+
+procedure TNullableBoolean.SetValue(AValue: Boolean);
+begin
+  FValue:= aValue;
+  FIsNull := false;
+end;
+
+class function TNullableBoolean.CreateNew(aValue: Boolean): TNullableBoolean;
+var
+  tmp : TNullableBoolean;
+begin
+  tmp := TNullableBoolean.Create();
+  tmp.Value := aValue;
+  Result := tmp;
+end;
+
+class function TNullableBoolean.CreateNew: TNullableBoolean;
+begin
+  Result := TNullableBoolean.Create();
+end;
 
 { TNullableString }
 
@@ -217,6 +260,11 @@ begin
 end;
 
 { TAbstractNullable }
+
+function TAbstractNullable.GetNotNull: Boolean;
+begin
+  Result := not FIsNull;
+end;
 
 constructor TAbstractNullable.Create;
 begin

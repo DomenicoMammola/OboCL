@@ -41,6 +41,8 @@ type
     class function CreateNew(aValue: String): TNullableString; overload;
     class function CreateNew(): TNullableString; overload;
 
+    procedure Assign(aSource : TNullableString);
+
     property Value : String read GetValue write SetValue;
   end;
 
@@ -55,6 +57,8 @@ type
       class function CreateNew(aValue: UnicodeString): TNullableUnicodeString; overload;
       class function CreateNew(): TNullableUnicodeString; overload;
 
+      procedure Assign(aSource : TNullableUnicodeString);
+
       property Value : UnicodeString read GetValue write SetValue;
   end;
 
@@ -68,6 +72,8 @@ type
     public
       class function CreateNew(aValue: AnsiString): TNullableAnsiString; overload;
       class function CreateNew(): TNullableAnsiString; overload;
+
+      procedure Assign(aSource : TNullableAnsiString);
 
       property Value : AnsiString read GetValue write SetValue;
   end;
@@ -84,6 +90,8 @@ type
       class function CreateNew(aValue : TDateTime) : TNullableDateTime; overload;
       class function CreateNew() : TNullableDateTime; overload;
 
+      procedure Assign(aSource : TNullableDateTime);
+
       property Value : TDateTime read GetValue write SetValue;
   end;
 
@@ -98,6 +106,8 @@ type
     class function CreateNew(aValue : Double) : TNullableDouble; overload;
     class function CreateNew() : TNullableDouble; overload;
 
+    procedure Assign(aSource : TNullableDouble);
+
     property Value : Double read GetValue write SetValue;
   end;
 
@@ -111,6 +121,8 @@ type
   public
     class function CreateNew(aValue : Boolean): TNullableBoolean; overload;
     class function CreateNew(): TNullableBoolean; overload;
+
+    procedure Assign(aSource : TNullableBoolean);
 
     property Value : Boolean read GetValue write SetValue;
   end;
@@ -145,6 +157,14 @@ begin
   Result := TNullableBoolean.Create();
 end;
 
+procedure TNullableBoolean.Assign(aSource: TNullableBoolean);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+end;
+
 { TNullableString }
 
 function TNullableString.GetValue: String;
@@ -175,6 +195,14 @@ begin
   Result := TNullableString.Create();
 end;
 
+procedure TNullableString.Assign(aSource: TNullableString);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+end;
+
 { TNullableDouble }
 
 function TNullableDouble.GetValue: Double;
@@ -200,6 +228,14 @@ end;
 class function TNullableDouble.CreateNew: TNullableDouble;
 begin
   Result := TNullableDouble.Create();
+end;
+
+procedure TNullableDouble.Assign(aSource: TNullableDouble);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
 end;
 
 { TNullableAnsiString }
@@ -232,6 +268,14 @@ begin
   Result := TNullableAnsiString.Create();
 end;
 
+procedure TNullableAnsiString.Assign(aSource: TNullableAnsiString);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+end;
+
 { TNullableDateTime }
 
 function TNullableDateTime.GetValue: TDateTime;
@@ -257,6 +301,14 @@ end;
 class function TNullableDateTime.CreateNew: TNullableDateTime;
 begin
   Result := TNullableDateTime.Create();
+end;
+
+procedure TNullableDateTime.Assign(aSource: TNullableDateTime);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
 end;
 
 { TAbstractNullable }
@@ -301,6 +353,14 @@ end;
 class function TNullableUnicodeString.CreateNew: TNullableUnicodeString;
 begin
   Result := TNullableUnicodeString.Create();
+end;
+
+procedure TNullableUnicodeString.Assign(aSource: TNullableUnicodeString);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
 end;
 
 end.

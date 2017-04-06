@@ -24,7 +24,19 @@ type
     function _Find(const aStringKey : String) : TObject; virtual; abstract;
   end;
 
+  { TmIntegerDictionaryImpl }
+
+  TmIntegerDictionaryImpl = class
+  public
+    constructor Create; virtual; abstract;
+    procedure _Add(const aIntegerKey : integer; aObject : TObject); virtual; abstract;
+    procedure _Clear; virtual; abstract;
+    function _Find(const aIntegerKey : integer) : TObject; virtual; abstract;
+  end;
+
   function CreateTmStringDictionary : TmStringDictionaryImpl;
+  function CreateTmIntegerDictionary : TmIntegerDictionaryImpl;
+
 
 implementation
 
@@ -32,6 +44,7 @@ uses
   {$IFDEF FPC}
   mMapsImplFPC
   {$ELSE}
+  SysUtils,
   mMapsImplDelphi
   {$ENDIF}
   ;
@@ -43,6 +56,15 @@ begin
     Result := TmStringDictionaryImplFPC.Create;
   {$ELSE}
     Result := TmStringDictionaryImplDelphi.Create;
+  {$ENDIF}
+end;
+
+function CreateTmIntegerDictionary : TmIntegerDictionaryImpl;
+begin
+  {$IFDEF FPC}
+    Result := TmIntegerDictionaryImplFPC.Create;
+  {$ELSE}
+    raise Exception.Create('not implemented');
   {$ENDIF}
 end;
 

@@ -16,6 +16,9 @@ unit mNullables;
 
 interface
 
+uses
+  db;
+
 type
 
   { TAbstractNullable }
@@ -26,6 +29,8 @@ type
     function GetNotNull : Boolean;
   public
     constructor Create(); virtual;
+    function AsVariant: Variant; virtual; abstract;
+
     property IsNull : Boolean read FIsNull write FIsNull;
     property NotNull : Boolean read GetNotNull;
   end;
@@ -41,7 +46,9 @@ type
     class function CreateNew(aValue: String): TNullableString; overload;
     class function CreateNew(): TNullableString; overload;
 
-    procedure Assign(aSource : TNullableString);
+    procedure Assign(aSource : TNullableString); overload;
+    procedure Assign(aSourceField : TField); overload;
+    function AsVariant: Variant; override;
 
     property Value : String read GetValue write SetValue;
   end;
@@ -57,7 +64,9 @@ type
       class function CreateNew(aValue: UnicodeString): TNullableUnicodeString; overload;
       class function CreateNew(): TNullableUnicodeString; overload;
 
-      procedure Assign(aSource : TNullableUnicodeString);
+      procedure Assign(aSource : TNullableUnicodeString); overload;
+      procedure Assign(aSourceField : TField); overload;
+      function AsVariant: Variant; override;
 
       property Value : UnicodeString read GetValue write SetValue;
   end;
@@ -73,7 +82,9 @@ type
       class function CreateNew(aValue: AnsiString): TNullableAnsiString; overload;
       class function CreateNew(): TNullableAnsiString; overload;
 
-      procedure Assign(aSource : TNullableAnsiString);
+      procedure Assign(aSource : TNullableAnsiString); overload;
+      procedure Assign(aSourceField : TField); overload;
+      function AsVariant: Variant; override;
 
       property Value : AnsiString read GetValue write SetValue;
   end;
@@ -90,7 +101,9 @@ type
       class function CreateNew(aValue : TDateTime) : TNullableDateTime; overload;
       class function CreateNew() : TNullableDateTime; overload;
 
-      procedure Assign(aSource : TNullableDateTime);
+      procedure Assign(aSource : TNullableDateTime); overload;
+      procedure Assign(aSourceField : TField); overload;
+      function AsVariant: Variant; override;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -106,7 +119,9 @@ type
     class function CreateNew(aValue : Double) : TNullableDouble; overload;
     class function CreateNew() : TNullableDouble; overload;
 
-    procedure Assign(aSource : TNullableDouble);
+    procedure Assign(aSource : TNullableDouble); overload;
+    procedure Assign(aSourceField : TField); overload;
+    function AsVariant: Variant; override;
 
     property Value : Double read GetValue write SetValue;
   end;
@@ -122,7 +137,9 @@ type
     class function CreateNew(aValue : Boolean): TNullableBoolean; overload;
     class function CreateNew(): TNullableBoolean; overload;
 
-    procedure Assign(aSource : TNullableBoolean);
+    procedure Assign(aSource : TNullableBoolean); overload;
+    procedure Assign(aSourceField : TField); overload;
+    function AsVariant: Variant; override;
 
     property Value : Boolean read GetValue write SetValue;
   end;
@@ -165,6 +182,22 @@ begin
     Self.IsNull := true;
 end;
 
+procedure TNullableBoolean.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsBoolean;
+end;
+
+function TNullableBoolean.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
+end;
+
 { TNullableString }
 
 function TNullableString.GetValue: String;
@@ -203,6 +236,22 @@ begin
     Self.IsNull := true;
 end;
 
+procedure TNullableString.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsString;
+end;
+
+function TNullableString.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
+end;
+
 { TNullableDouble }
 
 function TNullableDouble.GetValue: Double;
@@ -236,6 +285,22 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+end;
+
+procedure TNullableDouble.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsFloat;
+end;
+
+function TNullableDouble.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
 end;
 
 { TNullableAnsiString }
@@ -276,6 +341,22 @@ begin
     Self.IsNull := true;
 end;
 
+procedure TNullableAnsiString.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsString;
+end;
+
+function TNullableAnsiString.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
+end;
+
 { TNullableDateTime }
 
 function TNullableDateTime.GetValue: TDateTime;
@@ -309,6 +390,22 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+end;
+
+procedure TNullableDateTime.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsDateTime;
+end;
+
+function TNullableDateTime.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
 end;
 
 { TAbstractNullable }
@@ -361,6 +458,22 @@ begin
     Self.Value := aSource.Value
   else
     Self.IsNull := true;
+end;
+
+procedure TNullableUnicodeString.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsWideString;
+end;
+
+function TNullableUnicodeString.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
 end;
 
 end.

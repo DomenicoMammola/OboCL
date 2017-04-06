@@ -20,7 +20,7 @@ uses
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  Forms, DB
+  Forms, DB, mVirtualFieldDefs
   ;
 
 {$REGION 'Documentation'}
@@ -140,38 +140,6 @@ type
   TRecordInfo = record
     Bookmark     : Integer;
     BookmarkFlag : TBookmarkFlag;
-  end;
-
-  { TVirtualFieldDef }
-
-  TVirtualFieldDef = class(TCollectionItem)
-  strict private
-    FName : string;
-    FDataType : TFieldType;
-    FSize : integer;
-    FId : integer;
-    FReadOnly : boolean;
-    FRequired : boolean;
-    FPrecision : integer;
-    procedure SetDataType(AValue: TFieldType);
-  public
-    constructor Create(ACollection: TCollection); override;
-    property Name : string read FName write FName;
-    property DataType : TFieldType read FDataType write SetDataType;
-    property Id : integer read FId write FId default 0;
-    property Size : integer read FSize write FSize default 0;
-    property Required : boolean read FRequired write FRequired default false;
-    property ReadOnly : boolean read FReadOnly write FReadOnly default false;
-    property Precision : integer read FPrecision write FPrecision default 0;
-  end;
-
-  TVirtualFieldDefs = class(TCollection)
-  private
-    function GetVirtualFieldDef(I: Integer): TVirtualFieldDef;
-  public
-    constructor Create;
-    function AddFieldDef: TVirtualFieldDef;
-    property VirtualFieldDefs[I: Integer]: TVirtualFieldDef read GetVirtualFieldDef; default;
   end;
 
   TVirtualDatasetDataProvider = class
@@ -484,21 +452,6 @@ begin
     Result := Result + (NativeInt(Dataset.Fields[I]) shr (I mod 16));
 end;
 
-{ TVirtualFieldDef }
-
-procedure TVirtualFieldDef.SetDataType(AValue: TFieldType);
-begin
-  if FDataType=AValue then Exit;
-  FDataType:=AValue;
-end;
-
-constructor TVirtualFieldDef.Create(ACollection: TCollection);
-begin
-  inherited;
-
-  FDataType:= ftUnknown;
-  FName := '';
-end;
 
 {$ENDREGION}
 
@@ -1391,13 +1344,13 @@ begin
     begin
       FD          := Self.FieldDefs.AddFieldDef;
       FD.Name     := CurrentField.Name;
-      FD.DataType := CurrentField.DataType;
+      FD.DataType := FromTVirtualFieldDefTypeToTFieldType(CurrentField.DataType);
       FD.Size     := CurrentField.Size;
       if CurrentField.Required then
         FD.Attributes := [faRequired];
       if ReadOnly or CurrentField.ReadOnly then
         FD.Attributes := FD.Attributes + [faReadonly];
-      if (CurrentField.DataType = ftBCD) then
+      if (CurrentField.DataType = vftBCD) then
         FD.Precision := CurrentField.Precision;
     end;
   end;
@@ -1588,23 +1541,6 @@ begin
 end;
 {$ENDREGION}
 
-{ TVirtualFieldDefs }
-
-function TVirtualFieldDefs.AddFieldDef: TVirtualFieldDef;
-begin
-  Result := Add as TVirtualFieldDef;
-end;
-
-
-constructor TVirtualFieldDefs.Create;
-begin
-  inherited Create(TVirtualFieldDef);
-end;
-
-function TVirtualFieldDefs.GetVirtualFieldDef(I: Integer): TVirtualFieldDef;
-begin
-  Result := Items[I] as TVirtualFieldDef;
-end;
 
 { TVirtualDatasetDataProvider }
 

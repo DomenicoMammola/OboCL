@@ -31,10 +31,52 @@ type
       procedure Clear;
   end;
 
+  { TmIntegerDictionary }
+
+  TmIntegerDictionary = class
+    strict private
+      FImpl : TmIntegerDictionaryImpl;
+    public
+      constructor Create();
+      destructor Destroy; override;
+
+      procedure Add(const aIntegerKey : integer; aObject: TObject);
+      function Find(const aIntegerKey : integer) : TObject;
+      procedure Clear;
+  end;
+
 
 
 
 implementation
+
+{ TmIntegerDictionary }
+
+constructor TmIntegerDictionary.Create;
+begin
+  FImpl := CreateTmIntegerDictionary;
+end;
+
+destructor TmIntegerDictionary.Destroy;
+begin
+  FImpl.Free;
+  inherited Destroy;
+end;
+
+procedure TmIntegerDictionary.Add(const aIntegerKey: integer; aObject: TObject);
+begin
+  FImpl._Add(aIntegerKey, aObject);
+end;
+
+function TmIntegerDictionary.Find(const aIntegerKey: integer): TObject;
+begin
+  Result := FImpl._Find(aIntegerKey);
+end;
+
+procedure TmIntegerDictionary.Clear;
+begin
+  FImpl._Clear;
+end;
 
 { TmStringDictionary }
 

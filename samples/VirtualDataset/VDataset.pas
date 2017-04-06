@@ -9,7 +9,7 @@ interface
 uses
   Classes, DB,
   contnrs,
-  mVirtualDataSet;
+  mVirtualDataSet, mVirtualFieldDefs;
 
 type
 
@@ -56,21 +56,18 @@ begin
   with Self.VirtualFieldDefs.AddFieldDef do
   begin
     Name := 'ValueString';
-    Id := 0;
-    DataType := ftString;
+    DataType := vftString;
     Size := 30;
   end;
   with Self.VirtualFieldDefs.AddFieldDef do
   begin
     Name := 'ValueInteger';
-    Id := 1;
-    DataType := ftInteger;
+    DataType := vftInteger;
   end;
   with Self.VirtualFieldDefs.AddFieldDef do
   begin
     Name := 'ValueFloat';
-    Id := 2;
-    DataType := ftFloat;
+    DataType := vftFloat;
   end;
 end;
 

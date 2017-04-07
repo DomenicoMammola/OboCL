@@ -744,7 +744,7 @@ begin
     ftWord:
       AVariant := Word(ABuffer^);
     ftBoolean:
-      AVariant := WordBool(ABuffer^);
+      AVariant := {$IFDEF FPC}(Integer(ABuffer^) = 1){$ELSE}WordBool(ABuffer^){$ENDIF};
     ftFloat, ftCurrency:
       AVariant := Double(ABuffer^);
     ftBlob, ftMemo, ftGraphic, ftWideMemo:
@@ -959,6 +959,7 @@ var
   {$IFDEF FPC}
   TempWideStr : WideString;
   TempWideChar: WideChar;
+  TempVariant : Variant;
   {$ENDIF}
 begin
 //  Logger.EnterMethod(Self, 'VariantToBuffer');
@@ -967,7 +968,6 @@ begin
     ftGuid, ftFixedChar, ftString:
       begin
         PAnsiChar(ABuffer)[AField.Size] := #0;
-        //ShowMessage(IntToStr(VarType(AVariant)));
         if (VarType(AVariant) = varString) or (VarType(AVariant) = varolestr) then
         begin
           Size                     := Min(Length(AVariant), AField.Size);
@@ -981,8 +981,12 @@ begin
             PAnsiChar(ABuffer)[0] := #0
           else
           begin
+//            ShowMessage(VarTypeAsText(AVariant));
+//            ShowMessage(IntToStr(integer(VarType(aVariant))));
             {$IFDEF FPC}
-            raise Exception.Create('not supported');
+            PAnsiChar(ABuffer)[0] := #0;
+//            else
+//              raise Exception.Create('not supported');
             {$ELSE}
             WideCharToMultiByte(0, 0, tagVariant(AVariant).bStrVal,
               Size + 1, ABuffer,
@@ -1058,7 +1062,12 @@ begin
       {$ENDIF}
     ftBoolean:
       begin
-        {$IFNDEF FPC}
+        {$IFDEF FPC}
+        if AVariant then
+          Integer(ABuffer^) := 1
+        else
+          Integer(ABuffer^) := 0;
+        {$ELSE}
         VarAsType(AVariant, VT_BOOL);
         WordBool(ABuffer^) := tagVariant(AVariant).vbool;
         {$ENDIF}
@@ -1268,7 +1277,7 @@ var
 begin
 //  Logger.EnterMethod(Self, 'InternalInitRecord');
   for I := 0 to Fields.Count - 1 do
-    PVariantList(Buffer + SizeOf(TRecordInfo))[I]{$IFDEF FPC}[0]{$ENDIF} := 0;
+    PVariantList(Buffer + SizeOf(TRecordInfo))[I] := 0; //{$IFDEF FPC}[0]{$ENDIF} := 0;
 //  Logger.ExitMethod(Self, 'InternalInitRecord');
 end;
 

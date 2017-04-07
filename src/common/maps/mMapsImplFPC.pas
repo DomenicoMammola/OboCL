@@ -77,7 +77,8 @@ function TmIntegerDictionaryImplFPC._Find(const aIntegerKey: integer): TObject;
 var
   tmpIndex : integer;
 begin
-  if FInternalDictionary.Find(aIntegerKey, tmpIndex) then
+  tmpIndex := FInternalDictionary.IndexOf(aIntegerKey);
+  if tmpIndex >= 0 then
   begin
     Result := FInternalDictionary.Data[tmpIndex];
   end
@@ -112,10 +113,9 @@ function TmStringDictionaryImplFPC._Find(const aStringKey: String): TObject;
 var
   tmpIndex : integer;
 begin
-  if FInternalDictionary.Find(aStringKey, tmpIndex) then
-  begin
-    Result := FInternalDictionary.Data[tmpIndex];
-  end
+  tmpIndex := FInternalDictionary.IndexOf(aStringKey);
+  if tmpIndex >= 0 then
+    Result := FInternalDictionary.Data[tmpIndex]
   else
     Result := nil;
 end;

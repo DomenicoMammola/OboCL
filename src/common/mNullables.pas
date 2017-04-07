@@ -144,8 +144,77 @@ type
     property Value : Boolean read GetValue write SetValue;
   end;
 
+  { TNullableInteger }
+
+  TNullableInteger = class(TAbstractNullable)
+  private
+    FValue : Integer;
+    function GetValue : Integer;
+    procedure SetValue(AValue: Integer);
+  public
+    class function CreateNew(aValue : Integer) : TNullableInteger; overload;
+    class function CreateNew(): TNullableInteger; overload;
+
+    procedure Assign(aSource : TNullableInteger); overload;
+    procedure Assign(aSourceField : TField); overload;
+    function AsVariant : Variant; override;
+
+    property Value : Integer read GetValue write SetValue;
+  end;
+
 
 implementation
+
+{ TNullableInteger }
+
+function TNullableInteger.GetValue: Integer;
+begin
+  Result := FValue;
+end;
+
+procedure TNullableInteger.SetValue(AValue: Integer);
+begin
+  FValue:= aValue;
+  FIsNull := false;
+end;
+
+class function TNullableInteger.CreateNew(aValue: Integer): TNullableInteger;
+var
+  tmp : TNullableInteger;
+begin
+  tmp := TNullableInteger.Create();
+  tmp.Value := aValue;
+  Result := tmp;
+end;
+
+class function TNullableInteger.CreateNew: TNullableInteger;
+begin
+  Result := TNullableInteger.Create();
+end;
+
+procedure TNullableInteger.Assign(aSource: TNullableInteger);
+begin
+  if not aSource.IsNull then
+    Self.Value := aSource.Value
+  else
+    Self.IsNull := true;
+end;
+
+procedure TNullableInteger.Assign(aSourceField: TField);
+begin
+  if aSourceField.IsNull then
+    Self.IsNull:= true
+  else
+    Self.Value:= aSourceField.AsInteger;
+end;
+
+function TNullableInteger.AsVariant: Variant;
+begin
+  if Self.FIsNull then
+    Result := Null
+  else
+    Result := FValue;
+end;
 
 { TNullableBoolean }
 

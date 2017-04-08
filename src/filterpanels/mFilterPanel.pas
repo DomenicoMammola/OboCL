@@ -22,10 +22,14 @@ uses
 
 type
 
+
   { TmFilterConditionPanel }
 
   TmFilterConditionPanel = class (TCustomPanel)
+  private
+    procedure SetFlex(AValue: integer);
   protected
+    FFlex : integer;
     function CreateStandardLabel : TLabel;
     function FormatFilterCaption (aValue : String) : String;
   public
@@ -33,6 +37,8 @@ type
     procedure SetFilterCaption (aValue : String); virtual; abstract;
     function GetFilterValue : Variant; virtual; abstract;
     procedure Clear; virtual; abstract;
+
+    property Flex : integer read FFlex write SetFlex;
   end;
 
   { TmDateFilterConditionPanel }
@@ -105,6 +111,9 @@ implementation
 
 uses
   SysUtils;
+
+const
+  DEFAULT_FLEX_WIDTH = 50;
 
 { TmExecuteFilterPanel }
 
@@ -262,6 +271,13 @@ end;
 
 { TmFilterConditionPanel }
 
+procedure TmFilterConditionPanel.SetFlex(AValue: integer);
+begin
+  if FFlex=AValue then Exit;
+  FFlex:=AValue;
+  Self.Width := FFlex * DEFAULT_FLEX_WIDTH;
+end;
+
 function TmFilterConditionPanel.CreateStandardLabel: TLabel;
 begin
   Result := TLabel.Create(Self);
@@ -285,7 +301,8 @@ begin
   inherited Create(TheOwner);
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
-  Self.Width := 100;
+  Self.FFlex := 2;
+  Self.Width := Self.FFlex * DEFAULT_FLEX_WIDTH;
   Self.Caption := '';
   Self.Height := 40;
 end;

@@ -17,12 +17,11 @@ unit mFilterPanel;
 interface
 
 uses
-  Controls, Classes, StdCtrls, StrUtils,
-  ExtCtrls, EditBtn;
+  Controls, Classes, StdCtrls, StrUtils, Contnrs,
+  ExtCtrls, EditBtn,
+  mFilter, mBaseClassesAsObjects;
 
 type
-
-
   { TmFilterConditionPanel }
 
   TmFilterConditionPanel = class (TCustomPanel)
@@ -30,15 +29,22 @@ type
     procedure SetFlex(AValue: integer);
   protected
     FFlex : integer;
+    FFieldName : String;
+    FFilterOperator : TmFilterOperator;
     function CreateStandardLabel : TLabel;
     function FormatFilterCaption (aValue : String) : String;
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); virtual; abstract;
+
     function GetFilterValue : Variant; virtual; abstract;
+
+    function IsEmpty : boolean; virtual; abstract;
     procedure Clear; virtual; abstract;
 
     property Flex : integer read FFlex write SetFlex;
+    property FieldName : String read FFieldName write FFieldName;
+    property FilterOperator : TmFilterOperator read FFilterOperator write FFilterOperator;
   end;
 
   { TmDateFilterConditionPanel }
@@ -51,6 +57,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
     function GetFilterValue : Variant; override;
+    function IsEmpty : boolean; override;
     procedure Clear; override;
   end;
 
@@ -64,6 +71,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
     function GetFilterValue : Variant; override;
+    function IsEmpty : boolean; override;
     procedure Clear; override;
   end;
 
@@ -73,11 +81,19 @@ type
   private
     FLabel : TLabel;
     FCombobox: TComboBox;
+    FGarbage : TObjectList;
   public
     constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
     procedure SetFilterCaption (aValue : String); override;
     function GetFilterValue : Variant; override;
+    procedure AddItem (aValue : String); overload;
+    procedure AddItem (aLabel : String; aValue : Variant); overload;
+    procedure ClearItems;
+    procedure OptimalWidth;
+
     procedure Clear; override;
+    function IsEmpty : boolean; override;
   end;
 
   { TmExecuteFilterPanel }
@@ -86,11 +102,20 @@ type
   private
     FClearButton : TButton;
     FFilterButton : TButton;
+    FOnClickClear : TNotifyEvent;
+    FOnClickFilter : TNotifyEvent;
+
+    procedure InternalOnClickClear (Sender: TObject);
+    procedure InternalOnClickFilter (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
     function GetFilterValue : Variant; override;
     procedure Clear; override;
+    function IsEmpty : boolean; override;
+
+    property OnClickClear : TNotifyEvent read FOnClickClear write FOnClickClear;
+    property OnClickFilter : TNotifyEvent read FOnClickFilter write FOnClickFilter;
   end;
 
   { TmFilterPanel }
@@ -104,18 +129,32 @@ type
 
     procedure AddFilterCondition (aPanel : TmFilterConditionPanel);
     procedure ClearAll();
+    procedure GetFilters (aFilters : TmFilters);
   end;
 
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils,
+  Windows;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
 
 { TmExecuteFilterPanel }
+
+procedure TmExecuteFilterPanel.InternalOnClickClear(Sender: TObject);
+begin
+  If Assigned(FOnClickClear) then
+    FOnClickClear(Sender);
+end;
+
+procedure TmExecuteFilterPanel.InternalOnClickFilter(Sender: TObject);
+begin
+  if Assigned(FOnClickFilter) then
+    FOnClickFilter(Sender);
+end;
 
 constructor TmExecuteFilterPanel.Create(TheOwner: TComponent);
 begin
@@ -129,6 +168,10 @@ begin
   FFilterButton.Parent := Self;
   FFilterButton.Align := alClient;
   FFilterButton.Caption := 'Filtra';
+  FOnClickClear:= nil;
+  FOnClickFilter:= nil;
+  FClearButton.OnClick:= Self.InternalOnClickClear;
+  FFilterButton.OnClick:= Self.InternalOnClickFilter;
 end;
 
 procedure TmExecuteFilterPanel.SetFilterCaption(aValue: String);
@@ -146,7 +189,13 @@ begin
   // do nothing
 end;
 
+function TmExecuteFilterPanel.IsEmpty: boolean;
+begin
+  Result := true;
+end;
+
 { TmFilterPanel }
+
 
 constructor TmFilterPanel.Create(AOwner: TComponent);
 begin
@@ -180,6 +229,26 @@ begin
   end;
 end;
 
+procedure TmFilterPanel.GetFilters(aFilters: TmFilters);
+var
+  i : integer;
+  tmp : TmFilterConditionPanel;
+begin
+  for i := 0 to FFilterConditionPanels.Count - 1 do
+  begin
+    tmp := TmFilterConditionPanel(FFilterConditionPanels.Items[i]);
+    if not tmp.IsEmpty then
+    begin
+      with aFilters.Add do
+      begin
+        FieldName:= tmp.FieldName;
+        FilterOperator:= tmp.FilterOperator;
+        Value:= tmp.GetFilterValue;
+      end;
+    end;
+  end;
+end;
+
 { TmEditFilterConditionPanel }
 
 constructor TmEditFilterConditionPanel.Create(TheOwner: TComponent);
@@ -205,6 +274,11 @@ begin
     Result := FEdit.Text;
 end;
 
+function TmEditFilterConditionPanel.IsEmpty: boolean;
+begin
+  Result := (FEdit.Text = '');
+end;
+
 procedure TmEditFilterConditionPanel.Clear;
 begin
   FEdit.Text:= '';
@@ -219,7 +293,15 @@ begin
   FComboBox.Parent := Self;
   FComboBox.Align:= alBottom;
   FComboBox.Style:= csDropDownList;
+  FComboBox.DropDownCount:= 20;
   FLabel := Self.CreateStandardLabel;
+  FGarbage := TObjectList.Create(true);
+end;
+
+destructor TmComboFilterConditionPanel.Destroy;
+begin
+  FGarbage.Free;
+  inherited Destroy;
 end;
 
 procedure TmComboFilterConditionPanel.SetFilterCaption(aValue: String);
@@ -232,12 +314,85 @@ begin
   if FComboBox.ItemIndex < 0 then
     Result := Null
   else
-    Result := FComboBox.Items[FComboBox.ItemIndex];
+    Result := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
+end;
+
+(*
+function TmComboFilterConditionPanel.GetFilterObject: TObject;
+begin
+  if FComboBox.ItemIndex < 0 then
+    Result := nil
+  else
+    Result := FComboBox.Items.Objects[FComboBox.ItemIndex];
+end;
+
+function TmComboFilterConditionPanel.GetFilterTag: NativeInt;
+begin
+  inherited;
+  if FComboBox.ItemIndex >= 0 then
+    Result := NativeInt(pointer(FComboBox.Items.Objects[FComboBox.ItemIndex]));
+end;
+*)
+
+procedure TmComboFilterConditionPanel.AddItem(aValue: String);
+begin
+  Self.AddItem(aValue, aValue);
+end;
+
+procedure TmComboFilterConditionPanel.AddItem(aLabel: String; aValue: Variant);
+var
+  sh : TVariantObject;
+begin
+  sh := TVariantObject.Create(aValue);
+  FGarbage.Add(sh);
+  FComboBox.AddItem(aLabel, sh);
+end;
+
+procedure TmComboFilterConditionPanel.ClearItems;
+begin
+  FCombobox.Items.Clear;
+  FGarbage.Clear;
+end;
+
+procedure TmComboFilterConditionPanel.OptimalWidth;
+// Code from: https://www.thoughtco.com/sizing-the-combobox-drop-down-width-1058301
+const
+  HORIZONTAL_PADDING = 4;
+var
+  itemsFullWidth: integer;
+  idx: integer;
+  itemWidth: integer;
+begin
+  itemsFullWidth := 0;
+
+  // get the max needed with of the items in dropdown state
+  for idx := 0 to -1 + FCombobox.Items.Count do
+  begin
+    itemWidth := FCombobox.Canvas.TextWidth(FCombobox.Items[idx]);
+    Inc(itemWidth, 2 * HORIZONTAL_PADDING);
+    if (itemWidth > itemsFullWidth) then itemsFullWidth := itemWidth;
+  end;
+
+  // set the width of drop down if needed
+  if (itemsFullWidth > FCombobox.Width) then
+  begin
+    //check if there would be a scroll bar
+    if FCombobox.DropDownCount < FCombobox.Items.Count then
+      itemsFullWidth := itemsFullWidth + GetSystemMetrics(SM_CXVSCROLL);
+
+    SendMessage(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth, 0);
+  end;
 end;
 
 procedure TmComboFilterConditionPanel.Clear;
 begin
   FCombobox.ItemIndex:= -1;
+  FCombobox.Text:= '';
+end;
+
+function TmComboFilterConditionPanel.IsEmpty: boolean;
+begin
+  Result := (FCombobox.ItemIndex < 0);
 end;
 
 { TmDateFilterConditionPanel }
@@ -262,6 +417,11 @@ begin
     Result := Null
   else
     Result := FDateEdit.Date;
+end;
+
+function TmDateFilterConditionPanel.IsEmpty: boolean;
+begin
+  Result := (trim(FDateEdit.Text) = '');
 end;
 
 procedure TmDateFilterConditionPanel.Clear;
@@ -305,6 +465,8 @@ begin
   Self.Width := Self.FFlex * DEFAULT_FLEX_WIDTH;
   Self.Caption := '';
   Self.Height := 40;
+  Self.FFilterOperator:= foUnknown;
 end;
+
 
 end.

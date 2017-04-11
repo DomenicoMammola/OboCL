@@ -49,6 +49,8 @@ type
     procedure Assign(aSource : TNullableString); overload;
     procedure Assign(aSourceField : TField); overload;
     function AsVariant: Variant; override;
+    procedure Trim();
+    function ToString : String;
 
     property Value : String read GetValue write SetValue;
   end;
@@ -105,6 +107,8 @@ type
       procedure Assign(aSourceField : TField); overload;
       function AsVariant: Variant; override;
 
+      function ToString (aShowTime : boolean) : String;
+
       property Value : TDateTime read GetValue write SetValue;
   end;
 
@@ -158,12 +162,16 @@ type
     procedure Assign(aSource : TNullableInteger); overload;
     procedure Assign(aSourceField : TField); overload;
     function AsVariant : Variant; override;
+    function ToString : String;
 
     property Value : Integer read GetValue write SetValue;
   end;
 
 
 implementation
+
+uses
+  SysUtils;
 
 { TNullableInteger }
 
@@ -214,6 +222,14 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+function TNullableInteger.ToString: String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+    Result := IntToStr(Self.Value);
 end;
 
 { TNullableBoolean }
@@ -319,6 +335,20 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+procedure TNullableString.Trim();
+begin
+  if not Self.IsNull then
+    Self.Value:= SysUtils.Trim(Self.Value);
+end;
+
+function TNullableString.ToString: String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+    Result := Self.Value;
 end;
 
 { TNullableDouble }
@@ -475,6 +505,21 @@ begin
     Result := Null
   else
     Result := FValue;
+end;
+
+function TNullableDateTime.ToString(aShowTime: boolean): String;
+begin
+  if Self.IsNull then
+    Result := ''
+  else
+  begin
+    if (aShowTime) then
+    begin
+      Result := DateTimeToStr(Value, true);
+    end
+    else
+      Result := DateToStr(Value);
+  end;
 end;
 
 { TAbstractNullable }

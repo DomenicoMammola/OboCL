@@ -29,6 +29,7 @@ type
       procedure Add(const aStringKey : String; aObject : TObject);
       function Find(const aStringKey : String) : TObject;
       procedure Clear;
+      function Count : integer;
   end;
 
   { TmIntegerDictionary }
@@ -43,6 +44,7 @@ type
       procedure Add(const aIntegerKey : integer; aObject: TObject);
       function Find(const aIntegerKey : integer) : TObject;
       procedure Clear;
+      function Count : integer;
   end;
 
 
@@ -78,6 +80,11 @@ begin
   FImpl._Clear;
 end;
 
+function TmIntegerDictionary.Count: integer;
+begin
+  Result := FImpl._Count;
+end;
+
 { TmStringDictionary }
 
 constructor TmStringDictionary.Create;
@@ -104,6 +111,11 @@ end;
 procedure TmStringDictionary.Clear;
 begin
   FImpl._Clear;
+end;
+
+function TmStringDictionary.Count: integer;
+begin
+  Result := FImpl._Count;
 end;
 
 end.

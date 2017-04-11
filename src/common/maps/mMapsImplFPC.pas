@@ -31,6 +31,7 @@ type
     procedure _Add(const aStringKey : String; aObject : TObject); override;
     procedure _Clear; override;
     function _Find(const aStringKey : String) : TObject; override;
+    function _Count: integer; override;
   end;
 
   TmIntegerDictionary = specialize TFPGMap<integer, TObject>;
@@ -46,6 +47,7 @@ type
     procedure _Add(const aIntegerKey : integer; aObject : TObject); override;
     procedure _Clear; override;
     function _Find(const aIntegerKey : integer) : TObject; override;
+    function _Count : integer; override;
   end;
 
 implementation
@@ -86,6 +88,11 @@ begin
     Result := nil;
 end;
 
+function TmIntegerDictionaryImplFPC._Count: integer;
+begin
+  Result := FInternalDictionary.Count;
+end;
+
 { TmStringDictionaryImplFPC }
 
 constructor TmStringDictionaryImplFPC.Create;
@@ -118,6 +125,11 @@ begin
     Result := FInternalDictionary.Data[tmpIndex]
   else
     Result := nil;
+end;
+
+function TmStringDictionaryImplFPC._Count: integer;
+begin
+  Result := FInternalDictionary.Count;
 end;
 
 end.

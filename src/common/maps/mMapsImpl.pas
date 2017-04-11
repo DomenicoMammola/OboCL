@@ -22,6 +22,7 @@ type
     procedure _Add(const aStringKey : String; aObject : TObject); virtual; abstract;
     procedure _Clear; virtual; abstract;
     function _Find(const aStringKey : String) : TObject; virtual; abstract;
+    function _Count : integer; virtual; abstract;
   end;
 
   { TmIntegerDictionaryImpl }
@@ -32,6 +33,7 @@ type
     procedure _Add(const aIntegerKey : integer; aObject : TObject); virtual; abstract;
     procedure _Clear; virtual; abstract;
     function _Find(const aIntegerKey : integer) : TObject; virtual; abstract;
+    function _Count : integer; virtual; abstract;
   end;
 
   function CreateTmStringDictionary : TmStringDictionaryImpl;

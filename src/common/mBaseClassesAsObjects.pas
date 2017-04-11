@@ -67,7 +67,31 @@ type
     property Value : String read FValue write FValue;
   end;
 
+  { TVariantObject }
+
+  TVariantObject = class
+  strict private
+    FValue : Variant;
+  public
+    constructor Create(); overload;
+    constructor Create(aValue : Variant); overload;
+
+    property Value : Variant read FValue write FValue;
+  end;
+
 implementation
+
+{ TVariantObject }
+
+constructor TVariantObject.Create;
+begin
+  FValue := Null;
+end;
+
+constructor TVariantObject.Create(aValue: Variant);
+begin
+  FValue := aValue;
+end;
 
 { TStringObject }
 

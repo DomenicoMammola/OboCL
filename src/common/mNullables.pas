@@ -50,7 +50,7 @@ type
     procedure Assign(aSourceField : TField); overload;
     function AsVariant: Variant; override;
     procedure Trim();
-    function ToString : String;
+    function AsString : String;
 
     property Value : String read GetValue write SetValue;
   end;
@@ -107,7 +107,7 @@ type
       procedure Assign(aSourceField : TField); overload;
       function AsVariant: Variant; override;
 
-      function ToString (aShowTime : boolean) : String;
+      function AsString (aShowTime : boolean) : String;
 
       property Value : TDateTime read GetValue write SetValue;
   end;
@@ -162,7 +162,7 @@ type
     procedure Assign(aSource : TNullableInteger); overload;
     procedure Assign(aSourceField : TField); overload;
     function AsVariant : Variant; override;
-    function ToString : String;
+    function AsString : String;
 
     property Value : Integer read GetValue write SetValue;
   end;
@@ -224,7 +224,7 @@ begin
     Result := FValue;
 end;
 
-function TNullableInteger.ToString: String;
+function TNullableInteger.AsString: String;
 begin
   if Self.IsNull then
     Result := ''
@@ -343,7 +343,7 @@ begin
     Self.Value:= SysUtils.Trim(Self.Value);
 end;
 
-function TNullableString.ToString: String;
+function TNullableString.AsString: String;
 begin
   if Self.IsNull then
     Result := ''
@@ -507,7 +507,7 @@ begin
     Result := FValue;
 end;
 
-function TNullableDateTime.ToString(aShowTime: boolean): String;
+function TNullableDateTime.AsString(aShowTime: boolean): String;
 begin
   if Self.IsNull then
     Result := ''

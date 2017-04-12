@@ -1,0 +1,47 @@
+object mLookupWindow: TmLookupWindow
+  Left = 1795
+  Height = 548
+  Top = 279
+  Width = 801
+  Caption = 'Find a value'
+  ClientHeight = 548
+  ClientWidth = 801
+  OnCreate = FormCreate
+  OnShow = FormShow
+  Position = poMainFormCenter
+  LCLVersion = '1.6.4.0'
+  object BottomPanel: TPanel
+    Left = 0
+    Height = 50
+    Top = 498
+    Width = 801
+    Align = alBottom
+    ClientHeight = 50
+    ClientWidth = 801
+    TabOrder = 0
+    object OkBtn: TBitBtn
+      Left = 633
+      Height = 30
+      Top = 8
+      Width = 75
+      Anchors = [akRight, akBottom]
+      Default = True
+      DefaultCaption = True
+      Kind = bkOK
+      OnClick = OkBtnClick
+      TabOrder = 0
+    end
+    object CancelBtn: TBitBtn
+      Left = 713
+      Height = 30
+      Top = 8
+      Width = 75
+      Anchors = [akRight, akBottom]
+      Cancel = True
+      DefaultCaption = True
+      Kind = bkCancel
+      ModalResult = 2
+      TabOrder = 1
+    end
+  end
+end

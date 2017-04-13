@@ -11,7 +11,7 @@
 unit mSQLServerSQLDialect;
 
 {$IFDEF FPC}
-{$MODE DELPHI}
+  {$MODE DELPHI}
 {$ENDIF}
 
 interface
@@ -20,12 +20,16 @@ function DateTimeToSQLString (aValue : TDateTime) : String;
 function DateToSQLString(aValue : TDate) : String;
 function FloatToSQLString(aValue : Double): String;
 function StringToSQLString(aValue : String): String;
-
+function WideStringToSQLString (aValue : WideString): String;
 
 implementation
 
 uses
-  DateUtils, SysUtils, mUtility;
+  DateUtils, SysUtils,
+  {$IFDEF FPC}
+  LazUTF8,
+  {$ENDIF}
+  mUtility;
 
 function DateTimeToSQLString (aValue : TDateTime) : String;
 var
@@ -52,6 +56,17 @@ end;
 function StringToSQLString(aValue : String): String;
 begin
   Result := '''' + StringReplace(aValue, '''', '''''', [rfReplaceAll]) + '''';
+end;
+
+function WideStringToSQLString(aValue: WideString): String;
+var
+  tmp, tmp2 : WideString;
+  sqlString : WideString;
+begin
+  tmp := LazUTF8.UTF8ToUTF16('''');
+  tmp2 := LazUTF8.UTF8ToUTF16('''''');
+  sqlString := LazUTF8.UTF8ToUTF16('''') + WideStringReplace(aValue, tmp, tmp2, [rfReplaceAll]) + tmp;
+  Result := LazUTF8.UTF16ToUTF8(sqlString);
 end;
 
 end.

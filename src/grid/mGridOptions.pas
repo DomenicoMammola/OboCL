@@ -8,7 +8,7 @@ interface
 
 uses
   Contnrs, Grids, DBGrids,
-  mMaps;
+  mMaps, mXML;
 
 type
 
@@ -20,7 +20,6 @@ type
     FFieldName : String;
     FDisplayLabel : String;
     FVisible : boolean;
-    FDispalyFormat : String;
     FWidth : integer;
     FSortOrder : integer;
   public
@@ -29,6 +28,9 @@ type
 
     procedure ExtractFromColumn (aColumn : TColumn);
     procedure ApplyToColumn(aColumn : TColumn);
+
+    procedure SaveToXmlElement (aElement : TmXmlElement);
+    procedure LoadFromXmlElement(aElement : TmXmlElement);
 
     property DisplayLabel : String read FDisplayLabel write FDisplayLabel;
     property Visible : Boolean read FVisible write FVisible;
@@ -48,6 +50,9 @@ type
     destructor Destroy; override;
     function AddOptionsForField (aFieldName : String) : TmGridFieldOptions;
     function GetOptionsForField (aFieldName : String) : TmGridFieldOptions;
+
+    procedure SaveToXmlElement (aElement : TmXmlElement);
+    procedure LoadFromXmlElement (aElement : TmXmlElement);
 
     procedure ExtractFromGrid(aGrid : TDBGrid);
     procedure ApplyToGrid(aGrid : TDBGrid);
@@ -163,6 +168,24 @@ begin
   aColumn.Width:= Self.Width;
   if Self.SortOrder >= 0 then
     aColumn.Index := Self.SortOrder;
+end;
+
+procedure TmGridFieldOptions.SaveToXmlElement(aElement: TmXmlElement);
+begin
+  aElement.SetAttribute('visible', BoolToStr(FVisible, true));
+  aElement.SetAttribute('displayFormat', FDisplayFormat);
+  aElement.SetAttribute('displayLabel', FDisplayLabel);
+  aElement.SetIntegerAttribute('width', FWidth);
+  aElement.SetIntegerAttribute('sortOrder', FSortOrder);
+end;
+
+procedure TmGridFieldOptions.LoadFromXmlElement(aElement: TmXmlElement);
+begin
+  FVisible := StrToBool(aElement.GetAttribute('visible', 'true'));
+  FDisplayFormat := aElement.GetAttribute('displayFormat', '');
+  FDisplayLabel := aElement.GetAttribute('displayLabel', '');
+  FWidth := aElement.GetIntegerAttribute('width', -1);
+  FSortOrder := aElement.GetIntegerAttribute('sortOrder', -1);
 end;
 
 end.

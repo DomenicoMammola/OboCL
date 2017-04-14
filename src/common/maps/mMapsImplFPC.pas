@@ -32,6 +32,7 @@ type
     procedure _Clear; override;
     function _Find(const aStringKey : String) : TObject; override;
     function _Count: integer; override;
+    procedure _Remove(const aStringKey : String); override;
   end;
 
   TmIntegerDictionary = specialize TFPGMap<integer, TObject>;
@@ -48,6 +49,7 @@ type
     procedure _Clear; override;
     function _Find(const aIntegerKey : integer) : TObject; override;
     function _Count : integer; override;
+    procedure _Remove(const aIntegerKey : integer); override;
   end;
 
 implementation
@@ -93,6 +95,11 @@ begin
   Result := FInternalDictionary.Count;
 end;
 
+procedure TmIntegerDictionaryImplFPC._Remove(const aIntegerKey: integer);
+begin
+  FInternalDictionary.Remove(aIntegerKey);
+end;
+
 { TmStringDictionaryImplFPC }
 
 constructor TmStringDictionaryImplFPC.Create;
@@ -130,6 +137,11 @@ end;
 function TmStringDictionaryImplFPC._Count: integer;
 begin
   Result := FInternalDictionary.Count;
+end;
+
+procedure TmStringDictionaryImplFPC._Remove(const aStringKey: String);
+begin
+  FInternalDictionary.Remove(aStringKey);
 end;
 
 end.

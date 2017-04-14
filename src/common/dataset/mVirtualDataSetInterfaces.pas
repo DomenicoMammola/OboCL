@@ -17,7 +17,8 @@ unit mVirtualDataSetInterfaces;
 interface
 
 type
-  TVDDatum = class abstract
+
+(*  TVDDatum = class abstract
   public
     function GetPropertyByFieldName(aFieldName : String) : Variant; virtual; abstract;
   end;
@@ -26,6 +27,15 @@ type
   public
     function Count : integer; virtual; abstract;
     function GetDatum(aIndex : integer) : TVDDatum; virtual; abstract;
+  end;*)
+
+  IVDDatum = interface
+    function GetPropertyByFieldName(aFieldName : String) : Variant;
+  end;
+
+  IVDListDataProvider = interface
+    function Count : integer;
+    function GetDatum(aIndex : integer) : IVDDatum;
   end;
 
 implementation

@@ -25,12 +25,14 @@ type
 
   TReadOnlyVirtualDatasetProvider = class (TVirtualDatasetDataProvider)
   strict private
-    FDataProvider : TVDListDataProvider;
+//    FDataProvider : TVDListDataProvider;
+    FIDataProvider : IVDListDataProvider;
   public
     constructor Create; override;
     destructor Destroy; override;
 
-    procedure Init (aDataProvider : TVDListDataProvider);
+//    procedure Init (aDataProvider : TVDListDataProvider); overload;
+    procedure Init (aDataProvider : IVDListDataProvider); //overload;
 
     procedure GetFieldValue (AField: TField; AIndex: Integer; var AValue: variant); override;
     procedure DeleteRecord (AIndex :integer); override;
@@ -49,6 +51,7 @@ uses
 constructor TReadOnlyVirtualDatasetProvider.Create;
 begin
   inherited Create;
+  //FDataProvider := nil;
 end;
 
 destructor TReadOnlyVirtualDatasetProvider.Destroy;
@@ -56,14 +59,22 @@ begin
   inherited Destroy;
 end;
 
+(*
 procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: TVDListDataProvider);
 begin
   FDataProvider := aDataProvider;
+end;*)
+
+procedure TReadOnlyVirtualDatasetProvider.Init(aDataProvider: IVDListDataProvider);
+begin
+//  FDataProvider := nil;
+  FIDataProvider := aDataProvider;
 end;
 
 procedure TReadOnlyVirtualDatasetProvider.GetFieldValue(AField: TField; AIndex: Integer; var AValue: variant);
 var
-  tmp : TVDDatum;
+  //tmp : TVDDatum;
+  tmpI : IVDDatum;
 begin
   AValue := Null;
   if (aIndex >= 0) then
@@ -72,8 +83,16 @@ begin
      aValue := aIndex
    else
    begin
-     tmp := FDataProvider.GetDatum(AIndex);
-     aValue := tmp.GetPropertyByFieldName(AField.FieldName);
+(*     if Assigned(FDataProvider) then
+     begin
+       tmp := FDataProvider.GetDatum(AIndex);
+       aValue := tmp.GetPropertyByFieldName(AField.FieldName);
+     end
+     else
+     begin*)
+       tmpI := FIDataProvider.GetDatum(aIndex);
+       aValue := tmpI.GetPropertyByFieldName(AField.FieldName);
+//     end;
    end;
   end;
 end;
@@ -95,7 +114,10 @@ end;
 
 function TReadOnlyVirtualDatasetProvider.GetRecordCount: integer;
 begin
-  Result := FDataProvider.Count;
+(*  if Assigned(FDataProvider) then
+    Result := FDataProvider.Count
+  else*)
+    Result := FIDataProvider.Count;
 end;
 
 end.

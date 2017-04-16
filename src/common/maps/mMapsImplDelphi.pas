@@ -27,6 +27,21 @@ type
     procedure _Add(const aStringKey : String; aObject : TObject); override;
     procedure _Clear; override;
     function _Find(const aStringKey : String) : TObject; override;
+    function _Count : integer; override;
+    procedure _Remove(const aStringKey : String); override;
+  end;
+
+  TmIntegerDictionaryImplDelphi = class (TmIntegerDictionaryImpl)
+  strict private
+    FInternalDictionary : TObjectDictionary<Integer,TObject>;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure _Add(const aIntegerKey : integer; aObject : TObject); override;
+    procedure _Clear; override;
+    function _Find(const aIntegerKey : integer) : TObject; override;
+    function _Count : integer; override;
+    procedure _Remove(const aIntegerKey : integer); override;
   end;
 
 implementation
@@ -56,6 +71,11 @@ begin
   FInternalDictionary.Clear;
 end;
 
+function TmStringDictionaryImplDelphi._Count: integer;
+begin
+  Result := FInternalDictionary.Count;
+end;
+
 function TmStringDictionaryImplDelphi._Find(const aStringKey: String): TObject;
 var
   tmp : TObject;
@@ -64,6 +84,55 @@ begin
     Result := tmp
   else
     Result := nil;
+end;
+
+procedure TmStringDictionaryImplDelphi._Remove(const aStringKey: String);
+begin
+  FInternalDictionary.Remove(aStringKey);
+end;
+
+{ TmIntegerDictionaryImplDelphi }
+
+constructor TmIntegerDictionaryImplDelphi.Create;
+begin
+  inherited;
+  FInternalDictionary := TObjectDictionary<integer,TObject>.Create;
+end;
+
+destructor TmIntegerDictionaryImplDelphi.Destroy;
+begin
+  FInternalDictionary.Free;
+  inherited;
+end;
+
+procedure TmIntegerDictionaryImplDelphi._Add(const aIntegerKey: integer; aObject: TObject);
+begin
+  FInternalDictionary.Add(aIntegerKey, aObject);
+end;
+
+procedure TmIntegerDictionaryImplDelphi._Clear;
+begin
+  FInternalDictionary.Clear;
+end;
+
+function TmIntegerDictionaryImplDelphi._Count: integer;
+begin
+  Result := FInternalDictionary.Count;
+end;
+
+function TmIntegerDictionaryImplDelphi._Find(const aIntegerKey: integer): TObject;
+var
+  tmp : TObject;
+begin
+  if FInternalDictionary.TryGetValue(aIntegerKey, tmp) then
+    Result := tmp
+  else
+    Result := nil;
+end;
+
+procedure TmIntegerDictionaryImplDelphi._Remove(const aIntegerKey: integer);
+begin
+  FInternalDictionary.Remove(aIntegerKey);
 end;
 
 end.

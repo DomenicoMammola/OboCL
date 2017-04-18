@@ -1,0 +1,71 @@
+object GridColumnsSettingsFrame: TGridColumnsSettingsFrame
+  Left = 0
+  Height = 345
+  Top = 0
+  Width = 754
+  ClientHeight = 345
+  ClientWidth = 754
+  TabOrder = 0
+  DesignLeft = 1912
+  DesignTop = 354
+  object ColSettingsGrid: TDBGrid
+    Left = 0
+    Height = 345
+    Top = 0
+    Width = 754
+    Align = alClient
+    Color = clWindow
+    Columns = <    
+      item
+        ReadOnly = True
+        Title.Caption = 'Name'
+        Width = 250
+        FieldName = 'CSDFFieldName'
+      end    
+      item
+        Title.Caption = 'Visible'
+        FieldName = 'CSDFVisible'
+      end    
+      item
+        Title.Caption = 'Label'
+        Width = 250
+        FieldName = 'CSDFDisplayLabel'
+      end    
+      item
+        Title.Caption = 'Format'
+        FieldName = 'CSDFDisplayFormat'
+      end>
+    DataSource = DataSourceColSettings
+    TabOrder = 0
+  end
+  object DataSourceColSettings: TDataSource
+    DataSet = ColSettingsDataset
+    left = 496
+    top = 32
+  end
+  object ColSettingsDataset: TMemDataset
+    Active = True
+    FieldDefs = <    
+      item
+        Name = 'CSDFFieldName'
+        DataType = ftString
+        Size = 50
+      end    
+      item
+        Name = 'CSDFDisplayLabel'
+        DataType = ftString
+        Size = 50
+      end    
+      item
+        Name = 'CSDFDisplayFormat'
+        DataType = ftString
+        Size = 15
+      end    
+      item
+        Name = 'CSDFVisible'
+        DataType = ftBoolean
+      end>
+    left = 431
+    top = 133
+  end
+end

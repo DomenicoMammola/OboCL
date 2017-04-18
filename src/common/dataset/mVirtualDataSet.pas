@@ -20,7 +20,7 @@ uses
   {$IFNDEF FPC}
   Data.DbConsts,
   {$ENDIF}
-  Forms, DB, mVirtualFieldDefs
+  Forms, DB, mVirtualFieldDefs, mDatasetStandardSetup
   ;
 
 {$REGION 'Documentation'}
@@ -187,6 +187,8 @@ type
     procedure ActiveChanged; override;
   end;
 
+  { TCustomVirtualDataset }
+
   TCustomVirtualDataset = class(TDataSet)
   strict private
     FInternalOpen     : Boolean;
@@ -206,6 +208,7 @@ type
     FOnPostData       : TPostDataEvent;
     FOnLocate         : TLocateEvent;
     FOnLookupValue    : TLookupValueEvent;
+    FAutomaticInitFieldsFormat : boolean;
 
     FVirtualDatasetProvider : TVirtualDatasetDataProvider;
 
@@ -304,6 +307,8 @@ type
       NativeFormat : Boolean
     ); overload; override;
 
+    procedure DoAfterOpen; override;
+
     property ModifiedFields: TList read FModifiedFields;
 
     property RecordBufferSize: Integer
@@ -356,6 +361,7 @@ type
       write FOnLookupValue;
 
     property OnPostData: TPostDataEvent read FOnPostData write FOnPostData;
+    property AutomaticInitFieldsFormat : boolean read FAutomaticInitFieldsFormat write FAutomaticInitFieldsFormat;
   end;
 
   TVirtualDataset = class(TCustomVirtualDataset)
@@ -613,6 +619,7 @@ begin
   FMasterDataLink                := TVirtualMasterDataLink.Create(Self);
   MasterDataLink.OnMasterChange  := MasterChanged;
   MasterDataLink.OnMasterDisable := MasterDisabled;
+  FAutomaticInitFieldsFormat := true;
 end;
 
 procedure TCustomVirtualDataset.BeforeDestruction;
@@ -1442,6 +1449,13 @@ begin
 //  Logger.EnterMethod(Self, 'SetFieldData');
   InternalSetFieldData(Field, Buffer, NativeFormat);
 //  Logger.ExitMethod(Self, 'SetFieldData');
+end;
+
+procedure TCustomVirtualDataset.DoAfterOpen;
+begin
+  if FAutomaticInitFieldsFormat then
+    ApplyStandardSettingsToFields(Self, '##.##');
+  inherited DoAfterOpen;
 end;
 
 procedure TCustomVirtualDataset.InternalSetFieldData(AField: TField;

@@ -27,13 +27,17 @@ type
     constructor Create(aPointer : pointer);
   end;
 
+  { TImpl_oxml_mXmlElement }
+
   TImpl_oxml_mXmlElement = class (TImpl_mXmlElement)
   private
     FNode : PXMLNode;
+    FGarbage : TObjectList;
     procedure RaiseMissingAttributeException(Name :TmXMLString);
     procedure RaiseWrongDateTimeException(Name, Value :TmXMLString);
   public
     constructor Create; override;
+    destructor Destroy; override;
   public
     function _AddElement(Name: TmXMLString): TmXmlElement; override;
     function _HasAttribute(const Name: TmXMLString): boolean; override;
@@ -56,6 +60,7 @@ type
     FXML: IXMLDocument;
     FRoot : PXMLNode;
     FRootElement : TmXmlElement;
+    FGarbage : TObjectList;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -71,6 +76,7 @@ type
   TImpl_oxml_mXmlElementCursor = class (TImpl_mXmlElementCursor)
   private
     FList : TObjectList;
+    FGarbage : TObjectList;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -90,6 +96,13 @@ uses
 constructor TImpl_oxml_mXmlElement.Create;
 begin
   FNode := nil;
+  FGarbage := TObjectList.Create(true);
+end;
+
+destructor TImpl_oxml_mXmlElement.Destroy;
+begin
+  FGarbage.Free;
+  inherited Destroy;
 end;
 
 procedure TImpl_oxml_mXmlElement.RaiseMissingAttributeException (Name :TmXMLString);
@@ -105,12 +118,17 @@ end;
 function TImpl_oxml_mXmlElement._AddElement(Name: TmXMLString): TmXmlElement;
 var
   NewNode : PXMLNode;
+  tmp : Tmxml_oxml_PointerShell;
 begin
   NewNode := Self.FNode^.AddChild(Name);
-  Result := TmXmlElement.Create(Tmxml_oxml_PointerShell.Create(NewNode));
+  tmp := Tmxml_oxml_PointerShell.Create(NewNode);
+  FGarbage.Add(tmp);
+  Result := TmXmlElement.Create(tmp);
+  FGarbage.Add(Result);
 end;
 
-function TImpl_oxml_mXmlElement._GetAttribute(Name, Default: TmXmlString): TmXmlString;
+function TImpl_oxml_mXmlElement._GetAttribute(Name: TmXmlString;
+  Default: TmXmlString): TmXmlString;
 begin
   Result := Self.FNode^.GetAttributeDef(Name, Default);
 end;
@@ -203,10 +221,14 @@ begin
   FXML.WriterSettings.WriteBOM := False;
   FRoot := nil;
   FRootElement := nil;
+  FGarbage := TObjectList.Create(true);
 end;
 
 destructor TImpl_oxml_mXmlDocument.Destroy;
 begin
+  Self._Clear;
+  FreeAndNil(FRootElement);
+  FGarbage.Free;
   inherited;
 end;
 
@@ -216,10 +238,14 @@ begin
 end;
 
 function TImpl_oxml_mXmlDocument._CreateRootElement(Name: string): TmXmlElement;
+var
+  tmp : Tmxml_oxml_PointerShell;
 begin
   assert (not Assigned(FRoot), 'XML RootElement already assigned!');
   FRoot := FXML.AddChild(Name);
-  Result := TmXmlElement.Create(Tmxml_oxml_PointerShell.Create(FRoot));
+  tmp := Tmxml_oxml_PointerShell.Create(FRoot);
+  FGarbage.Add(tmp);
+  Result := TmXmlElement.Create(tmp);
   FRootElement := Result;
 end;
 
@@ -242,9 +268,15 @@ begin
 end;
 
 function TImpl_oxml_mXmlDocument._RootElement: TmXmlElement;
+var
+  tmp : Tmxml_oxml_PointerShell;
 begin
   if Assigned(FRoot) and (not Assigned(FRootElement)) then
-    FRootElement := TmXmlElement.Create(Tmxml_oxml_PointerShell.Create(FRoot));
+  begin
+    tmp := Tmxml_oxml_PointerShell.Create(FRoot);
+    FGarbage.Add(tmp);
+    FRootElement := TmXmlElement.Create(tmp);
+  end;
   Result := FRootElement;
 end;
 
@@ -270,11 +302,13 @@ end;
 constructor TImpl_oxml_mXmlElementCursor.Create;
 begin
   FList := TObjectList.Create(true);
+  FGarbage := TObjectList.Create(true);
 end;
 
 destructor TImpl_oxml_mXmlElementCursor.Destroy;
 begin
   FList.Free;
+  FGarbage.Free;
   inherited;
 end;
 
@@ -293,13 +327,16 @@ var
   ParentNode : PXMLNode;
   i : integer;
   NewElement : TmXmlElement;
+  tmp : Tmxml_oxml_PointerShell;
 begin
   ParentNode := (aParent as TImpl_oxml_mXmlElement).FNode;
   if CompareText(aFilter, '') = 0 then
   begin
     for i := 0 to ParentNode^.ChildCount -1 do
     begin
-      NewElement := TmXmlElement.Create(Tmxml_oxml_PointerShell.Create(ParentNode^.ChildNodes[i]));
+      tmp := Tmxml_oxml_PointerShell.Create(ParentNode^.ChildNodes[i]);
+      FGarbage.Add(tmp);
+      NewElement := TmXmlElement.Create(tmp);
       FList.Add(NewElement);
     end;
   end
@@ -309,7 +346,9 @@ begin
     begin
       if CompareText(aFilter, ParentNode^.ChildNodes[i]^.NodeName) = 0 then
       begin
-        NewElement := TmXmlElement.Create(Tmxml_oxml_PointerShell.Create(ParentNode^.ChildNodes[i]));
+        tmp := Tmxml_oxml_PointerShell.Create(ParentNode^.ChildNodes[i]);
+        FGarbage.Add(tmp);
+        NewElement := TmXmlElement.Create(tmp);
         FList.Add(NewElement);
       end;
     end;

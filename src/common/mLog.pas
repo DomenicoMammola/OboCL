@@ -250,6 +250,7 @@ end;
 constructor TmLogPublisherThread.Create(aEndEvent : TEvent; aLogManager : TmLogManager);
 begin
   inherited Create(false);
+  Self.FreeOnTerminate:= true;
   FStartEvent := TEvent.Create{$IFDEF FPC}(nil, True, False, ''){$ENDIF};
   FEndEvent := aEndEvent;
   FLogManager := aLogManager;

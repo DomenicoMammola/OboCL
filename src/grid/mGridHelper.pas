@@ -32,7 +32,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure EditSettings;
+    function EditSettings : boolean;
     procedure LoadSettings (aStream : TStream);
     procedure SaveSettings (aStream : TStream);
 
@@ -54,10 +54,11 @@ begin
   inherited Destroy;
 end;
 
-procedure TmDBGridHelper.EditSettings;
+function TmDBGridHelper.EditSettings : boolean;
 var
   frm : TGridSettingsForm;
 begin
+  Result := false;
   ReadSettingsFromGrid(FSettings, FDBGrid);
   frm := TGridSettingsForm.Create(nil);
   try
@@ -65,6 +66,7 @@ begin
     if frm.ShowModal = mrOk then
     begin
       ApplySettingsToGrid(FSettings, FDBGrid);
+      Result := true;
     end;
   finally
     frm.Free;

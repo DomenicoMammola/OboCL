@@ -18,6 +18,7 @@ interface
 
 uses
   Contnrs, Grids, DBGrids,
+  {$IFDEF DEBUG_COL_SET}LazLogger,{$ENDIF}
   mMaps, mXML, mNullables, mSystemColumns;
 
 type
@@ -75,7 +76,7 @@ procedure ApplySettingsToGrid(aSettings : TmGridColumnsSettings; aGrid : TDBGrid
 implementation
 
 uses
-  SysUtils;
+  SysUtils, Dialogs;
 
 { TmGridColumnsSettings }
 
@@ -106,7 +107,7 @@ begin
   end;
   Result := TmGridColumnSettings.Create(aFieldName);
   FList.Add(Result);
-  FMap.Add(Uppercase(aFieldName), Result);
+  FMap.Add(tmp, Result);
 end;
 
 function TmGridColumnsSettings.GetSettingsForField(aFieldName: String): TmGridColumnSettings;
@@ -219,7 +220,11 @@ begin
   if aElement.HasAttribute('displayFormat') then
     FDisplayFormat.Value := aElement.GetAttribute('displayFormat');
   if aElement.HasAttribute('displayLabel') then
+  begin
     FDisplayLabel.Value := aElement.GetAttribute('displayLabel');
+    {$IFDEF DEBUG_COL_SET}DebugLn('[TmGridColumnSettings.LoadFromXmlElement] ' + FieldName + ' displayLabel:' + FDisplayLabel.Value);{$ENDIF}
+  end;
+
   if aElement.HasAttribute('width') then
     FWidth.Value := aElement.GetIntegerAttribute('width');
   if aElement.HasAttribute('sortOrder') then
@@ -242,7 +247,10 @@ begin
   if aSettings.DisplayFormat.NotNull then
     aColumn.DisplayFormat := aSettings.DisplayFormat.Value;
   if aSettings.DisplayLabel.NotNull then
+  begin
     aColumn.Title.Caption := aSettings.DisplayLabel.Value;
+    {$IFDEF DEBUG_COL_SET}DebugLn('[ApplySettingsToField] ' + aSettings.FieldName + ' ' +aColumn.Title.Caption);{$ENDIF}
+  end;
   if aSettings.Width.NotNull then
     aColumn.Width:= aSettings.Width.Value;
   if aSettings.SortOrder.NotNull then
@@ -269,15 +277,27 @@ procedure ApplySettingsToGrid(aSettings : TmGridColumnsSettings; aGrid : TDBGrid
 var
   op : TmGridColumnSettings;
   i : integer;
+  tmpList : TObjectList;
 begin
-  for i := 0 to aGrid.Columns.Count - 1 do
-  begin
-    if not IsSystemField (aGrid.Columns.Items[i].Field) then
+  tmpList := TObjectList.Create(false);
+  try
+    for i := 0 to aGrid.Columns.Count - 1 do
     begin
-      op := aSettings.GetSettingsForField(aGrid.Columns.Items[i].FieldName);
-      ApplySettingsToField(aGrid.Columns.Items[i], op);
+      tmpList.Add(aGrid.Columns.Items[i]);
     end;
+    for i := 0 to tmpList.Count - 1 do
+    begin
+      if not IsSystemField ((tmpList.Items[i] as TColumn).Field) then
+      begin
+        op := aSettings.GetSettingsForField((tmpList.Items[i] as TColumn).FieldName);
+        if Assigned(op) then
+          ApplySettingsToField(tmpList.Items[i] as TColumn, op);
+      end;
+    end;
+  finally
+    tmpList.Free;
   end;
+
 end;
 
 end.

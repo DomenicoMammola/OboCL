@@ -120,7 +120,7 @@ implementation
 
 uses
   mssqlconn,
-  mDatabaseConnectionImplRegister, mSQLServerSQLDialect,
+  mDatabaseConnectionImplRegister,
   SysUtils;
 
 { TSqldbDatabaseCommandImpl }

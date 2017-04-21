@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit LookupWindowEvents;
+unit mLookupWindowEvents;
 
 {$IFDEF FPC}
   {$MODE DELPHI}

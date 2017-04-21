@@ -29,6 +29,10 @@ function AddZerosFront (aValue : integer; aLength : integer) : String;
 function DateTimeToSeconds(const aDateTime : TDateTime; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted) : integer;
 function SecondsToDateTime(const aSeconds : integer; const aTheDayWhenTimeStarted : integer = TheDayWhenTimeStarted): TDateTime;
 
+// try to understand the input text from the user as a date value, if it fails it returns a blank string
+// user can edit date as ddmmyy or ddmmyyyy or dmyy or with separators like '/', '\', '-', ....
+function TryToUnderstandDateString(const aInputString : String; var aValue : TDateTime) : boolean;
+
 // http://users.atw.hu/delphicikk/listaz.php?id=2189&oldal=11
 function DateTimeStrEval(const DateTimeFormat: string; const DateTimeStr: string): TDateTime;
 
@@ -42,7 +46,7 @@ function CharInSet(C: Char; const CharSet: TSysCharSet): Boolean;
 implementation
 
 uses
-  DateUtils;
+  Character, DateUtils, mMathUtility;
 
 function AddZerosFront (aValue : integer; aLength : integer) : String;
 var
@@ -156,6 +160,92 @@ begin
     {$ENDIF}
   else
     raise Exception.Create ('invalid data type ' + IntToStr(AValue.VType));
+  end;
+end;
+
+function TryToUnderstandDateString(const aInputString : String; var aValue : TDateTime) : boolean;
+var
+  l, idx : integer;
+  tmp,  sep : string;
+  dString, mString, yString : string;
+  day, month, year : integer;
+  canTry : boolean;
+begin
+  Result := false;
+  canTry := false;
+
+  tmp := aInputString;
+  l := Length(tmp);
+
+
+  sep := '\';
+  idx := Pos(sep, tmp);
+  if idx = 0 then
+  begin
+    sep := '/';
+    idx := Pos(sep, tmp);
+  end;
+  if idx = 0 then
+  begin
+    sep := '-';
+    idx := Pos(sep, tmp);
+  end;
+
+  if idx >= 2 then
+  begin
+    dString := Copy(tmp, 1, idx - 1);
+    tmp := Copy (tmp, idx + 1, 999);
+    idx := Pos(sep, tmp);
+    if idx >= 2 then
+    begin
+      mString := Copy(tmp, 1, idx - 1);
+      tmp := Copy (tmp, idx + 1, 999);
+      if tmp <> '' then
+      begin
+        yString := tmp;
+        canTry := true;
+      end;
+    end;
+  end;
+
+  if (l = 4) or (l = 6) or (l = 8) then
+  begin
+    // dmyy? ddmmyy? ddmmyyyy?
+    if l = 4 then
+    begin
+      dString := Copy(tmp, 1, 1);
+      mString := Copy(tmp, 2, 1);
+      yString := Copy(tmp, 3, 2);
+    end
+    else
+    begin
+      dString := Copy(tmp, 1, 2);
+      mString := Copy(tmp, 3, 2);
+      yString := Copy(tmp, 5, 999);
+    end;
+    CanTry := true;
+  end;
+
+  if CanTry then
+  begin
+    if IsNumeric(dString, false) and IsNumeric(mString, false) and IsNumeric(yString, false) then
+    begin
+      day := StrToInt(dString);
+      month := StrToInt(mString);
+      year := StrToInt(yString);
+
+      if (month >=1) and (month <= 12) and (year >= 0) and (day >= 1) and (day <= 31) then
+      begin
+        if year < 100 then
+          year := 2000 + year;
+        if day <= DaysInAMonth(year, month) then
+        begin
+          aValue := EncodeDate(year, month, day);
+          Result := true;
+          exit;
+        end;
+      end;
+    end;
   end;
 end;
 

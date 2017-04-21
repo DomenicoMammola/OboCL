@@ -30,6 +30,8 @@ type
   public
     constructor Create(); virtual;
     function AsVariant: Variant; virtual; abstract;
+    procedure Assign(aSourceField : TField); overload; virtual; abstract;
+    procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); overload; virtual; abstract;
 
     property IsNull : Boolean read FIsNull write FIsNull;
     property NotNull : Boolean read GetNotNull;
@@ -47,7 +49,8 @@ type
     class function CreateNew(): TNullableString; overload;
 
     procedure Assign(aSource : TNullableString); overload;
-    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
     function AsVariant: Variant; override;
     procedure Trim();
     function AsString : String;
@@ -67,7 +70,8 @@ type
       class function CreateNew(): TNullableUnicodeString; overload;
 
       procedure Assign(aSource : TNullableUnicodeString); overload;
-      procedure Assign(aSourceField : TField); overload;
+      procedure Assign(aSourceField : TField); override; overload;
+      procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
       function AsVariant: Variant; override;
 
       property Value : UnicodeString read GetValue write SetValue;
@@ -85,7 +89,8 @@ type
       class function CreateNew(): TNullableAnsiString; overload;
 
       procedure Assign(aSource : TNullableAnsiString); overload;
-      procedure Assign(aSourceField : TField); overload;
+      procedure Assign(aSourceField : TField); override; overload;
+      procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
       function AsVariant: Variant; override;
 
       property Value : AnsiString read GetValue write SetValue;
@@ -104,7 +109,8 @@ type
       class function CreateNew() : TNullableDateTime; overload;
 
       procedure Assign(aSource : TNullableDateTime); overload;
-      procedure Assign(aSourceField : TField); overload;
+      procedure Assign(aSourceField : TField); override; overload;
+      procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
       function AsVariant: Variant; override;
 
       function AsString (aShowTime : boolean) : String;
@@ -124,7 +130,8 @@ type
     class function CreateNew() : TNullableDouble; overload;
 
     procedure Assign(aSource : TNullableDouble); overload;
-    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
     function AsVariant: Variant; override;
 
     property Value : Double read GetValue write SetValue;
@@ -142,7 +149,8 @@ type
     class function CreateNew(): TNullableBoolean; overload;
 
     procedure Assign(aSource : TNullableBoolean); overload;
-    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
     function AsVariant: Variant; override;
 
     property Value : Boolean read GetValue write SetValue;
@@ -160,7 +168,8 @@ type
     class function CreateNew(): TNullableInteger; overload;
 
     procedure Assign(aSource : TNullableInteger); overload;
-    procedure Assign(aSourceField : TField); overload;
+    procedure Assign(aSourceField : TField); override; overload;
+    procedure Assign (const aValue : String; const aBlankStringMeansNull : boolean); override; overload;
     function AsVariant : Variant; override;
     function AsString : String;
 
@@ -214,6 +223,14 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsInteger;
+end;
+
+procedure TNullableInteger.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= StrToInt(aValue);
 end;
 
 function TNullableInteger.AsVariant: Variant;
@@ -275,6 +292,14 @@ begin
     Self.Value:= aSourceField.AsBoolean;
 end;
 
+procedure TNullableBoolean.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= StrToBool(aValue);
+end;
+
 function TNullableBoolean.AsVariant: Variant;
 begin
   if Self.FIsNull then
@@ -327,6 +352,14 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsString;
+end;
+
+procedure TNullableString.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= aValue;
 end;
 
 function TNullableString.AsVariant: Variant;
@@ -394,6 +427,14 @@ begin
     Self.Value:= aSourceField.AsFloat;
 end;
 
+procedure TNullableDouble.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= StrToFloat(aValue);
+end;
+
 function TNullableDouble.AsVariant: Variant;
 begin
   if Self.FIsNull then
@@ -448,6 +489,14 @@ begin
     Self.Value:= aSourceField.AsString;
 end;
 
+procedure TNullableAnsiString.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= Utf8ToAnsi(aValue);
+end;
+
 function TNullableAnsiString.AsVariant: Variant;
 begin
   if Self.FIsNull then
@@ -497,6 +546,14 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsDateTime;
+end;
+
+procedure TNullableDateTime.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= StrToDateTime(aValue);
 end;
 
 function TNullableDateTime.AsVariant: Variant;
@@ -580,6 +637,14 @@ begin
     Self.IsNull:= true
   else
     Self.Value:= aSourceField.AsWideString;
+end;
+
+procedure TNullableUnicodeString.Assign(const aValue: String; const aBlankStringMeansNull: boolean);
+begin
+  if aBlankStringMeansNull and (aValue = '') then
+    Self.IsNull:= true
+  else
+    Self.Value:= aValue;
 end;
 
 function TNullableUnicodeString.AsVariant: Variant;

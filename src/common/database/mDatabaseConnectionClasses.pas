@@ -17,7 +17,8 @@ unit mDatabaseConnectionClasses;
 interface
 
 uses
-  DB, Contnrs, SysUtils;
+  DB, Contnrs, SysUtils,
+  mNullables;
 
 type
   TmDataConnectionException = class (Exception);
@@ -54,6 +55,12 @@ type
 
     procedure SetNull;
     function IsNull : boolean;
+
+    procedure Assign(aValue : TNullableString); overload;
+    procedure Assign(aValue : TNullableInteger); overload;
+    procedure Assign(aValue : TNullableDateTime); overload;
+    procedure Assign(aValue : TNullableDouble); overload;
+
     property Name : String read FName write FName;
     property DataType : TmParameterDataType read GetParameterDataType write SetParameterDataType;
     property AsString : String read GetAsString write SetAsString;
@@ -380,6 +387,38 @@ end;
 function TmQueryParameter.IsNull: boolean;
 begin
   Result := (FValue = Null);
+end;
+
+procedure TmQueryParameter.Assign(aValue: TNullableString);
+begin
+  if aValue.IsNull then
+    Self.SetNull
+  else
+    Self.AsString:= aValue.Value;
+end;
+
+procedure TmQueryParameter.Assign(aValue: TNullableInteger);
+begin
+  if aValue.IsNull then
+    Self.SetNull
+  else
+    Self.AsInteger:= aValue.Value;
+end;
+
+procedure TmQueryParameter.Assign(aValue: TNullableDateTime);
+begin
+  if aValue.IsNull then
+    Self.SetNull
+  else
+    Self.AsDateTime:= aValue.Value;
+end;
+
+procedure TmQueryParameter.Assign(aValue: TNullableDouble);
+begin
+  if aValue.IsNull then
+    Self.SetNull
+  else
+    Self.AsFloat:= aValue.Value;
 end;
 
 

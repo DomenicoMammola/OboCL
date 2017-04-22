@@ -265,6 +265,8 @@ begin
   FMessages.Free;
   FPublishers.Free;
   FPublishersCriticalSection.Free;
+  if Assigned(FCurrentMsg) then
+    FCurrentMsg.Free;
   inherited;
 end;
 
@@ -280,6 +282,7 @@ begin
     try
       while not Self.Terminated do
       begin
+        FreeAndNil(FCurrentMsg);
         FCurrentMsg := FMessages.PullMessage;
         while (FCurrentMsg <> nil) do
         begin
@@ -305,6 +308,7 @@ begin
             finally
               FPublishersCriticalSection.Leave;
             end;
+            FreeAndNil(FCurrentMsg);
             FCurrentMsg := FMessages.PullMessage;
           end
           else

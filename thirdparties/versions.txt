@@ -1,4 +1,0 @@
-OXML
-http://www.kluug.net/oxml.php
-svn checkout https://svn.code.sf.net/p/oxml/code/ oxml-code
-r155

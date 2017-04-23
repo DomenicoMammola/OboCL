@@ -1,5 +1,0 @@
-OXml Version
-------------
-
-Version:       1.10
-Release date:  2016-04-06

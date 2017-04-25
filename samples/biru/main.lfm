@@ -1,0 +1,53 @@
+object Form1: TForm1
+  Left = 256
+  Height = 240
+  Top = 128
+  Width = 395
+  Caption = 'Form1'
+  ClientHeight = 240
+  ClientWidth = 395
+  OnCreate = FormCreate
+  LCLVersion = '1.6.4.0'
+  object Button1: TButton
+    Left = 15
+    Height = 25
+    Top = 190
+    Width = 75
+    Caption = 'Play'
+    OnClick = Button1Click
+    TabOrder = 0
+  end
+  object Button2: TButton
+    Left = 104
+    Height = 25
+    Top = 190
+    Width = 75
+    Caption = 'Stop'
+    OnClick = Button2Click
+    TabOrder = 1
+  end
+  object RadioGroup1: TRadioGroup
+    Left = 200
+    Height = 86
+    Top = 129
+    Width = 177
+    AutoFill = True
+    Caption = 'Animation'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 66
+    ClientWidth = 173
+    ItemIndex = 0
+    Items.Strings = (
+      'Bouncing'
+      'Scrolling'
+      'Sizing'
+    )
+    TabOrder = 2
+  end
+end

@@ -21,6 +21,9 @@ uses
   {$IFDEF DEBUG_COL_SET}LazLogger,{$ENDIF}
   mMaps, mXML, mNullables, mSystemColumns;
 
+const
+  MINIMUM_GRID_COLUMN_WIDTH = 4;
+
 type
 
   { TmGridColumnSettings }
@@ -76,7 +79,7 @@ procedure ApplySettingsToGrid(aSettings : TmGridColumnsSettings; aGrid : TDBGrid
 implementation
 
 uses
-  SysUtils, Dialogs;
+  SysUtils, Dialogs, Math;
 
 { TmGridColumnsSettings }
 
@@ -237,7 +240,7 @@ begin
   aSettings.DisplayFormat.Value:= aColumn.DisplayFormat;
   aSettings.DisplayLabel.Value:= aColumn.Title.Caption;
   aSettings.SortOrder.Value:= aColumn.Index;
-  aSettings.Width.Value:= aColumn.Width;
+  aSettings.Width.Value:= max(MINIMUM_GRID_COLUMN_WIDTH, aColumn.Width);
 end;
 
 procedure ApplySettingsToField(aColumn: TColumn; aSettings : TmGridColumnSettings);
@@ -252,7 +255,7 @@ begin
     {$IFDEF DEBUG_COL_SET}DebugLn('[ApplySettingsToField] ' + aSettings.FieldName + ' ' +aColumn.Title.Caption);{$ENDIF}
   end;
   if aSettings.Width.NotNull then
-    aColumn.Width:= aSettings.Width.Value;
+    aColumn.Width:= max(aSettings.Width.Value, MINIMUM_GRID_COLUMN_WIDTH);
   if aSettings.SortOrder.NotNull then
     aColumn.Index := aSettings.SortOrder.Value;
 end;

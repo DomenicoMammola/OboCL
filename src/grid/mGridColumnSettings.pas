@@ -246,7 +246,14 @@ end;
 procedure ApplySettingsToField(aColumn: TColumn; aSettings : TmGridColumnSettings);
 begin
   if aSettings.Visible.NotNull then
-    aColumn.Visible := aSettings.Visible.Value;
+  begin
+    if aColumn.Visible <> aSettings.Visible.Value then
+    begin
+      aColumn.Visible := aSettings.Visible.Value;
+      if aColumn.Visible then
+        aColumn.Width:= max(aColumn.Width, MINIMUM_GRID_COLUMN_WIDTH);
+    end;
+  end;
   if aSettings.DisplayFormat.NotNull then
     aColumn.DisplayFormat := aSettings.DisplayFormat.Value;
   if aSettings.DisplayLabel.NotNull then

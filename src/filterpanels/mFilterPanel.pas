@@ -17,7 +17,7 @@ unit mFilterPanel;
 interface
 
 uses
-  Controls, Classes, StdCtrls, StrUtils, Contnrs,
+  Controls, Classes, StdCtrls, StrUtils, Contnrs, Variants,
   ExtCtrls, EditBtn,
   mFilter, mBaseClassesAsObjects;
 
@@ -71,6 +71,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
     function GetFilterValue : Variant; override;
+    procedure SetFilterValue (aValue : Variant);
     function IsEmpty : boolean; override;
     procedure Clear; override;
   end;
@@ -272,6 +273,14 @@ begin
     Result := null
   else
     Result := FEdit.Text;
+end;
+
+procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant);
+begin
+  if VarIsNull(aValue) then
+    Self.Clear
+  else
+    FEdit.Text := VarToStr(aValue);
 end;
 
 function TmEditFilterConditionPanel.IsEmpty: boolean;

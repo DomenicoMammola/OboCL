@@ -7,7 +7,7 @@ unit mDBGrid;
 interface
 
 uses
-  DBGrids, Grids;
+  DBGrids;
 
 type
   TmDBGrid = class(TDBGrid)

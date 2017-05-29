@@ -16,8 +16,8 @@ unit mLookupForm;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, ListViewFilterEdit, Forms, Controls, Graphics,
-  Dialogs, ExtCtrls, Buttons, ComCtrls, DB,
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics,
+  Dialogs, ExtCtrls, Buttons, DB,
   mLookupPanel;
 
 type

@@ -18,7 +18,7 @@ interface
 
 uses
   Classes,
-  Grids, DBGrids, Controls,
+  DBGrids, Controls,
   mGridColumnSettings, mXML, mGridSettingsForm;
 
 type

@@ -18,7 +18,7 @@ interface
 uses
   Classes, Controls, ExtCtrls, ComCtrls, DB,
   ListViewFilterEdit,
-  mLookupWindowEvents, mMaps;
+  mLookupWindowEvents;
 
 type
 

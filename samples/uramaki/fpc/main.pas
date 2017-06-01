@@ -5,7 +5,8 @@ unit Main;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs;
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
+  UramakiBase;
 
 type
   TForm1 = class(TForm)

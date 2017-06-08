@@ -1,3 +1,12 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit UramakiBase;
 
 {$IFDEF FPC}
@@ -14,7 +23,7 @@ type
 
   TUramakiPlate = class;
 
-  TUraStreamFormat = (usfXML, usfJSON);
+  TUramakiStreamFormat = (usfXML, usfJSON);
 
   TUramakiRoll = class abstract
   public
@@ -29,7 +38,7 @@ type
     procedure AfterRead; virtual; abstract;
   end;
 
-  TUramakiPlate = class;
+ // TUramakiPlate = class;
 
   IUramakiFrameworkConnector = interface
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate);
@@ -69,7 +78,7 @@ type
 
     function GetInputUramakiId : String; virtual; abstract;
 
-    function CreatePlate (aFrameworkConnector : TUramakiFrameworkConnector) : TUramakiPlate; virtual;
+    function CreatePlate (aFrameworkConnector : TUramakiFrameworkConnector) : TUramakiPlate; virtual; abstract;
     function CreatePublicationContext : TUramakiPublicationContext; virtual; abstract;
     procedure StartTransaction(const aTransactionId : TGuid); virtual; abstract;
     procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
@@ -94,8 +103,8 @@ type
 
     function CreateTransformationContext : TUramakiTransformationContext; virtual; abstract;
 
-    function Configure (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual; abstract;
-    function Transform (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual; abstract;
+    procedure Configure (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual; abstract;
+    procedure Transform (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual; abstract;
 
     procedure StartTransaction(const aTransactionId : TGuid); virtual; abstract;
     procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
@@ -104,12 +113,10 @@ type
 
 implementation
 
-uses
-  SysUtils;
 
 { TUramakiPlate }
 
-constructor TUramakiPlate.Create(aFrameworkConnector: TUramakiFrameworkConnector);
+constructor TUramakiPlate.Create(aFrameworkConnector: IUramakiFrameworkConnector);
 begin
   FFrameworkConnector:= aFrameworkConnector;
 end;

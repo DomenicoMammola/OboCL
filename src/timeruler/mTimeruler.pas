@@ -18,7 +18,7 @@ interface
 
 uses
   Controls, Classes, Graphics,
-  Windows, DateUtils, contnrs,
+  {$IFDEF WINDOWS}Windows,{$ENDIF} DateUtils, contnrs,
 
   {$IFDEF FPC}
   LCLType, {$IFDEF DEBUG}LazLogger,{$ENDIF}

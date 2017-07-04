@@ -25,7 +25,7 @@ procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; Text
 implementation
 
 uses
-  mGraphicsUtility, SysUtils, Math, Windows {$IFDEF FPC},graphutil{$ENDIF};
+  mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF} {$IFDEF FPC},graphutil{$ENDIF};
 
 procedure DrawBox(ACanvas: TCanvas; ARect: TRect);
 var

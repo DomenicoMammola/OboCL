@@ -137,11 +137,15 @@ type
 implementation
 
 uses
-  SysUtils,
-  Windows;
+  SysUtils
+  {$IFNDEF LINUX},Windows{$ENDIF}
+  ;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
+  {$IFDEF LINUX}
+  CB_SETDROPPEDWIDTH = 352;
+  {$ENDIF}
 
 { TmExecuteFilterPanel }
 
@@ -387,9 +391,13 @@ begin
   begin
     //check if there would be a scroll bar
     if FCombobox.DropDownCount < FCombobox.Items.Count then
-      itemsFullWidth := itemsFullWidth + GetSystemMetrics(SM_CXVSCROLL);
+      itemsFullWidth := itemsFullWidth + {$IFDEF LINUX} 20 {$ELSE} GetSystemMetrics(SM_CXVSCROLL){$ENDIF};
 
+    {$IFDEF LINUX}
+    Perform(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth);
+    {$ELSE}
     SendMessage(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth, 0);
+    {$ENDIF}
   end;
 end;
 

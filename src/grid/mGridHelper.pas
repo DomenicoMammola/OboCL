@@ -17,7 +17,7 @@ unit mGridHelper;
 interface
 
 uses
-  Classes,
+  Classes, DB,
   DBGrids, Controls, Menus,
   mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
   mDatasetInterfaces;
@@ -48,7 +48,8 @@ type
     procedure LoadSettings (aStream : TStream);
     procedure SaveSettings (aStream : TStream);
     procedure EnableSort (aSortManager : ISortableDatasetManager);
-    procedure EnableHeaderPopupMenu (aGridPopupMenu : TPopupMenu);
+    procedure EnableHeaderPopupMenu (aOriginalGridPopupMenu : TPopupMenu);
+    procedure ExportGridAsCsv (aStream : TStream);
 
     property Grid : TDBGrid read FDBGrid;
   end;
@@ -230,13 +231,57 @@ begin
   end;
 end;
 
-procedure TmDBGridHelper.EnableHeaderPopupMenu(aGridPopupMenu : TPopupMenu);
+procedure TmDBGridHelper.EnableHeaderPopupMenu(aOriginalGridPopupMenu : TPopupMenu);
 begin
   if not Assigned(FHeaderPopupMenu) then
     Self.BuildHeaderPopupMenu;
-  FGridPopupMenu := aGridPopupMenu;
+  FGridPopupMenu := aOriginalGridPopupMenu;
   FOriginalOnMouseDown := FDBGrid.OnMouseDown;
   FDBGrid.OnMouseDown:= Self.OnMouseDown;
+end;
+
+procedure TmDBGridHelper.ExportGridAsCsv(aStream: TStream);
+var
+  tmpFields : TFields;
+  i, rn : integer;
+  str, sep : AnsiString;
+begin
+  FDBGrid.DataSource.DataSet.DisableControls;
+  try
+    tmpFields := FDBGrid.DataSource.DataSet.Fields;
+    sep := '';
+    str := '';
+    for i := 0 to tmpFields.Count - 1 do
+    begin
+      str := str + sep + tmpFields[i].DisplayLabel;
+      sep := ';';
+    end;
+    str := str + sLineBreak;
+
+    aStream.WriteBuffer(PAnsiChar(str)^,Length(str));
+    rn := FDBGrid.DataSource.DataSet.RecNo;
+
+    FDBGrid.DataSource.DataSet.First;
+    while not FDBGrid.DataSource.DataSet.EOF do
+    begin
+      sep := '';
+      str := '';
+      for i := 0 to tmpFields.Count - 1 do
+      begin
+        str := str + sep + tmpFields[i].AsString;
+        sep := ';';
+      end;
+
+      str := str + sLineBreak;
+      aStream.WriteBuffer(PAnsiChar(str)^,Length(str));
+
+      FDBGrid.DataSource.DataSet.Next;
+    end;
+    FDBGrid.DataSource.DataSet.RecNo:= rn;
+
+  finally
+    FDBGrid.DataSource.DataSet.EnableControls;
+  end;
 end;
 
 end.

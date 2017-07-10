@@ -15,19 +15,18 @@ unit UramakiBase;
 
 interface
 uses
-  Classes, SysUtils,
-  UramakiFrameworkConnector;
+  Classes, SysUtils, contnrs,
+  mXML;
+
+const
+  NULL_URAMAKI_ID = '**NULL**';
 
 type
   TUramakiException = class (Exception);
 
   TUramakiPlate = class;
 
-  TUramakiStreamFormat = (usfXML, usfJSON);
-
   TUramakiRoll = class abstract
-  public
-    const NULL_URAMAKI_ID = '**NULL**';
   public
     function GetMyId : string; virtual; abstract;
     function GetDescription : string; virtual; abstract;
@@ -37,8 +36,6 @@ type
     procedure BeforeRead; virtual; abstract;
     procedure AfterRead; virtual; abstract;
   end;
-
- // TUramakiPlate = class;
 
   IUramakiFrameworkConnector = interface
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate);
@@ -64,8 +61,8 @@ type
 
   TUramakiPublicationContext = class abstract
   public
-    procedure SaveTo (aStream : TStream; const aFormat: TUramakiStreamFormat); virtual; abstract;
-    procedure LoadFrom (aStream : TStream; const aFormat: TUramakiStreamFormat); virtual; abstract;
+    procedure SaveToXML (aXMLElement: TmXmlElement); virtual; abstract;
+    procedure LoadFromXML (aXMLElement : TmXmlElement); virtual; abstract;
   end;
 
   { TUramakiPublisher }
@@ -78,7 +75,7 @@ type
 
     function GetInputUramakiId : String; virtual; abstract;
 
-    function CreatePlate (aFrameworkConnector : TUramakiFrameworkConnector) : TUramakiPlate; virtual; abstract;
+    function CreatePlate (aFrameworkConnector : IUramakiFrameworkConnector) : TUramakiPlate; virtual; abstract;
     function CreatePublicationContext : TUramakiPublicationContext; virtual; abstract;
     procedure StartTransaction(const aTransactionId : TGuid); virtual; abstract;
     procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
@@ -86,10 +83,25 @@ type
     procedure Publish(aInput : TUramakiRoll; aPlate : TUramakiPlate; aContext : TUramakiPublicationContext); virtual; abstract;
   end;
 
+  { TUramakiPublishers }
+
+  TUramakiPublishers = class
+  strict private
+    FList : TObjectList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Get(index : integer) : TUramakiPublisher;
+    function Count : integer;
+    procedure Add(aPublisher : TUramakiPublisher);
+    procedure Clear;
+  end;
+
   TUramakiTransformationContext = class abstract
   public
-    procedure SaveTo (aStream : TStream; const aFormat: TUramakiStreamFormat); virtual; abstract;
-    procedure LoadFrom (aStream : TStream; const aFormat: TUramakiStreamFormat); virtual; abstract;
+    procedure SaveToXML (aXMLElement: TmXmlElement); virtual; abstract;
+    procedure LoadFromXML (aXMLElement : TmXmlElement); virtual; abstract;
   end;
 
   TUramakiTransformer = class abstract
@@ -110,8 +122,89 @@ type
     procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
   end;
 
+  { TUramakiTransformers }
+
+  TUramakiTransformers = class
+  strict private
+    FList : TObjectList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Get(index : integer) : TUramakiTransformer;
+    function Count : integer;
+    procedure Add(aTransformer : TUramakiTransformer);
+    procedure Clear;
+  end;
+
 
 implementation
+
+{ TUramakiTransformers }
+
+constructor TUramakiTransformers.Create;
+begin
+  FList := TObjectList.Create(false);
+end;
+
+destructor TUramakiTransformers.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TUramakiTransformers.Get(index: integer): TUramakiTransformer;
+begin
+  Result := FList.Items[index] as TUramakiTransformer;
+end;
+
+function TUramakiTransformers.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+procedure TUramakiTransformers.Add(aTransformer: TUramakiTransformer);
+begin
+  FList.Add(aTransformer);
+end;
+
+procedure TUramakiTransformers.Clear;
+begin
+  FList.Clear;
+end;
+
+{ TUramakiPublishers }
+
+constructor TUramakiPublishers.Create;
+begin
+  FList := TObjectList.Create;
+end;
+
+destructor TUramakiPublishers.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TUramakiPublishers.Get(index: integer): TUramakiPublisher;
+begin
+  Result := FList.Items[index] as TUramakiPublisher;
+end;
+
+function TUramakiPublishers.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+procedure TUramakiPublishers.Add(aPublisher: TUramakiPublisher);
+begin
+  FList.Add(aPublisher);
+end;
+
+procedure TUramakiPublishers.Clear;
+begin
+  FList.Clear;
+end;
 
 
 { TUramakiPlate }

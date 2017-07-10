@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
-  UramakiBase;
+  UramakiBase, UramakiFramework;
 
 type
   TForm1 = class(TForm)

@@ -15,7 +15,7 @@ unit UramakiBase;
 
 interface
 uses
-  Classes, SysUtils, contnrs,
+  Classes, SysUtils, contnrs, Controls, ExtCtrls,
   mXML;
 
 const
@@ -26,37 +26,35 @@ type
 
   TUramakiPlate = class;
 
+  { TUramakiRoll }
+
   TUramakiRoll = class abstract
   public
     function GetMyId : string; virtual; abstract;
     function GetDescription : string; virtual; abstract;
-    function CanBeCached : boolean; virtual; abstract;
+    function CanBeCached : boolean; virtual;
 
-    procedure Init; virtual; abstract;
-    procedure BeforeRead; virtual; abstract;
-    procedure AfterRead; virtual; abstract;
+    procedure Init; virtual;
+    procedure BeforeRead; virtual;
+    procedure AfterRead; virtual;
   end;
 
-  IUramakiFrameworkConnector = interface
+  IUramakiEngineController = interface
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate);
+    function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid;
   end;
+
+
 
   { TUramakiPlate }
 
   TUramakiPlate = class abstract
-  private
-    FInstanceIdentifier : TGuid;
   protected
-    FFrameworkConnector : IUramakiFrameworkConnector;
+    FEngineController : IUramakiEngineController;
   public
-    constructor Create (aFrameworkConnector : IUramakiFrameworkConnector); virtual;
-    destructor Destroy; override;
-
     function GetUramaki(const aUramakiId: String) : TUramakiRoll; virtual; abstract;
-    procedure StartTransaction(const aTransactionId : TGuid); virtual; abstract;
-    procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
-
-    property InstanceIdentifier : TGuid read FInstanceIdentifier write FInstanceIdentifier;
+    procedure StartTransaction(const aTransactionId : TGuid); virtual;
+    procedure EndTransaction(const aTransactionId: TGuid); virtual;
   end;
 
   TUramakiPublicationContext = class abstract
@@ -71,14 +69,14 @@ type
   public
     function GetMyId : String; virtual; abstract;
     function GetDescription : String; virtual; abstract;
-    function GetHelp : String; virtual; abstract;
+    function GetHelp : String; virtual;
 
     function GetInputUramakiId : String; virtual; abstract;
 
-    function CreatePlate (aFrameworkConnector : IUramakiFrameworkConnector) : TUramakiPlate; virtual; abstract;
-    function CreatePublicationContext : TUramakiPublicationContext; virtual; abstract;
-    procedure StartTransaction(const aTransactionId : TGuid); virtual; abstract;
-    procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
+    function CreatePlate : TUramakiPlate; virtual; abstract;
+    function CreatePublicationContext : TUramakiPublicationContext; virtual;
+    procedure StartTransaction(const aTransactionId : TGuid); virtual;
+    procedure EndTransaction(const aTransactionId: TGuid); virtual;
 
     procedure Publish(aInput : TUramakiRoll; aPlate : TUramakiPlate; aContext : TUramakiPublicationContext); virtual; abstract;
   end;
@@ -96,6 +94,7 @@ type
     function Count : integer;
     procedure Add(aPublisher : TUramakiPublisher);
     procedure Clear;
+    function FindById (aId : String) : TUramakiPublisher;
   end;
 
   TUramakiTransformationContext = class abstract
@@ -104,22 +103,24 @@ type
     procedure LoadFromXML (aXMLElement : TmXmlElement); virtual; abstract;
   end;
 
-  TUramakiTransformer = class abstract
+  { TUramakiTransformer }
+
+  TUramakiTransformer = class
   public
     function GetMyId : String; virtual; abstract;
     function GetDescription : String; virtual; abstract;
-    function GetHelp : String; virtual; abstract;
+    function GetHelp : String; virtual;
 
     function GetInputUramakiId : String; virtual; abstract;
     function GetOutputUramakiId : String; virtual; abstract;
 
-    function CreateTransformationContext : TUramakiTransformationContext; virtual; abstract;
+    function CreateTransformationContext : TUramakiTransformationContext; virtual;
 
-    procedure Configure (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual; abstract;
-    procedure Transform (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual; abstract;
+    procedure Configure (aInput : TUramakiRoll; aContext : TUramakiTransformationContext); virtual;
+    function Transform (aInput : TUramakiRoll; aContext : TUramakiTransformationContext) : TUramakiRoll; virtual; abstract;
 
-    procedure StartTransaction(const aTransactionId : TGuid); virtual; abstract;
-    procedure EndTransaction(const aTransactionId: TGuid); virtual; abstract;
+    procedure StartTransaction(const aTransactionId : TGuid); virtual;
+    procedure EndTransaction(const aTransactionId: TGuid); virtual;
   end;
 
   { TUramakiTransformers }
@@ -135,10 +136,94 @@ type
     function Count : integer;
     procedure Add(aTransformer : TUramakiTransformer);
     procedure Clear;
+    function FindById (aId : String) : TUramakiTransformer;
   end;
 
 
 implementation
+
+{ TUramakiPublisher }
+
+function TUramakiPublisher.GetHelp: String;
+begin
+  Result := GetDescription;
+end;
+
+function TUramakiPublisher.CreatePublicationContext: TUramakiPublicationContext;
+begin
+  Result := nil;
+end;
+
+procedure TUramakiPublisher.StartTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
+
+procedure TUramakiPublisher.EndTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
+
+{ TUramakiPlate }
+
+procedure TUramakiPlate.StartTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
+
+procedure TUramakiPlate.EndTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
+
+{ TUramakiRoll }
+
+function TUramakiRoll.CanBeCached: boolean;
+begin
+  Result := false;
+end;
+
+procedure TUramakiRoll.Init;
+begin
+  //
+end;
+
+procedure TUramakiRoll.BeforeRead;
+begin
+  //
+end;
+
+procedure TUramakiRoll.AfterRead;
+begin
+  //
+end;
+
+{ TUramakiTransformer }
+
+function TUramakiTransformer.GetHelp: String;
+begin
+  Result := GetDescription;
+end;
+
+function TUramakiTransformer.CreateTransformationContext: TUramakiTransformationContext;
+begin
+  Result := nil;
+end;
+
+procedure TUramakiTransformer.Configure(aInput: TUramakiRoll; aContext: TUramakiTransformationContext);
+begin
+  //
+end;
+
+procedure TUramakiTransformer.StartTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
+
+procedure TUramakiTransformer.EndTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
 
 { TUramakiTransformers }
 
@@ -173,11 +258,26 @@ begin
   FList.Clear;
 end;
 
+function TUramakiTransformers.FindById(aId: String): TUramakiTransformer;
+var
+  i : integer;
+begin
+  Result := nil;
+  for i := 0 to Self.Count - 1 do
+  begin
+    if CompareText(aId, Self.Get(i).GetMyId) = 0 then
+    begin
+      Result := Self.Get(i);
+      exit;
+    end;
+  end;
+end;
+
 { TUramakiPublishers }
 
 constructor TUramakiPublishers.Create;
 begin
-  FList := TObjectList.Create;
+  FList := TObjectList.Create(false);
 end;
 
 destructor TUramakiPublishers.Destroy;
@@ -206,17 +306,20 @@ begin
   FList.Clear;
 end;
 
-
-{ TUramakiPlate }
-
-constructor TUramakiPlate.Create(aFrameworkConnector: IUramakiFrameworkConnector);
+function TUramakiPublishers.FindById(aId: String): TUramakiPublisher;
+var
+  i : integer;
 begin
-  FFrameworkConnector:= aFrameworkConnector;
+  Result := nil;
+  for i := 0 to Self.Count - 1 do
+  begin
+    if CompareText(Self.Get(i).GetMyId, aId) = 0 then
+    begin
+      Result := Self.Get(i);
+      exit;
+    end;
+  end;
 end;
 
-destructor TUramakiPlate.Destroy;
-begin
-  inherited Destroy;
-end;
 
 end.

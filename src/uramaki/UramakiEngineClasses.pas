@@ -7,7 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-unit UramakiFrameworkClasses;
+unit UramakiEngineClasses;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -150,7 +150,7 @@ begin
   tmpId := aXMLElement.GetAttribute('parent');
   Self.FParentIdentifier := StringToGUID(tmpId);
   if not FIsNullPlate then
-    Self.FParent := aBuiltPlates.Find(tmpId);
+    Self.FParent := aBuiltPlates.Find(tmpId) as TUramakiLivingPlate;
 
   tmpId := aXMLElement.GetAttribute('publisherId');
   assert (tmpId <> '');

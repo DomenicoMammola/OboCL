@@ -7,7 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-unit UramakiFrameworkConnector;
+unit UramakiEngineConnector;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -21,18 +21,24 @@ uses
 
 type
 
-  { TUramakiFrameworkConnector }
+  { TUramakiEngineController }
 
-  TUramakiFrameworkConnector = class (TJavaInterfacedObject, IUramakiFrameworkConnector)
+  TUramakiEngineController = class (TJavaInterfacedObject, IUramakiEngineController)
   public
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate);
+    function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid;
   end;
 
 implementation
 
-{ TUramakiFrameworkConnector }
+{ TUramakiEngineController }
 
-procedure TUramakiFrameworkConnector.PleaseRefreshMyChilds(aPlate: TUramakiPlate);
+procedure TUramakiEngineController.PleaseRefreshMyChilds(aPlate: TUramakiPlate);
+begin
+  //
+end;
+
+function TUramakiEngineController.GetInstanceIdentifier(aPlate: TUramakiPlate): TGuid;
 begin
   //
 end;

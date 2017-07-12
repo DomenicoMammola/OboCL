@@ -235,7 +235,7 @@ begin
 
   FContainer := TUramakiDesktopLayoutContainerItem.Create(FParentControl);
   FContainer.Parent := FParentControl;
-  FContainer.Init(ctTabbed);
+  FContainer.Init(ctHorizontal);
   FContainer.Align:= alClient;
 end;
 

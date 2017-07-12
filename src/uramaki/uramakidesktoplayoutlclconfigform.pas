@@ -5,10 +5,17 @@ unit UramakiDesktopLayoutLCLConfigForm;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs;
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
+  ButtonPanel, ComCtrls;
 
 type
+
+  { TDesktopLayoutConfigForm }
+
   TDesktopLayoutConfigForm = class(TForm)
+    ButtonPanel1: TButtonPanel;
+    TopPanel: TPanel;
+    TreeView1: TTreeView;
   private
     { private declarations }
   public

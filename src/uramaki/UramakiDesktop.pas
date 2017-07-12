@@ -117,10 +117,16 @@ procedure TUramakiDesktopManager.OnAddPlate(Sender: TObject);
 var
   tmpMenuInfo : TMenuInfo;
   item : TUramakiDesktopLayoutSimpleItem;
+  tmpLivingPlate : TUramakiLivingPlate;
 begin
   tmpMenuInfo := TMenuInfo((Sender as TMenuItem).Tag);
   item := FContainer.AddItem;
-  ShowMessage(tmpMenuInfo.TransformerId + ' ' + tmpMenuInfo.PublisherId);
+  tmpLivingPlate := FEngine.CreateLivingPlate(GUID_NULL);
+  tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
+  tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
+  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate;
+  (tmpLivingPlate.Plate as TUramakiDesktopPlate).Init(nil, item);
+  FEngine.FeedLivingPlate(tmpLivingPlate);
 end;
 
 constructor TUramakiDesktopManager.Create;

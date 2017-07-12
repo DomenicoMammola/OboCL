@@ -89,7 +89,7 @@ type
     property Publication : TUramakiActualPublication read FPublication;
     property InstanceIdentifier : TGuid read FInstanceIdentifier;
     property ParentIdentifier : TGuid read FParentIdentifier write FParentIdentifier;
-    property Parent : TUramakiLivingPlate read FParent;
+    property Parent : TUramakiLivingPlate read FParent write FParent;
   end;
 
 

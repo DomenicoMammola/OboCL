@@ -43,11 +43,9 @@ type
 
     function CreateLivingPlate(aParentPlateId : TGuid) : TUramakiLivingPlate;
     function FindLivingPlate (aPlateId : TGuid) : TUramakiLivingPlate;
-
-//    function BuildRoll(aParentPlateId : TGuid; aTransformations : TStringList) : TUramakiRoll;
-
-
-//    function BuildLivingPlate(aParentPlateId : TGuid; aLivingPlate : TUramaki
+    function FindTransformer (aTransformerId : string) : TUramakiTransformer;
+    function FindPublisher (aPublisherId : string) : TUramakiPublisher;
+    procedure FeedLivingPlate (aLivingPlate : TUramakiLivingPlate);
 
     procedure GetAvailableTransformers (const aInputUramakiId : string; aList : TUramakiTransformers);
     procedure GetAvailablePublishers (const aInputUramakiId : string; aList : TUramakiPublishers);
@@ -177,8 +175,7 @@ begin
   Result := TUramakiLivingPlate.Create;
   FLivingPlates.Add(Result);
   Result.ParentIdentifier := aParentPlateId;
-  if
-  Result.Parent;
+  Result.Parent := FindLivingPlate(aParentPlateId);
 end;
 
 function TUramakiEngine.FindLivingPlate(aPlateId: TGuid): TUramakiLivingPlate;
@@ -190,7 +187,53 @@ begin
     exit;
   for i := 0 to FLivingPlates.Count - 1 do
   begin
-    if IsEqualGUID((FLivingPlates.Items[i] as T );
+    if IsEqualGUID((FLivingPlates.Items[i] as TUramakiLivingPlate).InstanceIdentifier, aPlateId ) then
+    begin
+      Result := FLivingPlates.Items[i] as TUramakiLivingPlate;
+      exit;
+    end;
+  end;
+end;
+
+function TUramakiEngine.FindTransformer(aTransformerId: string): TUramakiTransformer;
+begin
+  Result := FTransformers.FindById(aTransformerId);
+end;
+
+function TUramakiEngine.FindPublisher(aPublisherId: string): TUramakiPublisher;
+begin
+  Result := FPublishers.FindById(aPublisherId);
+end;
+
+procedure TUramakiEngine.FeedLivingPlate(aLivingPlate: TUramakiLivingPlate);
+var
+  i : integer;
+  startUramakiId : string;
+  inputUramakiRoll : TUramakiRoll;
+  Garbage : TObjectList;
+begin
+  if aLivingPlate.Transformations.Count = 0 then
+    exit;
+  startUramakiId := aLivingPlate.Transformations.Items[0].Transformer.GetInputUramakiId;
+
+  Garbage := TObjectList.Create(true);
+  try
+    if Assigned(aLivingPlate.Parent) then
+    begin
+      inputUramakiRoll := aLivingPlate.Plate.GetUramaki(startUramakiId);
+      Garbage.Add(inputUramakiRoll);
+    end
+    else
+      inputUramakiRoll := nil;
+    for i := 0 to aLivingPlate.Transformations.Count -1 do
+    begin
+      inputUramakiRoll := aLivingPlate.Transformations.Items[i].Transformer.Transform(inputUramakiRoll, aLivingPlate.Transformations.Items[0].TransformationContext);
+      Garbage.Add(inputUramakiRoll);
+    end;
+
+    aLivingPlate.Publication.Publisher.Publish(inputUramakiRoll, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
+  finally
+    Garbage.Free;
   end;
 end;
 

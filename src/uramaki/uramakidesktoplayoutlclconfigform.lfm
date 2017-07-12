@@ -1,0 +1,8 @@
+object DesktopLayoutConfigForm: TDesktopLayoutConfigForm
+  Left = 724
+  Height = 240
+  Top = 247
+  Width = 320
+  Caption = 'DesktopLayoutConfigForm'
+  LCLVersion = '1.6.4.0'
+end

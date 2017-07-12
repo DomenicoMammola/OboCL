@@ -68,9 +68,7 @@ type
 
   TUramakiLivingPlate = class
   strict private
-    FIsNullPlate : Boolean;
     FParentIdentifier : TGuid;
-    FParent : TUramakiLivingPlate;
     FInstanceIdentifier : TGuid;
 
     FPlate : TUramakiPlate;
@@ -80,16 +78,13 @@ type
     constructor Create;
     destructor Destroy; override;
     procedure SaveToXml (aXMLElement : TmXmlElement);
-    procedure BuildFromXml (aXMLElement : TmXmlElement; aPublishers : TUramakiPublishers; aTransformers : TUramakiTransformers; aBuiltPlates : TmStringDictionary);
-    procedure RefreshData;
+    procedure LoadFromXml (aXMLElement : TmXmlElement; aPublishers : TUramakiPublishers; aTransformers : TUramakiTransformers);
 
-    property IsNullPlate : Boolean read FIsNullPlate write FIsNullPlate;
     property Plate : TUramakiPlate read FPlate write FPlate;
     property Transformations : TUramakiActualTransformations read FTransformations;
     property Publication : TUramakiActualPublication read FPublication;
     property InstanceIdentifier : TGuid read FInstanceIdentifier;
     property ParentIdentifier : TGuid read FParentIdentifier write FParentIdentifier;
-    property Parent : TUramakiLivingPlate read FParent write FParent;
   end;
 
 
@@ -103,7 +98,6 @@ uses
 
 constructor TUramakiLivingPlate.Create;
 begin
-  FIsNullPlate := false;
   FParentIdentifier := GUID_NULL;
   FInstanceIdentifier := TGuid.NewGuid;
   FPlate := nil;
@@ -127,18 +121,19 @@ var
 begin
   aXMLElement.SetAttribute('instance', GUIDToString(Self.InstanceIdentifier));
   aXMLElement.SetAttribute('parent', GUIDToString(Self.ParentIdentifier));
-  aXMLElement.SetBooleanAttribute('isNullPlate', FIsNullPlate);
   aXMLElement.SetAttribute('publisherId', FPublication.Publisher.GetMyId);
-  FPublication.PublicationContext.SaveToXML(aXMLElement.AddElement('publicationContext'));
+  if Assigned(FPublication.PublicationContext) then
+    FPublication.PublicationContext.SaveToXML(aXMLElement.AddElement('publicationContext'));
   tmpElement := aXMLElement.AddElement('transformations');
   for i := 0 to FTransformations.Count -1 do
   begin
     tmpElement.SetAttribute('transformerId', FTransformations.Items[i].Transformer.GetMyId);
-    FTransformations.Items[i].TransformationContext.SaveToXML(tmpElement.AddElement('transformationContext'));
+    if Assigned(FTransformations.Items[i].TransformationContext) then
+      FTransformations.Items[i].TransformationContext.SaveToXML(tmpElement.AddElement('transformationContext'));
   end;
 end;
 
-procedure TUramakiLivingPlate.BuildFromXml(aXMLElement: TmXmlElement; aPublishers : TUramakiPublishers; aTransformers : TUramakiTransformers; aBuiltPlates : TmStringDictionary);
+procedure TUramakiLivingPlate.LoadFromXml(aXMLElement: TmXmlElement; aPublishers : TUramakiPublishers; aTransformers : TUramakiTransformers);
 var
   tmpId : string;
   cursor, cursor2: TmXmlElementCursor;
@@ -146,21 +141,21 @@ var
   tmpTransformation : TUramakiActualTransformation;
 begin
   Self.FInstanceIdentifier := StringToGUID(aXMLElement.GetAttribute('instance'));
-  Self.FIsNullPlate:= aXMLElement.GetBooleanAttribute('isNullPlate');
   tmpId := aXMLElement.GetAttribute('parent');
   Self.FParentIdentifier := StringToGUID(tmpId);
-  if not FIsNullPlate then
-    Self.FParent := aBuiltPlates.Find(tmpId) as TUramakiLivingPlate;
 
   tmpId := aXMLElement.GetAttribute('publisherId');
   assert (tmpId <> '');
   Self.Publication.Publisher := aPublishers.FindById(tmpId);
-  cursor := TmXmlElementCursor.Create(aXMLElement, 'publicationContext');
-  try
-    assert (cursor.Count = 1);
-    Self.Publication.PublicationContext.LoadFromXML(cursor.Elements[0]);
-  finally
-    cursor.Free;
+  if Assigned(Self.Publication.PublicationContext) then
+  begin
+    cursor := TmXmlElementCursor.Create(aXMLElement, 'publicationContext');
+    try
+      assert (cursor.Count = 1);
+      Self.Publication.PublicationContext.LoadFromXML(cursor.Elements[0]);
+    finally
+      cursor.Free;
+    end;
   end;
   cursor := TmXmlElementCursor.Create(aXMLElement, 'transformations');
   try
@@ -169,24 +164,22 @@ begin
       tmpId := cursor.Elements[i].GetAttribute('transformerId');
       tmpTransformation := Self.Transformations.Add;
       tmpTransformation.Transformer := aTransformers.FindById(tmpId);
-      cursor2 := TmXmlElementCursor.Create(cursor.Elements[i], 'transformationContext');
-      try
-        assert (cursor2.Count = 1);
-        tmpTransformation.TransformationContext.LoadFromXML(cursor2.Elements[0]);
-      finally
-        cursor2.Free;
+      if Assigned(tmpTransformation.TransformationContext) then
+      begin
+        cursor2 := TmXmlElementCursor.Create(cursor.Elements[i], 'transformationContext');
+        try
+          assert (cursor2.Count = 1);
+          tmpTransformation.TransformationContext.LoadFromXML(cursor2.Elements[0]);
+        finally
+          cursor2.Free;
+        end;
       end;
     end;
   finally
     cursor.Free;
   end;
-
 end;
 
-procedure TUramakiLivingPlate.RefreshData;
-begin
-
-end;
 
 
 { TUramakiActualPublication }

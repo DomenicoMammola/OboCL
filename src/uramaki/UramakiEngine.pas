@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, contnrs,
-  mMaps, mUtility,
+  mMaps, mUtility, mXML,
   UramakiBase, UramakiEngineConnector, UramakiEngineClasses;
 
 type
@@ -46,6 +46,9 @@ type
     function FindTransformer (aTransformerId : string) : TUramakiTransformer;
     function FindPublisher (aPublisherId : string) : TUramakiPublisher;
     procedure FeedLivingPlate (aLivingPlate : TUramakiLivingPlate);
+
+    procedure LoadFromXMLElement (aElement : TmXmlElement);
+    procedure SaveToXMLElement (aElement : TmXmlElement);
 
     procedure GetAvailableTransformers (const aInputUramakiId : string; aList : TUramakiTransformers);
     procedure GetAvailablePublishers (const aInputUramakiId : string; aList : TUramakiPublishers);
@@ -175,7 +178,6 @@ begin
   Result := TUramakiLivingPlate.Create;
   FLivingPlates.Add(Result);
   Result.ParentIdentifier := aParentPlateId;
-  Result.Parent := FindLivingPlate(aParentPlateId);
 end;
 
 function TUramakiEngine.FindLivingPlate(aPlateId: TGuid): TUramakiLivingPlate;
@@ -211,6 +213,7 @@ var
   startUramakiId : string;
   inputUramakiRoll : TUramakiRoll;
   Garbage : TObjectList;
+  tmpParent : TUramakiLivingPlate;
 begin
   if aLivingPlate.Transformations.Count = 0 then
     exit;
@@ -218,9 +221,10 @@ begin
 
   Garbage := TObjectList.Create(true);
   try
-    if Assigned(aLivingPlate.Parent) then
+    tmpParent := Self.FindLivingPlate(aLivingPlate.ParentIdentifier);
+    if Assigned(tmpParent) then
     begin
-      inputUramakiRoll := aLivingPlate.Plate.GetUramaki(startUramakiId);
+      inputUramakiRoll := aLivingPlate.Plate.GetUramakiRoll(startUramakiId);
       Garbage.Add(inputUramakiRoll);
     end
     else
@@ -234,6 +238,36 @@ begin
     aLivingPlate.Publication.Publisher.Publish(inputUramakiRoll, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
   finally
     Garbage.Free;
+  end;
+end;
+
+procedure TUramakiEngine.LoadFromXMLElement(aElement: TmXmlElement);
+var
+  cursor : TmXmlElementCursor;
+  i : integer;
+  tmpPlate : TUramakiLivingPlate;
+begin
+  FLivingPlates.Clear;
+  cursor := TmXmlElementCursor.Create(aElement, 'livingPlate');
+  try
+    for i := 0 to cursor.Count - 1 do
+    begin
+      tmpPlate := TUramakiLivingPlate.Create;
+      FLivingPlates.Add(tmpPlate);
+      tmpPlate.LoadFromXml(cursor.Elements[i], FPublishers, FTransformers);
+    end;
+  finally
+    cursor.Free;
+  end;
+end;
+
+procedure TUramakiEngine.SaveToXMLElement(aElement: TmXmlElement);
+var
+  i : integer;
+begin
+  for i := 0 to FLivingPlates.Count - 1 do
+  begin
+    (FLivingPlates.Items[i] as TUramakiLivingPlate).SaveToXml(aElement.AddElement('livingPlate'));
   end;
 end;
 

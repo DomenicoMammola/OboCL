@@ -45,8 +45,9 @@ type
   private
     FMemo : TMemo;
   public
-    function GetUramaki(const aUramakiId: String) : TUramakiRoll; override;
-    procedure Init (aEngineController : IUramakiEngineController; aParentPanel : TPanel); override;
+    function GetUramakiRoll(const aUramakiId: String) : TUramakiRoll; override;
+    procedure GetAvailableUramakiRolls(aUramakiRollIdList: TStringList); override;
+    procedure LinkToPanel (aParentPanel : TPanel); override;
   end;
 
   { TStupidPublisher }
@@ -94,14 +95,28 @@ end;
 
 { TStupidPlate }
 
-function TStupidPlate.GetUramaki(const aUramakiId: String): TUramakiRoll;
+
+function TStupidPlate.GetUramakiRoll(const aUramakiId: String): TUramakiRoll;
+var
+  tmp : TSampleUramakiRoll;
 begin
   Result := nil;
+  if aUramakiId = TSampleUramakiRoll.GetId then
+  begin
+    tmp := TSampleUramakiRoll.Create;
+    tmp.List.Add(FMemo.Lines.Text);
+    Result := tmp;
+  end;
 end;
 
-procedure TStupidPlate.Init(aEngineController: IUramakiEngineController; aParentPanel: TPanel);
+procedure TStupidPlate.GetAvailableUramakiRolls(aUramakiRollIdList: TStringList);
 begin
-  inherited Init(aEngineController, aParentPanel);
+  aUramakiRollIdList.Add(TSampleUramakiRoll.GetId);
+end;
+
+procedure TStupidPlate.LinkToPanel(aParentPanel: TPanel);
+begin
+  inherited LinkToPanel(aParentPanel);
   FMemo:= TMemo.Create(FParentPanel);
   FMemo.Parent := FParentPanel;
   FMemo.Align:= alClient;

@@ -19,16 +19,15 @@ type
     FParentPanel : TPanel;
   public
     // here the plate must create every component it needs to visualize data
-    procedure Init (aEngineController : IUramakiEngineController; aParentPanel : TPanel); virtual;
+    procedure LinkToPanel (aParentPanel : TPanel); virtual;
   end;
 
 implementation
 
 { TUramakiDesktopPlate }
 
-procedure TUramakiDesktopPlate.Init(aEngineController: IUramakiEngineController; aParentPanel: TPanel);
+procedure TUramakiDesktopPlate.LinkToPanel(aParentPanel: TPanel);
 begin
-  FEngineController:= aEngineController;
   FParentPanel := aParentPanel;
 end;
 

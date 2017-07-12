@@ -7,10 +7,12 @@ unit UramakiDesktop;
 interface
 
 uses
-  Controls, ComCtrls, Graphics, Menus, contnrs,
+  Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls,
   oMultiPanelSetup,
+  mXML,
   UramakiBase, UramakiEngine, UramakiEngineClasses,
-  UramakiDesktopBase, UramakiDesktopGUI;
+  UramakiDesktopBase, UramakiDesktopGUI, UramakiDesktopLayout,
+  UramakiDesktopLayoutLCLConfigForm;
 
 type
 
@@ -27,8 +29,11 @@ type
     procedure CreateToolbar;
     procedure BuildRootPopupMenu (Sender: TObject);
     procedure OnAddPlate (Sender : TObject);
+    procedure OnConfigureLayout (Sender : TObject);
+    procedure OnSaveToFile(Sender : TObject);
+    procedure OnLoadFromFile (Sender : TObject);
+    procedure DoLinkLayoutItemToPlate(aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid);
   public
-
     constructor Create;
     destructor Destroy; override;
 
@@ -48,6 +53,7 @@ uses
 type
   TMenuInfo = class
   public
+    LivingPlateIdenfier : TGuid;
     TransformerId : string;
     PublisherId : string;
   end;
@@ -66,6 +72,17 @@ begin
   tmpBtn.Caption:= 'Nuovo';
   tmpBtn.Parent := FToolbar;
   tmpBtn.DropdownMenu := FRootPopupMenu;
+
+  tmpBtn := TToolButton.Create(FToolbar);
+  tmpBtn.Style := tbsButton;
+  tmpBtn.Parent := FToolbar;
+  tmpBtn.OnClick:= OnSaveToFile;
+
+  tmpBtn := TToolButton.Create(FToolbar);
+  tmpBtn.Style := tbsButton;
+  tmpBtn.Parent := FToolbar;
+  tmpBtn.OnClick:= OnLoadFromFile;
+
 end;
 
 procedure TUramakiDesktopManager.BuildRootPopupMenu(Sender: TObject);
@@ -102,6 +119,7 @@ begin
           tmpMenuInfo := TMenuInfo.Create;
           tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
           tmpMenuInfo.TransformerId:= tempListOfTransformers.Get(i).GetMyId;
+          tmpMenuInfo.LivingPlateIdenfier := GUID_NULL;
           mt2.Tag:= PtrInt(tmpMenuInfo);
           MenuGarbageCollector.Add(tmpMenuInfo);
         end;
@@ -121,11 +139,74 @@ var
 begin
   tmpMenuInfo := TMenuInfo((Sender as TMenuItem).Tag);
   item := FContainer.AddItem;
-  tmpLivingPlate := FEngine.CreateLivingPlate(GUID_NULL);
+  tmpLivingPlate := FEngine.CreateLivingPlate(tmpMenuInfo.LivingPlateIdenfier);
+  item.LivingPlateInstanceIdentifier := tmpLivingPlate.InstanceIdentifier;
   tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
   tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
+
   tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate;
-  (tmpLivingPlate.Plate as TUramakiDesktopPlate).Init(nil, item);
+  (tmpLivingPlate.Plate as TUramakiDesktopPlate).LinkToPanel(item);
+
+  FEngine.FeedLivingPlate(tmpLivingPlate);
+end;
+
+procedure TUramakiDesktopManager.OnConfigureLayout(Sender: TObject);
+begin
+  //
+end;
+
+procedure TUramakiDesktopManager.OnSaveToFile(Sender: TObject);
+var
+  doc : TmXmlDocument;
+  root : TmXmlElement;
+begin
+  doc := TmXmlDocument.Create;
+  try
+    root := doc.CreateRootElement('uramakiReport');
+    root.SetIntegerAttribute('version', 1);
+    FContainer.SaveToXMLElement(root.AddElement('layout'));
+    FEngine.SaveToXMLElement(root.AddElement('plates'));
+
+    doc.SaveToFile('c:\temp\layout.xml');
+  finally
+    doc.Free;
+  end;
+end;
+
+procedure TUramakiDesktopManager.OnLoadFromFile(Sender: TObject);
+var
+  doc : TmXmlDocument;
+  cursor : TmXmlElementCursor;
+begin
+  doc := TmXmlDocument.Create;
+  try
+    doc.LoadFromFile('c:\temp\layout.xml');
+
+    cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
+    try
+      FEngine.LoadFromXMLElement(cursor.Elements[0]);
+    finally
+      cursor.Free;
+    end;
+
+    cursor := TmXmlElementCursor.Create(doc.RootElement, 'layout');
+    try
+      FContainer.LoadFromXMLElement(cursor.Elements[0], Self.DoLinkLayoutItemToPlate);
+    finally
+      cursor.Free;
+    end;
+  finally
+    doc.Free;
+  end;
+end;
+
+procedure TUramakiDesktopManager.DoLinkLayoutItemToPlate(aItem: TPanel; aLivingPlateInstanceIdentificator: TGuid);
+var
+  tmpLivingPlate : TUramakiLivingPlate;
+begin
+  tmpLivingPlate := FEngine.FindLivingPlate(aLivingPlateInstanceIdentificator);
+  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate;
+  (tmpLivingPlate.Plate as TUramakiDesktopPlate).LinkToPanel(aItem);
   FEngine.FeedLivingPlate(tmpLivingPlate);
 end;
 

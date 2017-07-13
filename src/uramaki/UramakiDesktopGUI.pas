@@ -20,8 +20,6 @@ type
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
   end;
 
-
-
   { TUramakiDesktopSimplePanel }
 
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
@@ -205,6 +203,10 @@ end;
 constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+  Self.BorderStyle:= bsNone;
+  Self.BevelInner:= bvNone;
+  Self.BevelOuter:= bvNone;
+
   FTitleBar := TPanel.Create(Self);
   FTitleBar.Color:= clBlue;
   FTitleBar.Parent := Self;
@@ -212,7 +214,7 @@ begin
   FTitleBar.BorderStyle:= bsNone;
   FTitleBar.BevelInner:= bvNone;
   FTitleBar.BevelOuter:= bvNone;
-  FTitleBar.Height:= 30;
+  FTitleBar.Height:= 20;
 
   FContentPanel := TPanel.Create(Self);
   FContentPanel.Parent := Self;

@@ -48,7 +48,7 @@ type
 
   { TUramakiPlate }
 
-  TUramakiPlate = class abstract
+  TUramakiPlate = class (TPanel)
   protected
     FEngineController : IUramakiEngineController;
   public
@@ -74,7 +74,8 @@ type
 
     function GetInputUramakiId : String; virtual; abstract;
 
-    function CreatePlate : TUramakiPlate; virtual; abstract;
+    function CreatePlate (aParent : TPanel) : TUramakiPlate; virtual; abstract;
+
     function CreatePublicationContext : TUramakiPublicationContext; virtual;
     procedure StartTransaction(const aTransactionId : TGuid); virtual;
     procedure EndTransaction(const aTransactionId: TGuid); virtual;

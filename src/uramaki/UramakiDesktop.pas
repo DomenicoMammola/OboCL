@@ -75,13 +75,21 @@ begin
 
   tmpBtn := TToolButton.Create(FToolbar);
   tmpBtn.Style := tbsButton;
+  tmpBtn.Caption:= 'Save';
   tmpBtn.Parent := FToolbar;
   tmpBtn.OnClick:= OnSaveToFile;
 
   tmpBtn := TToolButton.Create(FToolbar);
   tmpBtn.Style := tbsButton;
+  tmpBtn.Caption:= 'Load';
   tmpBtn.Parent := FToolbar;
   tmpBtn.OnClick:= OnLoadFromFile;
+
+  tmpBtn := TToolButton.Create(FToolbar);
+  tmpBtn.Style := tbsButton;
+  tmpBtn.Caption:= 'Conf';
+  tmpBtn.Parent := FToolbar;
+  tmpBtn.OnClick:= OnConfigureLayout;
 
 end;
 
@@ -144,30 +152,60 @@ begin
   tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
   tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
 
-  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate;
-  (tmpLivingPlate.Plate as TUramakiDesktopPlate).LinkToPanel(item);
+  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(item);
+  tmpLivingPlate.Plate.Parent := item;
+  tmpLivingPlate.Plate.Align := alClient;
 
   FEngine.FeedLivingPlate(tmpLivingPlate);
 end;
 
 procedure TUramakiDesktopManager.OnConfigureLayout(Sender: TObject);
+var
+  Dlg : TDesktopLayoutConfigForm;
+  tmpConfItem, tmpConfItemOut : TUramakiDesktopLayoutConfItem;
 begin
-  //
+  Dlg := TDesktopLayoutConfigForm.Create(nil);
+  try
+    tmpConfItem := FContainer.ExportAsConfItem;
+    try
+      Dlg.Init(tmpConfItem);
+      if Dlg.ShowModal = mrOk then
+      begin
+        tmpConfItemOut := Dlg.ExtractModifiedLayout;
+        try
+          assert (tmpConfItemOut is TUramakiDesktopLayoutConfContainerItem);
+          FContainer.ImportFromConfItem(tmpConfItemOut, Self.DoLinkLayoutItemToPlate);
+        finally
+          tmpConfItemOut.Free;
+        end;
+      end;
+    finally
+      tmpConfItem.Free;
+    end;
+  finally
+    Dlg.Free;
+  end;
 end;
 
 procedure TUramakiDesktopManager.OnSaveToFile(Sender: TObject);
 var
   doc : TmXmlDocument;
   root : TmXmlElement;
+  tmp : TUramakiDesktopLayoutConfItem;
 begin
   doc := TmXmlDocument.Create;
   try
     root := doc.CreateRootElement('uramakiReport');
     root.SetIntegerAttribute('version', 1);
-    FContainer.SaveToXMLElement(root.AddElement('layout'));
-    FEngine.SaveToXMLElement(root.AddElement('plates'));
+    tmp := FContainer.ExportAsConfItem;
+    try
+      tmp.SaveToXMLElement(root.AddElement('layout'));
+      FEngine.SaveToXMLElement(root.AddElement('plates'));
 
-    doc.SaveToFile('layout.xml');
+      doc.SaveToFile('layout.xml');
+    finally
+      tmp.Free;
+    end;
   finally
     doc.Free;
   end;
@@ -177,6 +215,7 @@ procedure TUramakiDesktopManager.OnLoadFromFile(Sender: TObject);
 var
   doc : TmXmlDocument;
   cursor : TmXmlElementCursor;
+  tmp : TUramakiDesktopLayoutConfContainerItem;
 begin
   doc := TmXmlDocument.Create;
   try
@@ -191,7 +230,13 @@ begin
 
     cursor := TmXmlElementCursor.Create(doc.RootElement, 'layout');
     try
-      FContainer.LoadFromXMLElement(cursor.Elements[0], Self.DoLinkLayoutItemToPlate);
+      tmp := TUramakiDesktopLayoutConfContainerItem.Create;
+      try
+        tmp.LoadFromXMLElement(cursor.Elements[0]);
+        FContainer.ImportFromConfItem(tmp, Self.DoLinkLayoutItemToPlate);
+      finally
+        tmp.Free;
+      end;
     finally
       cursor.Free;
     end;
@@ -205,8 +250,10 @@ var
   tmpLivingPlate : TUramakiLivingPlate;
 begin
   tmpLivingPlate := FEngine.FindLivingPlate(aLivingPlateInstanceIdentificator);
-  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate;
-  (tmpLivingPlate.Plate as TUramakiDesktopPlate).LinkToPanel(aItem);
+  assert (not Assigned(tmpLivingPlate.Plate));
+  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(aItem);
+  tmpLivingPlate.Plate.Parent := aItem;
+  tmpLivingPlate.Plate.Align:= alClient;
   FEngine.FeedLivingPlate(tmpLivingPlate);
 end;
 

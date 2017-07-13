@@ -10,25 +10,26 @@ uses
   Classes, Controls, ExtCtrls,
   UramakiBase;
 
-type
+//type
 
   { TUramakiDesktopPlate }
 
-  TUramakiDesktopPlate = class (TUramakiPlate)
+(*  TUramakiDesktopPlate = class (TUramakiPlate)
   protected
     FParentPanel : TPanel;
   public
     // here the plate must create every component it needs to visualize data
     procedure LinkToPanel (aParentPanel : TPanel); virtual;
-  end;
+  end;*)
 
 implementation
 
 { TUramakiDesktopPlate }
 
+(*
 procedure TUramakiDesktopPlate.LinkToPanel(aParentPanel: TPanel);
 begin
   FParentPanel := aParentPanel;
-end;
+end;*)
 
 end.

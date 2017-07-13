@@ -41,13 +41,13 @@ type
 
   { TStupidPlate }
 
-  TStupidPlate = class (TUramakiDesktopPlate)
+  TStupidPlate = class (TUramakiPlate)
   private
     FMemo : TMemo;
   public
     function GetUramakiRoll(const aUramakiId: String) : TUramakiRoll; override;
     procedure GetAvailableUramakiRolls(aUramakiRollIdList: TStringList); override;
-    procedure LinkToPanel (aParentPanel : TPanel); override;
+    procedure Build;
   end;
 
   { TStupidPublisher }
@@ -59,7 +59,7 @@ type
 
     function GetInputUramakiId : String; override;
 
-    function CreatePlate : TUramakiPlate; override;
+    function CreatePlate (aParent : TPanel) : TUramakiPlate; override;
 
     procedure Publish(aInput : TUramakiRoll; aPlate : TUramakiPlate; aContext : TUramakiPublicationContext); override;
   end;
@@ -83,9 +83,11 @@ begin
   Result := TSampleUramakiRoll.GetId;
 end;
 
-function TStupidPublisher.CreatePlate: TUramakiPlate;
+function TStupidPublisher.CreatePlate(aParent : TPanel): TUramakiPlate;
 begin
-  Result := TStupidPlate.Create;
+  Result := TStupidPlate.Create(aParent);
+  Result.Parent := aParent;
+  (Result as TStupidPlate).Build;
 end;
 
 procedure TStupidPublisher.Publish(aInput: TUramakiRoll; aPlate: TUramakiPlate; aContext: TUramakiPublicationContext);
@@ -114,13 +116,13 @@ begin
   aUramakiRollIdList.Add(TSampleUramakiRoll.GetId);
 end;
 
-procedure TStupidPlate.LinkToPanel(aParentPanel: TPanel);
+procedure TStupidPlate.Build;
 begin
-  inherited LinkToPanel(aParentPanel);
-  FMemo:= TMemo.Create(FParentPanel);
-  FMemo.Parent := FParentPanel;
+  FMemo:= TMemo.Create(Self);
+  FMemo.Parent := Self;
   FMemo.Align:= alClient;
 end;
+
 
 { TSampleUramakiRoll }
 

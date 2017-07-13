@@ -3,19 +3,10 @@ object DesktopLayoutConfigForm: TDesktopLayoutConfigForm
   Height = 324
   Top = 247
   Width = 514
-  Caption = 'DesktopLayoutConfigForm'
+  Caption = 'Layout configuration'
   ClientHeight = 324
   ClientWidth = 514
   LCLVersion = '1.6.4.0'
-  object TopPanel: TPanel
-    Left = 0
-    Height = 26
-    Top = 0
-    Width = 514
-    Align = alTop
-    BevelOuter = bvNone
-    TabOrder = 0
-  end
   object ButtonPanel1: TButtonPanel
     Left = 6
     Height = 34
@@ -29,15 +20,52 @@ object DesktopLayoutConfigForm: TDesktopLayoutConfigForm
     CloseButton.DefaultCaption = True
     CancelButton.Name = 'CancelButton'
     CancelButton.DefaultCaption = True
-    TabOrder = 1
+    TabOrder = 0
   end
-  object TreeView1: TTreeView
+  object LayoutTreeView: TTreeView
     Left = 0
     Height = 252
     Top = 26
     Width = 514
     Align = alClient
     DefaultItemHeight = 18
+    DragMode = dmAutomatic
+    ReadOnly = True
+    TabOrder = 1
+    OnDragDrop = LayoutTreeViewDragDrop
+    OnDragOver = LayoutTreeViewDragOver
+    Options = [tvoAutoItemHeight, tvoHideSelection, tvoKeepCollapsedNodes, tvoReadOnly, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+  end
+  object ToolBar1: TToolBar
+    Left = 0
+    Height = 26
+    Top = 0
+    Width = 514
+    Caption = 'ToolBar1'
+    ShowCaptions = True
     TabOrder = 2
+    object BtnAdd: TToolButton
+      Left = 1
+      Top = 2
+      Caption = 'Aggiungi..'
+      DropdownMenu = PopupMenuAdd
+      Style = tbsDropDown
+    end
+  end
+  object PopupMenuAdd: TPopupMenu
+    left = 170
+    top = 103
+    object MI_NewHorizontal: TMenuItem
+      Caption = 'Horizontal'
+      OnClick = MI_NewHorizontalClick
+    end
+    object MI_NewVertical: TMenuItem
+      Caption = 'Vertical'
+      OnClick = MI_NewVerticalClick
+    end
+    object MI_Tabbed: TMenuItem
+      Caption = 'Tabbed'
+      OnClick = MI_TabbedClick
+    end
   end
 end

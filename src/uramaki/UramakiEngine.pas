@@ -46,6 +46,7 @@ type
     function FindTransformer (aTransformerId : string) : TUramakiTransformer;
     function FindPublisher (aPublisherId : string) : TUramakiPublisher;
     procedure FeedLivingPlate (aLivingPlate : TUramakiLivingPlate);
+    procedure FreePlatesOfLivingPlates;
 
     procedure LoadFromXMLElement (aElement : TmXmlElement);
     procedure SaveToXMLElement (aElement : TmXmlElement);
@@ -241,12 +242,24 @@ begin
   end;
 end;
 
+procedure TUramakiEngine.FreePlatesOfLivingPlates;
+var
+  i : integer;
+begin
+  for i := 0 to FLivingPlates.Count -1 do
+  begin
+    (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate.Free;
+    (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate := nil;
+  end;
+end;
+
 procedure TUramakiEngine.LoadFromXMLElement(aElement: TmXmlElement);
 var
   cursor : TmXmlElementCursor;
   i : integer;
   tmpPlate : TUramakiLivingPlate;
 begin
+  FreePlatesOfLivingPlates;
   FLivingPlates.Clear;
   cursor := TmXmlElementCursor.Create(aElement, 'livingPlate');
   try

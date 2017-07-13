@@ -1,5 +1,5 @@
 unit UramakiDesktopLayout;
-
+                          sdfsdf
 {$IFDEF FPC}
   {$MODE DELPHI}
 {$ENDIF}
@@ -11,6 +11,11 @@ type
   TContainerType = (ctVertical, ctHorizontal, ctTabbed);
 
   TUramakiDesktopLayoutItem = class
+  strict private
+
+  end;
+
+  TUramakiDesktopLayoutConfContainerItem = class (TUramakiDesktopLayoutItem)
   strict private
     FIsContainer : Boolean;
     FContainerType : TContainerType;

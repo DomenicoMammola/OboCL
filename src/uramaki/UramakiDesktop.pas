@@ -23,7 +23,7 @@ type
     FEngine : TUramakiEngine;
     FToolbar : TToolbar;
     FParentControl : TWinControl;
-    FContainer : TUramakiDesktopLayoutContainerItem;
+    FContainer : TUramakiDesktopContainerPanel;
     FRootPopupMenu : TPopupMenu;
 
     procedure CreateToolbar;
@@ -134,7 +134,7 @@ end;
 procedure TUramakiDesktopManager.OnAddPlate(Sender: TObject);
 var
   tmpMenuInfo : TMenuInfo;
-  item : TUramakiDesktopLayoutSimpleItem;
+  item : TUramakiDesktopSimplePanel;
   tmpLivingPlate : TUramakiLivingPlate;
 begin
   tmpMenuInfo := TMenuInfo((Sender as TMenuItem).Tag);
@@ -167,7 +167,7 @@ begin
     FContainer.SaveToXMLElement(root.AddElement('layout'));
     FEngine.SaveToXMLElement(root.AddElement('plates'));
 
-    doc.SaveToFile('c:\temp\layout.xml');
+    doc.SaveToFile('layout.xml');
   finally
     doc.Free;
   end;
@@ -180,7 +180,7 @@ var
 begin
   doc := TmXmlDocument.Create;
   try
-    doc.LoadFromFile('c:\temp\layout.xml');
+    doc.LoadFromFile('layout.xml');
 
     cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
     try
@@ -233,7 +233,7 @@ begin
   FToolbar.Align:= alTop;
   Self.CreateToolbar;
 
-  FContainer := TUramakiDesktopLayoutContainerItem.Create(FParentControl);
+  FContainer := TUramakiDesktopContainerPanel.Create(FParentControl);
   FContainer.Parent := FParentControl;
   FContainer.Init(ctHorizontal);
   FContainer.Align:= alClient;

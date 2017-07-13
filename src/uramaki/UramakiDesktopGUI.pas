@@ -15,19 +15,19 @@ uses
 
 type
 
-  TDoLinkLayoutItemToPlate = procedure (aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid) of object;
+  TDoLinkLayoutPanelToPlate = procedure (aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid) of object;
 
-  TUramakiDesktopLayoutItem = class (TPanel)
+  TUramakiDesktopPanel = class (TPanel)
   public
     procedure SaveToXMLElement (aElement : TmXmlElement); virtual; abstract;
-    procedure LoadFromXMLElement (aElement : TmXmlElement; aDoLinkCallback: TDoLinkLayoutItemToPlate); virtual; abstract;
+    procedure LoadFromXMLElement (aElement : TmXmlElement; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
   end;
 
 
 
-  { TUramakiDesktopLayoutSimpleItem }
+  { TUramakiDesktopSimplePanel }
 
-  TUramakiDesktopLayoutSimpleItem = class(TUramakiDesktopLayoutItem)
+  TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
     FTitleBar : TPanel;
     FContentPanel : TPanel;
@@ -36,7 +36,7 @@ type
     constructor Create(TheOwner: TComponent); override;
 
     procedure SaveToXMLElement (aElement : TmXmlElement); override;
-    procedure LoadFromXMLElement (aElement : TmXmlElement; aDoLinkCallback: TDoLinkLayoutItemToPlate); override;
+    procedure LoadFromXMLElement (aElement : TmXmlElement; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
 
     property TitleBar : TPanel read FTitleBar;
     property ContentPanel : TPanel read FContentPanel;
@@ -45,9 +45,9 @@ type
 
 
 
-  { TUramakiDesktopLayoutContainerItem }
+  { TUramakiDesktopContainerPanel }
 
-  TUramakiDesktopLayoutContainerItem = class (TUramakiDesktopLayoutItem)
+  TUramakiDesktopContainerPanel = class (TUramakiDesktopPanel)
   strict private
     FContainerType : TContainerType;
     FRootPanel : TOMultiPanel;
@@ -59,13 +59,13 @@ type
 
     procedure Init(aContainerType : TContainerType);
     function Count : integer;
-    function Get (aIndex : integer) : TUramakiDesktopLayoutItem;
+    function Get (aIndex : integer) : TUramakiDesktopPanel;
 
     procedure SaveToXMLElement (aElement : TmXmlElement); override;
-    procedure LoadFromXMLElement (aElement : TmXmlElement; aDoLinkCallback: TDoLinkLayoutItemToPlate); override;
+    procedure LoadFromXMLElement (aElement : TmXmlElement; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
 
-    function AddItem : TUramakiDesktopLayoutSimpleItem;
-    function AddContainer : TUramakiDesktopLayoutContainerItem;
+    function AddItem : TUramakiDesktopSimplePanel;
+    function AddContainer : TUramakiDesktopContainerPanel;
     property ContainerType : TContainerType read FContainerType;
   end;
 
@@ -74,21 +74,21 @@ implementation
 uses
   SysUtils;
 
-{ TUramakiDesktopLayoutContainerItem }
+{ TUramakiDesktopContainerPanel }
 
-constructor TUramakiDesktopLayoutContainerItem.Create(TheOwner: TComponent);
+constructor TUramakiDesktopContainerPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
   FItems := TObjectList.Create(false);
 end;
 
-destructor TUramakiDesktopLayoutContainerItem.Destroy;
+destructor TUramakiDesktopContainerPanel.Destroy;
 begin
   FItems.Free;
   inherited Destroy;
 end;
 
-procedure TUramakiDesktopLayoutContainerItem.Init(aContainerType: TContainerType);
+procedure TUramakiDesktopContainerPanel.Init(aContainerType: TContainerType);
 begin
   FContainerType:= aContainerType;
   FreeAndNil(FPageControl);
@@ -111,17 +111,17 @@ begin
   end;
 end;
 
-function TUramakiDesktopLayoutContainerItem.Count: integer;
+function TUramakiDesktopContainerPanel.Count: integer;
 begin
   Result := FItems.Count;
 end;
 
-function TUramakiDesktopLayoutContainerItem.Get(aIndex: integer): TUramakiDesktopLayoutItem;
+function TUramakiDesktopContainerPanel.Get(aIndex: integer): TUramakiDesktopPanel;
 begin
-  Result := FItems.Items[aIndex] as TUramakiDesktopLayoutItem;
+  Result := FItems.Items[aIndex] as TUramakiDesktopPanel;
 end;
 
-procedure TUramakiDesktopLayoutContainerItem.SaveToXMLElement(aElement: TmXmlElement);
+procedure TUramakiDesktopContainerPanel.SaveToXMLElement(aElement: TmXmlElement);
 var
   i : integer;
   tmpElement : TmXmlElement;
@@ -130,7 +130,7 @@ begin
   for i := 0 to Count - 1 do
   begin
     tmpElement := aElement.AddElement('layoutItem');
-    if Self.Get(i) is TUramakiDesktopLayoutContainerItem then
+    if Self.Get(i) is TUramakiDesktopContainerPanel then
       tmpElement.SetAttribute('type', 'container')
     else
       tmpElement.SetAttribute('type', 'simple');
@@ -138,12 +138,12 @@ begin
   end;
 end;
 
-procedure TUramakiDesktopLayoutContainerItem.LoadFromXMLElement(aElement: TmXmlElement; aDoLinkCallback: TDoLinkLayoutItemToPlate);
+procedure TUramakiDesktopContainerPanel.LoadFromXMLElement(aElement: TmXmlElement; aDoLinkCallback: TDoLinkLayoutPanelToPlate);
 var
   tmpContainerType : TContainerType;
   cursor : TmXmlElementCursor;
   i : integer;
-  simpleItem : TUramakiDesktopLayoutSimpleItem;
+  simpleItem : TUramakiDesktopSimplePanel;
 begin
   tmpContainerType := StringToTContainerType(aElement.GetAttribute('containerType'));
   Self.Init(tmpContainerType);
@@ -167,20 +167,20 @@ begin
   end;
 end;
 
-function TUramakiDesktopLayoutContainerItem.AddItem : TUramakiDesktopLayoutSimpleItem;
+function TUramakiDesktopContainerPanel.AddItem : TUramakiDesktopSimplePanel;
 var
   ts : TTabSheet;
 begin
   if FContainerType = ctTabbed then
   begin
     ts := FPageControl.AddTabSheet;
-    Result := TUramakiDesktopLayoutSimpleItem.Create(ts);
+    Result := TUramakiDesktopSimplePanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
   end
   else
   begin
-    Result := TUramakiDesktopLayoutSimpleItem.Create(FRootPanel);
+    Result := TUramakiDesktopSimplePanel.Create(FRootPanel);
     Result.Parent := FRootPanel;
     Result.Align:= alClient;
     FRootPanel.PanelCollection.AddControl(Result);
@@ -188,20 +188,20 @@ begin
   FItems.Add(Result);
 end;
 
-function TUramakiDesktopLayoutContainerItem.AddContainer: TUramakiDesktopLayoutContainerItem;
+function TUramakiDesktopContainerPanel.AddContainer: TUramakiDesktopContainerPanel;
 var
   ts : TTabSheet;
 begin
   if FContainerType = ctTabbed then
   begin
     ts := FPageControl.AddTabSheet;
-    Result := TUramakiDesktopLayoutContainerItem.Create(ts);
+    Result := TUramakiDesktopContainerPanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
   end
   else
   begin
-    Result := TUramakiDesktopLayoutContainerItem.Create(FRootPanel);
+    Result := TUramakiDesktopContainerPanel.Create(FRootPanel);
     Result.Parent := FRootPanel;
     Result.Align:= alClient;
     FRootPanel.PanelCollection.AddControl(Result);
@@ -209,9 +209,9 @@ begin
   FItems.Add(Result);
 end;
 
-{ TUramakiDesktopLayoutSimpleItem }
+{ TUramakiDesktopSimplePanel }
 
-constructor TUramakiDesktopLayoutSimpleItem.Create(TheOwner: TComponent);
+constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
   FTitleBar := TPanel.Create(Self);
@@ -231,12 +231,12 @@ begin
   FContentPanel.Align:= alClient;
 end;
 
-procedure TUramakiDesktopLayoutSimpleItem.SaveToXMLElement(aElement: TmXmlElement);
+procedure TUramakiDesktopSimplePanel.SaveToXMLElement(aElement: TmXmlElement);
 begin
   aElement.SetAttribute('livingPlateInstanceIdenfier', GUIDToString(FLivingPlateInstanceIdentifier));
 end;
 
-procedure TUramakiDesktopLayoutSimpleItem.LoadFromXMLElement(aElement: TmXmlElement; aDoLinkCallback: TDoLinkLayoutItemToPlate);
+procedure TUramakiDesktopSimplePanel.LoadFromXMLElement(aElement: TmXmlElement; aDoLinkCallback: TDoLinkLayoutPanelToPlate);
 begin
   Self.FLivingPlateInstanceIdentifier := StringToGUID(aElement.GetAttribute('livingPlateInstanceIdenfier'));
 end;

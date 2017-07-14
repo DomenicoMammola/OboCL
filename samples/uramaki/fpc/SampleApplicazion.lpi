@@ -56,7 +56,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\src\uramaki;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\OXML\units;..\..\..\thirdparties\omultipanel"/>
+      <OtherUnitFiles Value="..\..\..\src\uramaki;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\OXML\units;..\..\..\thirdparties\omultipanel;..\..\..\thirdparties\ATButtons\atbuttons;..\..\..\thirdparties\ATTabs\src"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>

@@ -10,6 +10,7 @@ uses
   Controls, Classes, StdCtrls, ExtCtrls, ComCtrls, contnrs,
   Graphics,
   oMultiPanelSetup, OMultiPanel,
+  ATTabs,
   UramakiDesktopLayout;
 
 type
@@ -24,8 +25,8 @@ type
 
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
-    FTitleBar : TPanel;
-    FContentPanel : TPanel;
+//    FTitleBar : TPanel;
+    FTabs : TATTabs;
     FLivingPlateInstanceIdentifier : TGuid;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -33,8 +34,7 @@ type
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
 
-    property TitleBar : TPanel read FTitleBar;
-    property ContentPanel : TPanel read FContentPanel;
+//    property TitleBar : TPanel read FTitleBar;
     property LivingPlateInstanceIdentifier : TGuid read FLivingPlateInstanceIdentifier write FLivingPlateInstanceIdentifier;
   end;
 
@@ -206,22 +206,30 @@ begin
   Self.BorderStyle:= bsNone;
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
+  Self.ParentColor:= true;
 
-  FTitleBar := TPanel.Create(Self);
+  FTabs := TATTabs.Create(Self);
+  FTabs.Parent := Self;
+  FTabs.Align:= alTop;
+  //FTabs.TabAngle:= 4;
+  //FTabs.Height:= 56;
+  FTabs.AddTab(0, 'report');
+  FTabs.TabDoubleClickClose:= false;
+  FTabs.TabDoubleClickPlus:= false;
+  FTabs.TabShowClose:= tbShowNone;
+  FTabs.TabShowPlus:= false;
+  FTabs.TabWidthMax:= 1000;
+  FTabs.Height:= 24;
+  FTabs.TabHeight:= 18;
+
+(*  FTitleBar := TPanel.Create(Self);
   FTitleBar.Color:= clBlue;
   FTitleBar.Parent := Self;
   FTitleBar.Align:= alTop;
   FTitleBar.BorderStyle:= bsNone;
   FTitleBar.BevelInner:= bvNone;
   FTitleBar.BevelOuter:= bvNone;
-  FTitleBar.Height:= 20;
-
-  FContentPanel := TPanel.Create(Self);
-  FContentPanel.Parent := Self;
-  FContentPanel.BorderStyle:= bsNone;
-  FContentPanel.BevelOuter:= bvNone;
-  FContentPanel.BevelInner:= bvNone;
-  FContentPanel.Align:= alClient;
+  FTitleBar.Height:= 20;*)
 end;
 
 

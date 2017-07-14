@@ -8,11 +8,14 @@ interface
 
 uses
   Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls,
+
   oMultiPanelSetup,
+  ATButtons, ATButtonsToolbar,
   mXML,
+
   UramakiBase, UramakiEngine, UramakiEngineClasses,
   UramakiDesktopBase, UramakiDesktopGUI, UramakiDesktopLayout,
-  UramakiDesktopLayoutLCLConfigForm;
+  UramakiDesktopLayoutLCLConfigForm, UramakiDesktopLCLIcons;
 
 type
 
@@ -21,10 +24,11 @@ type
   TUramakiDesktopManager = class
   strict private
     FEngine : TUramakiEngine;
-    FToolbar : TToolbar;
+    FToolbar : TATButtonsToolbar;
     FParentControl : TWinControl;
     FContainer : TUramakiDesktopContainerPanel;
     FRootPopupMenu : TPopupMenu;
+    FDesktopDataModule: TUramakiDesktopDataModule;
 
     procedure CreateToolbar;
     procedure BuildRootPopupMenu (Sender: TObject);
@@ -42,7 +46,7 @@ type
     procedure AddPublisher (aPublisher : TUramakiPublisher);
     procedure AddTransformer (aTransformer : TUramakiTransformer);
 
-    property Toolbar : TToolBar read FToolbar;
+    //property Toolbar : TToolBar read FToolbar;
   end;
 
 implementation
@@ -64,6 +68,15 @@ var
 { TUramakiDesktopManager }
 
 procedure TUramakiDesktopManager.CreateToolbar;
+begin
+//  FToolbar.AddButton(ICON_ADD, nil, '', '', '', false);
+  FToolbar.AddDropdown(FRootPopupMenu, nil, 'Add..');
+  FToolbar.AddButton(ICON_OPEN, OnLoadFromFile, '', 'Open a report file..', '', false);
+  FToolbar.AddButton(ICON_SAVE, OnSaveToFile, '', 'Save to a report file..', '', false);
+  FToolbar.AddButton(ICON_CONFIGURE, OnConfigureLayout, '', 'Configure layout of report', '', false);
+  FToolbar.UpdateControls;
+
+(*
 var
   tmpBtn : TToolButton;
 begin
@@ -90,7 +103,7 @@ begin
   tmpBtn.Caption:= 'Conf';
   tmpBtn.Parent := FToolbar;
   tmpBtn.OnClick:= OnConfigureLayout;
-
+*)
 end;
 
 procedure TUramakiDesktopManager.BuildRootPopupMenu(Sender: TObject);
@@ -102,7 +115,7 @@ var
   tmpMenu : TPopupMenu;
   tmpMenuInfo : TMenuInfo;
 begin
-  tmpMenu := (Sender as TPopupMenu);
+  tmpMenu := FRootPopupMenu;// (Sender as TPopupMenu);
   tmpMenu.Items.Clear;
   MenuGarbageCollector.Clear;
 
@@ -260,11 +273,13 @@ end;
 constructor TUramakiDesktopManager.Create;
 begin
   FEngine := TUramakiEngine.Create;
+  FDesktopDataModule:= TUramakiDesktopDataModule.Create(nil);
 end;
 
 destructor TUramakiDesktopManager.Destroy;
 begin
   FreeAndNil(FEngine);
+  FreeAndNil(FDesktopDataModule);
   inherited Destroy;
 end;
 
@@ -275,7 +290,12 @@ begin
   FRootPopupMenu := TPopupMenu.Create(FParentControl);
   FRootPopupMenu.OnPopup:= Self.BuildRootPopupMenu;
 
-  FToolbar := TToolBar.Create(FParentControl);
+(*  FToolbar := TToolBar.Create(FParentControl);
+  FToolbar.Parent := FParentControl;
+  FToolbar.Align:= alTop;*)
+
+  FToolbar := TATButtonsToolbar.Create(FParentControl);
+  FToolbar.Images := FDesktopDataModule.UramakiDesktopImageList;
   FToolbar.Parent := FParentControl;
   FToolbar.Align:= alTop;
   Self.CreateToolbar;

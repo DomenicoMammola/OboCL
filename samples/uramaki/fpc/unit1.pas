@@ -121,6 +121,7 @@ begin
   FMemo:= TMemo.Create(Self);
   FMemo.Parent := Self;
   FMemo.Align:= alClient;
+  FMemo.BorderStyle:= bsNone;
 end;
 
 

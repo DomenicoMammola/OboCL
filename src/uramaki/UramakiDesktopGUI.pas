@@ -8,14 +8,19 @@ interface
 
 uses
   Controls, Classes, StdCtrls, ExtCtrls, ComCtrls, contnrs,
-  Graphics,
+  Graphics, Menus,
   oMultiPanelSetup, OMultiPanel,
   ATTabs,
   UramakiDesktopLayout;
 
 type
 
+  { TUramakiDesktopPanel }
+
   TUramakiDesktopPanel = class (TPanel)
+  protected
+    FTabs : TATTabs;
+    function CreateTabs : TATTabs;
   public
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; virtual; abstract;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
@@ -26,10 +31,10 @@ type
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
 //    FTitleBar : TPanel;
-    FTabs : TATTabs;
     FLivingPlateInstanceIdentifier : TGuid;
   public
     constructor Create(TheOwner: TComponent); override;
+    procedure AddTab;
 
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
@@ -48,6 +53,8 @@ type
     FRootPanel : TOMultiPanel;
     FPageControl : TPageControl;
     FItems : TObjectList;
+    FPopupMenu : TPopupMenu;
+    procedure OnTabClick (aSender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -69,11 +76,40 @@ implementation
 uses
   SysUtils;
 
+{ TUramakiDesktopPanel }
+
+function TUramakiDesktopPanel.CreateTabs: TATTabs;
+begin
+  Result := TATTabs.Create(Self);
+  Result.Parent := Self;
+  Result.Align:= alTop;
+  //FTabs.TabAngle:= 4;
+  //FTabs.Height:= 56;
+  Result.TabDoubleClickClose:= false;
+  Result.TabDoubleClickPlus:= false;
+  Result.TabShowClose:= tbShowNone;
+  Result.TabShowPlus:= false;
+  Result.Height:= 24;
+  Result.TabHeight:= 18;
+end;
+
+
 { TUramakiDesktopContainerPanel }
+
+procedure TUramakiDesktopContainerPanel.OnTabClick(aSender: TObject);
+begin
+  if (Self.FContainerType = ctTabbed) then
+    FPageControl.ActivePageIndex:= FTabs.TabIndex;
+end;
 
 constructor TUramakiDesktopContainerPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+  Self.BorderStyle:= bsNone;
+  Self.BevelInner:= bvNone;
+  Self.BevelOuter:= bvNone;
+  Self.ParentColor:= true;
+
   FItems := TObjectList.Create(true);
 end;
 
@@ -89,17 +125,29 @@ begin
   FItems.Clear;
   FreeAndNil(FPageControl);
   FreeAndNil(FRootPanel);
+  FreeAndNil(FTabs);
   if FContainerType = ctTabbed then
   begin
     FPageControl := TPageControl.Create(Self);
     FPageControl.Parent := Self;
     FPageControl.Align:= alClient;
+    FPageControl.BorderWidth:= 0;
+    FPageControl.BorderSpacing.InnerBorder := 0;
+    FPageControl.ShowTabs:= false;
+    FTabs := CreateTabs;
+    FTabs.OnTabClick:= Self.OnTabClick;
+    FTabs.BorderWidth:= 0;
+    FTabs.BorderStyle:= bsNone;
   end
   else
   begin
     FRootPanel := TOMultiPanel.Create(Self);
     FRootPanel.Parent := Self;
     FRootPanel.Align:= alClient;
+    FRootPanel.BorderWidth:= 0;
+    FRootPanel.BorderStyle:= bsNone;
+    FRootPanel.BevelInner:= bvNone;
+    FRootPanel.BevelOuter:= bvNone;
     if FContainerType = ctHorizontal then
       FRootPanel.PanelType:= ptHorizontal
     else
@@ -120,15 +168,26 @@ end;
 function TUramakiDesktopContainerPanel.ExportAsConfItem: TUramakiDesktopLayoutConfItem;
 var
   i : integer;
+  tmp : TUramakiDesktopLayoutConfItem;
 begin
   Result := TUramakiDesktopLayoutConfContainerItem.Create;
   (Result as TUramakiDesktopLayoutConfContainerItem).ContainerType:= Self.ContainerType;
   for i := 0 to Count - 1 do
   begin
     if Self.Get(i) is TUramakiDesktopContainerPanel then
-      (Result as TUramakiDesktopLayoutConfContainerItem).AddItem((Self.Get(i) as TUramakiDesktopContainerPanel).ExportAsConfItem)
+    begin
+      tmp := (Self.Get(i) as TUramakiDesktopContainerPanel).ExportAsConfItem;
+      if Assigned(FRootPanel) then
+        tmp.Position := FRootPanel.PanelCollection.Items[i].Position;
+      (Result as TUramakiDesktopLayoutConfContainerItem).AddItem(tmp)
+    end
     else
-      (Result as TUramakiDesktopLayoutConfContainerItem).AddItem((Self.Get(i) as TUramakiDesktopSimplePanel).ExportAsConfItem)
+    begin
+      tmp := (Self.Get(i) as TUramakiDesktopSimplePanel).ExportAsConfItem;
+      if Assigned(FRootPanel) then
+        tmp.Position := FRootPanel.PanelCollection.Items[i].Position;
+      (Result as TUramakiDesktopLayoutConfContainerItem).AddItem(tmp)
+    end;
   end;
 end;
 
@@ -154,6 +213,15 @@ begin
       aDoLinkCallback(simpleItem, simpleItem.LivingPlateInstanceIdentifier);
     end;
   end;
+  // recover positions
+  if Assigned(FRootPanel) then
+  begin
+    for i := Self.Count - 1 downto 0 do
+    begin
+      if tmpSource.Get(i).Position >= 0 then
+        FRootPanel.PanelCollection.Items[i].Position:= tmpSource.Get(i).Position;
+    end;
+  end;
 end;
 
 function TUramakiDesktopContainerPanel.AddItem : TUramakiDesktopSimplePanel;
@@ -162,7 +230,9 @@ var
 begin
   if FContainerType = ctTabbed then
   begin
+    FTabs.AddTab(-1, 'report ' + IntToStr(FTabs.TabCount));
     ts := FPageControl.AddTabSheet;
+    ts.BorderWidth:= 0;
     Result := TUramakiDesktopSimplePanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
@@ -170,6 +240,7 @@ begin
   else
   begin
     Result := TUramakiDesktopSimplePanel.Create(FRootPanel);
+    Result.AddTab;
     Result.Parent := FRootPanel;
     Result.Align:= alClient;
     FRootPanel.PanelCollection.AddControl(Result);
@@ -187,6 +258,7 @@ begin
     Result := TUramakiDesktopContainerPanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
+    FTabs.AddTab(FTabs.TabCount, 'report ' + IntToStr(FTabs.TabCount));
   end
   else
   begin
@@ -208,19 +280,6 @@ begin
   Self.BevelOuter:= bvNone;
   Self.ParentColor:= true;
 
-  FTabs := TATTabs.Create(Self);
-  FTabs.Parent := Self;
-  FTabs.Align:= alTop;
-  //FTabs.TabAngle:= 4;
-  //FTabs.Height:= 56;
-  FTabs.AddTab(0, 'report');
-  FTabs.TabDoubleClickClose:= false;
-  FTabs.TabDoubleClickPlus:= false;
-  FTabs.TabShowClose:= tbShowNone;
-  FTabs.TabShowPlus:= false;
-  FTabs.TabWidthMax:= 1000;
-  FTabs.Height:= 24;
-  FTabs.TabHeight:= 18;
 
 (*  FTitleBar := TPanel.Create(Self);
   FTitleBar.Color:= clBlue;
@@ -230,6 +289,18 @@ begin
   FTitleBar.BevelInner:= bvNone;
   FTitleBar.BevelOuter:= bvNone;
   FTitleBar.Height:= 20;*)
+end;
+
+procedure TUramakiDesktopSimplePanel.AddTab;
+begin
+  FTabs := CreateTabs;
+  FTabs.AddTab(-1, 'report');
+  FTabs.TabWidthMax:= 3000;
+  FTabs.TabShowMenu := false;
+  FTabs.TabAngle:= 0;
+  FTabs.Height:= FTabs.TabHeight;
+  FTabs.TabIndentTop:= 0;
+  FTabs.TabIndentInit:= 0;
 end;
 
 

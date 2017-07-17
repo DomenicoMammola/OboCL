@@ -16,11 +16,18 @@ type
 
   TDoLinkLayoutPanelToPlate = procedure (aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid) of object;
 
+  { TUramakiDesktopLayoutConfItem }
+
   TUramakiDesktopLayoutConfItem = class
+  strict private
+    FPosition : Double;
   public
+    constructor Create; virtual;
+
     function GetDescription : String; virtual; abstract;
-    procedure SaveToXMLElement (aElement : TmXmlElement); virtual; abstract;
-    procedure LoadFromXMLElement (aElement : TmXmlElement); virtual; abstract;
+    procedure SaveToXMLElement (aElement : TmXmlElement); virtual;
+    procedure LoadFromXMLElement (aElement : TmXmlElement); virtual;
+    property Position : Double read FPosition write FPosition;
   end;
 
   { TUramakiDesktopLayoutConfSimpleItem }
@@ -44,7 +51,7 @@ type
     FContainerType : TContainerType;
     FChilds : TObjectList;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
 
     procedure AddItem (aItem : TUramakiDesktopLayoutConfItem);
@@ -88,6 +95,23 @@ begin
     Result := ctTabbed;
 end;
 
+{ TUramakiDesktopLayoutConfItem }
+
+constructor TUramakiDesktopLayoutConfItem.Create;
+begin
+  FPosition := -1;
+end;
+
+procedure TUramakiDesktopLayoutConfItem.SaveToXMLElement(aElement: TmXmlElement);
+begin
+  aElement.SetFloatAttribute('position', FPosition);
+end;
+
+procedure TUramakiDesktopLayoutConfItem.LoadFromXMLElement(aElement: TmXmlElement);
+begin
+  FPosition := aElement.GetFloatAttribute('position', -1);
+end;
+
 { TUramakiDesktopLayoutConfSimpleItem }
 
 function TUramakiDesktopLayoutConfSimpleItem.GetDescription: String;
@@ -99,15 +123,18 @@ procedure TUramakiDesktopLayoutConfSimpleItem.Assign(aSource: TUramakiDesktopLay
 begin
   assert (aSource is TUramakiDesktopLayoutConfSimpleItem);
   Self.LivingPlateIdentifier := (aSource as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier;
+  Self.Position:= aSource.Position;
 end;
 
 procedure TUramakiDesktopLayoutConfSimpleItem.SaveToXMLElement(aElement: TmXmlElement);
 begin
+  inherited;
   aElement.SetAttribute('livingPlateInstanceIdenfier', GUIDToString(FLivingPlateIdentifier));
 end;
 
 procedure TUramakiDesktopLayoutConfSimpleItem.LoadFromXMLElement(aElement: TmXmlElement);
 begin
+  inherited;
   Self.FLivingPlateIdentifier := StringToGUID(aElement.GetAttribute('livingPlateInstanceIdenfier'));
 end;
 
@@ -115,6 +142,7 @@ end;
 
 constructor TUramakiDesktopLayoutConfContainerItem.Create;
 begin
+  inherited;
   FChilds := TObjectList.Create(true);
 end;
 
@@ -158,6 +186,7 @@ begin
   assert (aSource is TUramakiDesktopLayoutConfContainerItem);
   tmpSource := aSource as TUramakiDesktopLayoutConfContainerItem;
   Self.ContainerType:= tmpSource.ContainerType;
+  Self.Position:= tmpSource.Position;
 
   FChilds.Clear;
 
@@ -186,6 +215,7 @@ var
   i : integer;
   tmpElement : TmXmlElement;
 begin
+  inherited;
   aElement.SetAttribute('containerType', TContainerTypeToString(Self.ContainerType));
   for i := 0 to Count - 1 do
   begin
@@ -205,6 +235,7 @@ var
   i : integer;
   tmpItem : TUramakiDesktopLayoutConfItem;
 begin
+  inherited;
   Self.ContainerType := StringToTContainerType(aElement.GetAttribute('containerType'));
   cursor := TmXmlElementCursor.Create(aElement, 'layoutItem');
   try

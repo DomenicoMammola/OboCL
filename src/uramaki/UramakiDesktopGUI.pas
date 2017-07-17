@@ -19,11 +19,15 @@ type
 
   TUramakiDesktopPanel = class (TPanel)
   protected
+    FPopupMenu : TPopupMenu;
+    FAddMenuItem : TMenuItem;
     FTabs : TATTabs;
-    function CreateTabs : TATTabs;
+    procedure CreateTabs;
+    procedure OnPopupMenu (Sender : TObject);
   public
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; virtual; abstract;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
+    function HowManySubReports : integer; virtual; abstract;
   end;
 
   { TUramakiDesktopSimplePanel }
@@ -38,6 +42,7 @@ type
 
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
+    function HowManySubReports : integer; override;
 
 //    property TitleBar : TPanel read FTitleBar;
     property LivingPlateInstanceIdentifier : TGuid read FLivingPlateInstanceIdentifier write FLivingPlateInstanceIdentifier;
@@ -62,6 +67,7 @@ type
     procedure Init(aContainerType : TContainerType);
     function Count : integer;
     function Get (aIndex : integer) : TUramakiDesktopPanel;
+    function HowManySubReports : integer; override;
 
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
@@ -78,19 +84,39 @@ uses
 
 { TUramakiDesktopPanel }
 
-function TUramakiDesktopPanel.CreateTabs: TATTabs;
+procedure TUramakiDesktopPanel.CreateTabs;
 begin
-  Result := TATTabs.Create(Self);
-  Result.Parent := Self;
-  Result.Align:= alTop;
+  FTabs := TATTabs.Create(Self);
+  FTabs.Parent := Self;
+  FTabs.Align:= alTop;
   //FTabs.TabAngle:= 4;
   //FTabs.Height:= 56;
-  Result.TabDoubleClickClose:= false;
-  Result.TabDoubleClickPlus:= false;
-  Result.TabShowClose:= tbShowNone;
-  Result.TabShowPlus:= false;
-  Result.Height:= 24;
-  Result.TabHeight:= 18;
+  FTabs.TabDoubleClickClose:= false;
+  FTabs.TabDoubleClickPlus:= false;
+  FTabs.TabShowClose:= tbShowNone;
+  FTabs.TabShowPlus:= false;
+  FTabs.Height:= 24;
+  FTabs.TabHeight:= 18;
+  FPopupMenu := TPopupMenu.Create(Self);
+  FTabs.PopupMenu := FPopupMenu;
+  FAddMenuItem := TMenuItem.Create(FPopupMenu);
+  FAddMenuItem.Caption:= 'Add';
+  FPopupMenu.Items.Add(FAddMenuItem);
+  FPopupMenu.OnPopup:= Self.OnPopupMenu;
+end;
+
+procedure TUramakiDesktopPanel.OnPopupMenu(Sender: TObject);
+begin
+  if Self is TUramakiDesktopContainerPanel then
+  begin
+    if (Self as TUramakiDesktopContainerPanel).ContainerType = ctTabbed then
+    begin
+      if Self.FTabs.TabIndex >= 0 then
+      begin
+        FAddMenuItem.Visible := (Self as TUramakiDesktopContainerPanel).Get(Self.FTabs.TabIndex) is TUramakiDesktopSimplePanel;
+      end;
+    end
+  end;
 end;
 
 
@@ -134,7 +160,7 @@ begin
     FPageControl.BorderWidth:= 0;
     FPageControl.BorderSpacing.InnerBorder := 0;
     FPageControl.ShowTabs:= false;
-    FTabs := CreateTabs;
+    CreateTabs;
     FTabs.OnTabClick:= Self.OnTabClick;
     FTabs.BorderWidth:= 0;
     FTabs.BorderStyle:= bsNone;
@@ -163,6 +189,25 @@ end;
 function TUramakiDesktopContainerPanel.Get(aIndex: integer): TUramakiDesktopPanel;
 begin
   Result := FItems.Items[aIndex] as TUramakiDesktopPanel;
+end;
+
+function TUramakiDesktopContainerPanel.HowManySubReports : integer;
+var
+  i, c : integer;
+begin
+  c := 0;
+  for i := 0 to Self.Count - 1 do
+  begin
+    if (Self.Get(i) is TUramakiDesktopContainerPanel) then
+    begin
+      c := c + (Self.Get(i) as TUramakiDesktopContainerPanel).HowManySubReports;
+    end
+    else
+    begin
+      inc (c);
+    end;
+  end;
+  Result := c;
 end;
 
 function TUramakiDesktopContainerPanel.ExportAsConfItem: TUramakiDesktopLayoutConfItem;
@@ -293,7 +338,7 @@ end;
 
 procedure TUramakiDesktopSimplePanel.AddTab;
 begin
-  FTabs := CreateTabs;
+  CreateTabs;
   FTabs.AddTab(-1, 'report');
   FTabs.TabWidthMax:= 3000;
   FTabs.TabShowMenu := false;
@@ -313,6 +358,11 @@ end;
 procedure TUramakiDesktopSimplePanel.ImportFromConfItem(aSource: TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate);
 begin
   Self.FLivingPlateInstanceIdentifier := (aSource as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier;
+end;
+
+function TUramakiDesktopSimplePanel.HowManySubReports: integer;
+begin
+  Result := 1;
 end;
 
 end.

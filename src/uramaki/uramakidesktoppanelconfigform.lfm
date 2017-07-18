@@ -1,0 +1,59 @@
+object UramakiPanelConfigurationForm: TUramakiPanelConfigurationForm
+  Left = 656
+  Height = 129
+  Top = 294
+  Width = 311
+  BorderStyle = bsDialog
+  Caption = 'Configure'
+  ClientHeight = 129
+  ClientWidth = 311
+  LCLVersion = '1.6.4.0'
+  object ButtonPanel1: TButtonPanel
+    Left = 6
+    Height = 34
+    Top = 89
+    Width = 299
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 0
+    ShowButtons = [pbOK, pbCancel]
+  end
+  object ColorButton: TColorButton
+    Left = 72
+    Height = 25
+    Top = 56
+    Width = 224
+    BorderWidth = 2
+    ButtonColorSize = 16
+    ButtonColor = clBlack
+  end
+  object EditCaption: TEdit
+    Left = 72
+    Height = 23
+    Top = 16
+    Width = 224
+    TabOrder = 1
+  end
+  object Label1: TLabel
+    Left = 16
+    Height = 15
+    Top = 24
+    Width = 45
+    Caption = 'Caption:'
+    ParentColor = False
+  end
+  object Label2: TLabel
+    Left = 16
+    Height = 15
+    Top = 64
+    Width = 32
+    Caption = 'Color:'
+    ParentColor = False
+  end
+end

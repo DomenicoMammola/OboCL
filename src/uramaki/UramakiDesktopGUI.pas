@@ -1,3 +1,12 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit UramakiDesktopGUI;
 
 {$IFDEF FPC}
@@ -11,30 +20,36 @@ uses
   Graphics, Menus,
   oMultiPanelSetup, OMultiPanel,
   ATTabs,
-  UramakiDesktopLayout;
+  UramakiDesktopLayout, UramakiDesktopPanelConfigForm;
 
 type
 
   { TUramakiDesktopPanel }
 
   TUramakiDesktopPanel = class (TPanel)
+  private
+    procedure SetTabData(AValue: TATTabData);
   protected
     FPopupMenu : TPopupMenu;
     FAddMenuItem : TMenuItem;
+    FConfigureMenuItem : TMenuItem;
     FTabs : TATTabs;
+    FTabData : TATTabData;
     procedure CreateTabs;
     procedure OnPopupMenu (Sender : TObject);
+    procedure OnConfigurePanel (Sender : TObject);
   public
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; virtual; abstract;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
     function HowManySubReports : integer; virtual; abstract;
+
+    property TabData: TATTabData read FTabData write SetTabData;
   end;
 
   { TUramakiDesktopSimplePanel }
 
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
-//    FTitleBar : TPanel;
     FLivingPlateInstanceIdentifier : TGuid;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -44,7 +59,6 @@ type
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
     function HowManySubReports : integer; override;
 
-//    property TitleBar : TPanel read FTitleBar;
     property LivingPlateInstanceIdentifier : TGuid read FLivingPlateInstanceIdentifier write FLivingPlateInstanceIdentifier;
   end;
 
@@ -59,6 +73,7 @@ type
     FPageControl : TPageControl;
     FItems : TObjectList;
     FPopupMenu : TPopupMenu;
+
     procedure OnTabClick (aSender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -84,6 +99,12 @@ uses
 
 { TUramakiDesktopPanel }
 
+procedure TUramakiDesktopPanel.SetTabData(AValue: TATTabData);
+begin
+  if FTabData=AValue then Exit;
+  FTabData:=AValue;
+end;
+
 procedure TUramakiDesktopPanel.CreateTabs;
 begin
   FTabs := TATTabs.Create(Self);
@@ -95,13 +116,19 @@ begin
   FTabs.TabDoubleClickPlus:= false;
   FTabs.TabShowClose:= tbShowNone;
   FTabs.TabShowPlus:= false;
+  FTabs.TabShowEntireColor:= true;
   FTabs.Height:= 24;
   FTabs.TabHeight:= 18;
+  FTabs.ColorBg:= clMenu;
   FPopupMenu := TPopupMenu.Create(Self);
   FTabs.PopupMenu := FPopupMenu;
   FAddMenuItem := TMenuItem.Create(FPopupMenu);
-  FAddMenuItem.Caption:= 'Add';
+  FAddMenuItem.Caption:= 'Add child';
   FPopupMenu.Items.Add(FAddMenuItem);
+  FConfigureMenuItem := TMenuItem.Create(FPopupMenu);
+  FConfigureMenuItem.Caption := 'Configure';
+  FConfigureMenuItem.OnClick:= Self.OnConfigurePanel;
+  FPopupMenu.Items.Add(FConfigureMenuItem);
   FPopupMenu.OnPopup:= Self.OnPopupMenu;
 end;
 
@@ -116,6 +143,37 @@ begin
         FAddMenuItem.Visible := (Self as TUramakiDesktopContainerPanel).Get(Self.FTabs.TabIndex) is TUramakiDesktopSimplePanel;
       end;
     end
+  end;
+end;
+
+procedure TUramakiDesktopPanel.OnConfigurePanel(Sender: TObject);
+var
+  Dlg : TUramakiPanelConfigurationForm;
+  Ref : TATTabData;
+begin
+  if Assigned(FTabData) then
+    Ref := FTabData
+  else
+  begin
+    if Assigned(FTabs) then
+    begin
+      Ref := FTabs.GetTabData(FTabs.TabIndex);
+    end;
+  end;
+  if not Assigned(Ref) then
+    exit;
+
+  Dlg := TUramakiPanelConfigurationForm.Create(nil);
+  try
+    Dlg.Init(Ref.TabCaption, Ref.TabColor);
+    if Dlg.ShowModal = mrOk then
+    begin
+      Dlg.GetValues(Ref.TabCaption, Ref.TabColor);
+      if Assigned(FTabs) then
+        FTabs.Invalidate;
+    end;
+  finally
+    Dlg.Free;
   end;
 end;
 
@@ -217,6 +275,11 @@ var
 begin
   Result := TUramakiDesktopLayoutConfContainerItem.Create;
   (Result as TUramakiDesktopLayoutConfContainerItem).ContainerType:= Self.ContainerType;
+  if Assigned(FTabData) then
+  begin
+    (Result as TUramakiDesktopLayoutConfContainerItem).Caption:= Self.FTabData.TabCaption;
+    (Result as TUramakiDesktopLayoutConfContainerItem).Color:= Self.FTabData.TabColor;
+  end;
   for i := 0 to Count - 1 do
   begin
     if Self.Get(i) is TUramakiDesktopContainerPanel then
@@ -244,6 +307,12 @@ var
 begin
   assert (tmpSource is TUramakiDesktopLayoutConfContainerItem);
   tmpSource := aSource as TUramakiDesktopLayoutConfContainerItem;
+  if Assigned(FTabData) then
+  begin
+    FTabData.TabCaption := tmpSource.Caption;
+    FTabData.TabColor := tmpSource.Color;
+  end;
+
   Self.Init(tmpSource.ContainerType);
   for i := 0 to tmpSource.Count - 1 do
   begin
@@ -281,11 +350,13 @@ begin
     Result := TUramakiDesktopSimplePanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
+    Result.TabData := FTabs.GetTabData(FTabs.TabCount - 1);
   end
   else
   begin
     Result := TUramakiDesktopSimplePanel.Create(FRootPanel);
     Result.AddTab;
+    Result.TabData := Result.FTabs.GetTabData(0);
     Result.Parent := FRootPanel;
     Result.Align:= alClient;
     FRootPanel.PanelCollection.AddControl(Result);
@@ -303,7 +374,8 @@ begin
     Result := TUramakiDesktopContainerPanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
-    FTabs.AddTab(FTabs.TabCount, 'report ' + IntToStr(FTabs.TabCount));
+    FTabs.AddTab(-1, 'report ' + IntToStr(FTabs.TabCount));
+    Result.TabData := FTabs.GetTabData(FTabs.TabCount - 1);
   end
   else
   begin
@@ -311,6 +383,7 @@ begin
     Result.Parent := FRootPanel;
     Result.Align:= alClient;
     FRootPanel.PanelCollection.AddControl(Result);
+    Result.TabData := Self.TabData;
   end;
   FItems.Add(Result);
 end;
@@ -353,11 +426,21 @@ function TUramakiDesktopSimplePanel.ExportAsConfItem: TUramakiDesktopLayoutConfI
 begin
   Result := TUramakiDesktopLayoutConfSimpleItem.Create;
   (Result as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier:= Self.FLivingPlateInstanceIdentifier;
+  if Assigned(FTabData) then
+  begin
+    (Result as TUramakiDesktopLayoutConfSimpleItem).Caption:= Self.FTabData.TabCaption;
+    (Result as TUramakiDesktopLayoutConfSimpleItem).Color:= Self.FTabData.TabColor;
+  end;
 end;
 
 procedure TUramakiDesktopSimplePanel.ImportFromConfItem(aSource: TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate);
 begin
   Self.FLivingPlateInstanceIdentifier := (aSource as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier;
+  if Assigned(FTabData) then
+  begin
+    FTabData.TabCaption:= (aSource as TUramakiDesktopLayoutConfSimpleItem).Caption;
+    FTabData.TabColor:= (aSource as TUramakiDesktopLayoutConfSimpleItem).Color;
+  end;
 end;
 
 function TUramakiDesktopSimplePanel.HowManySubReports: integer;

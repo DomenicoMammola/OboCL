@@ -1,3 +1,12 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit UramakiDesktopLayout;
 
 {$IFDEF FPC}
@@ -7,7 +16,7 @@ unit UramakiDesktopLayout;
 interface
 
 uses
-  contnrs, ExtCtrls,
+  contnrs, ExtCtrls, Graphics,
   mXML;
 
 type
@@ -21,13 +30,20 @@ type
   TUramakiDesktopLayoutConfItem = class
   strict private
     FPosition : Double;
+    FCaption : String;
+    FColor : TColor;
+  protected
+    procedure InternalAssign(aSource : TUramakiDesktopLayoutConfItem);
   public
     constructor Create; virtual;
 
     function GetDescription : String; virtual; abstract;
     procedure SaveToXMLElement (aElement : TmXmlElement); virtual;
     procedure LoadFromXMLElement (aElement : TmXmlElement); virtual;
+
     property Position : Double read FPosition write FPosition;
+    property Caption : String read FCaption write FCaption;
+    property Color : TColor read FColor write FColor;
   end;
 
   { TUramakiDesktopLayoutConfSimpleItem }
@@ -97,19 +113,31 @@ end;
 
 { TUramakiDesktopLayoutConfItem }
 
+procedure TUramakiDesktopLayoutConfItem.InternalAssign(aSource: TUramakiDesktopLayoutConfItem);
+begin
+  Self.FPosition:= aSource.FPosition;
+end;
+
 constructor TUramakiDesktopLayoutConfItem.Create;
 begin
   FPosition := -1;
+  FCaption:= 'report';
+  FColor := $808080;
 end;
 
 procedure TUramakiDesktopLayoutConfItem.SaveToXMLElement(aElement: TmXmlElement);
 begin
   aElement.SetFloatAttribute('position', FPosition);
+  aElement.SetAttribute('caption', FCaption);
+  aElement.SetAttribute('color', ColorToString(FColor));
 end;
 
 procedure TUramakiDesktopLayoutConfItem.LoadFromXMLElement(aElement: TmXmlElement);
 begin
   FPosition := aElement.GetFloatAttribute('position', -1);
+  FCaption := aElement.GetAttribute('caption', 'report');
+  if aElement.HasAttribute('color') then
+    FColor := StringToColor(aElement.GetAttribute('color'));
 end;
 
 { TUramakiDesktopLayoutConfSimpleItem }
@@ -122,8 +150,8 @@ end;
 procedure TUramakiDesktopLayoutConfSimpleItem.Assign(aSource: TUramakiDesktopLayoutConfItem);
 begin
   assert (aSource is TUramakiDesktopLayoutConfSimpleItem);
+  InternalAssign(aSource);
   Self.LivingPlateIdentifier := (aSource as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier;
-  Self.Position:= aSource.Position;
 end;
 
 procedure TUramakiDesktopLayoutConfSimpleItem.SaveToXMLElement(aElement: TmXmlElement);
@@ -184,9 +212,9 @@ var
   newItem : TUramakiDesktopLayoutConfItem;
 begin
   assert (aSource is TUramakiDesktopLayoutConfContainerItem);
+  InternalAssign(aSource);
   tmpSource := aSource as TUramakiDesktopLayoutConfContainerItem;
   Self.ContainerType:= tmpSource.ContainerType;
-  Self.Position:= tmpSource.Position;
 
   FChilds.Clear;
 

@@ -1,0 +1,60 @@
+object mFileOpenSave: TmFileOpenSave
+  Left = 453
+  Height = 307
+  Top = 244
+  Width = 623
+  Caption = 'File open'
+  ClientHeight = 307
+  ClientWidth = 623
+  LCLVersion = '1.6.4.0'
+  object ButtonPanel: TButtonPanel
+    Left = 6
+    Height = 34
+    Top = 267
+    Width = 611
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 0
+    ShowButtons = [pbOK, pbCancel]
+  end
+  object EditFileName: TEdit
+    Left = 0
+    Height = 23
+    Top = 238
+    Width = 623
+    Align = alBottom
+    TabOrder = 1
+  end
+  object TVFolders: TTreeView
+    Left = 0
+    Height = 238
+    Top = 0
+    Width = 193
+    Align = alLeft
+    DefaultItemHeight = 18
+    TabOrder = 2
+    OnSelectionChanged = TVFoldersSelectionChanged
+  end
+  object Splitter1: TSplitter
+    Left = 193
+    Height = 238
+    Top = 0
+    Width = 5
+  end
+  object LVFiles: TListView
+    Left = 198
+    Height = 238
+    Top = 0
+    Width = 425
+    Align = alClient
+    Columns = <>
+    TabOrder = 4
+    OnSelectItem = LVFilesSelectItem
+  end
+end

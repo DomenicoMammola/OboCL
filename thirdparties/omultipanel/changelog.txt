@@ -1,0 +1,25 @@
+OMULTIPANEL RELEASE INFORMATION
+===============================
+
+  Version 1.3 (2014-09-02)
+    - Bug fix: show/hide multiple panels.
+    - New GetSettingsSection and GetSettingsIdent functions.
+
+  Version 1.2 (2013-04-16)
+    - Lazarus support (Win32, Win64, Linux, OSX)
+    - Delphi 6 support
+    - Save configuration to INI (SavePositionsToIniFile,
+      LoadPositionsFromIniFile)
+
+  Version 1.1 (2013-03-23)
+    - License changed to MPL/GPL/LGPL.
+
+  Version 1.1 (2012-10-24)
+    - Delphi XE3 Support
+    - ParentBackground support
+    - Hover property (if you update from 1.0, please change your
+      TOnPaintSizingBar and TOnPaintSizingBarMethod event handlers
+      according to the help).
+
+  Version 1.0 (2012-08-02)
+    - first public release

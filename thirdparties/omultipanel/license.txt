@@ -1,0 +1,23 @@
+OMULTIPANEL LICENSE INFORMATION
+===============================
+
+
+  Copyright (C) 2012 Ondrej Pokorny
+    http://www.kluug.at
+
+  This license is applicable to all files distributed in this archive if not
+  stated differently.
+  
+
+  *** BEGIN LICENSE BLOCK *****
+
+
+  OMultiPanel is licensed under MPL 1.1/GPL 3/LGPL 3 tri-license.
+
+  MPL: http://www.mozilla.org/MPL/1.1/
+  GPL: http://www.gnu.org/licenses/gpl-3.0.html
+  LGPL: http://www.gnu.org/licenses/lgpl-3.0.html
+
+
+  ***** END LICENSE BLOCK *****
+

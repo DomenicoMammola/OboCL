@@ -1,0 +1,7 @@
+INSTALLATION OF OMULTIPANEL FULL VERSION
+----------------------------------------
+
+1) Add the directory with OMultiPanel.pas to Delphi library
+directory.
+
+2) Install package\OMultiPanel_Design.dpk

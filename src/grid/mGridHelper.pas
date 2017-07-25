@@ -75,7 +75,6 @@ uses
 procedure TmDBGridHelper.OnTitleClick(Column: TColumn);
 var
   tmpSortType : TSortType;
-  tmpSortConditions : TSortByConditions;
   i, idx : integer;
 begin
   try

@@ -17,7 +17,7 @@ interface
 uses
   Classes, SysUtils, BufDataset, db, memds, FileUtil, Forms, Controls, DBGrids,
 
-  mGridColumnSettings;
+  mGridColumnSettings, mDBGrid;
 
 type
 
@@ -25,11 +25,14 @@ type
 
   TGridColumnsSettingsFrame = class(TFrame)
     DataSourceColSettings: TDataSource;
-    ColSettingsGrid: TDBGrid;
     ColSettingsDataset: TMemDataset;
   private
     FSettings : TmGridColumnsSettings;
+    FColSettingsGrid: TmDBGrid;
   public
+    constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
+
     procedure Init (aSettings : TmGridColumnsSettings);
     procedure UpdateSettings;
   end;
@@ -39,6 +42,47 @@ implementation
 {$R *.lfm}
 
 { TGridColumnsSettingsFrame }
+
+constructor TGridColumnsSettingsFrame.Create(TheOwner: TComponent);
+begin
+  inherited Create(TheOwner);
+  FColSettingsGrid:= TmDBGrid.Create(Self);
+  FColSettingsGrid.Parent := Self;
+  FColSettingsGrid.Align:= alClient;
+
+  FColSettingsGrid.Options:= [dgEditing,dgTitles,dgIndicator,dgColumnResize,dgColumnMove,dgColLines,dgRowLines,dgTabs,dgAlwaysShowSelection,dgConfirmDelete,dgCancelOnExit];
+  FColSettingsGrid.OptionsExtra:=[dgeAutoColumns,dgeCheckboxColumn];
+//  FColSettingsGrid.Color:= clWindow;
+  with FColSettingsGrid.Columns.Add do
+  begin
+    ReadOnly := True;
+    Title.Caption := 'Name';
+    Width := 250;
+    FieldName := 'CSDFFieldName';
+  end;
+  with FColSettingsGrid.Columns.Add do
+  begin
+    Title.Caption := 'Visible';
+    FieldName := 'CSDFVisible';
+  end;
+  with FColSettingsGrid.Columns.Add do
+  begin
+    Title.Caption := 'Label';
+    Width := 250;
+    FieldName := 'CSDFDisplayLabel';
+  end;
+  with FColSettingsGrid.Columns.Add do
+  begin
+    Title.Caption := 'Format';
+    FieldName := 'CSDFDisplayFormat';
+  end;
+  FColSettingsGrid.DataSource := DataSourceColSettings;
+end;
+
+destructor TGridColumnsSettingsFrame.Destroy;
+begin
+  inherited Destroy;
+end;
 
 procedure TGridColumnsSettingsFrame.Init(aSettings: TmGridColumnsSettings);
 var

@@ -22,6 +22,7 @@ type
     LVFiles: TListView;
     Splitter1: TSplitter;
     TVFolders: TTreeView;
+    procedure LVFilesDblClick(Sender: TObject);
     procedure LVFilesSelectItem(Sender: TObject; Item: TListItem;
       Selected: Boolean);
     procedure TVFoldersSelectionChanged(Sender: TObject);
@@ -33,6 +34,7 @@ type
     procedure RefreshFiles;
   public
     procedure Init (aFileSystemManager : TmAbstractFileSystemManager; const aFileOperation : TmFileOperation);
+    function GetFileData: TmFileData;
   end;
 
 
@@ -56,8 +58,17 @@ begin
   EditFileName.Text := '';
   if Assigned(Item) and Assigned (FCurrentFolder) then
   begin
-    EditFileName := TmFile(Item.Data).DisplayName;
+    EditFileName.Text := TmFile(Item.Data).FileData.GetFullPath;
     FCurrentFile := TmFile(Item.Data);
+  end;
+end;
+
+procedure TmFileOpenSave.LVFilesDblClick(Sender: TObject);
+begin
+  if Assigned(FCurrentFile) then
+  begin
+    FCurrentFile := TmFile(LVFiles.Selected.Data);
+    Self.ModalResult:= mrOk;
   end;
 end;
 
@@ -66,7 +77,7 @@ var
   newNode : TTreeNode;
   i : integer;
 begin
-  newNode := TVFolders.Items.Add(aParent, aFolder.DisplayName);
+  newNode := TVFolders.Items.AddChild(aParent, aFolder.Name);
   newNode.Data:= aFolder;
   for i := 0 to aFolder.Folders.Count - 1 do
   begin
@@ -85,7 +96,7 @@ begin
     begin
       for i := 0 to FCurrentFolder.Files.Count - 1 do
       begin
-        LVFiles.AddItem(FCurrentFolder.Files[i].DisplayName, FCurrentFolder.Files[i]);
+        LVFiles.AddItem(FCurrentFolder.Files[i].FileData.Name, FCurrentFolder.Files[i]);
       end;
     end;
   finally
@@ -107,6 +118,20 @@ begin
     end;
   finally
     TVFolders.EndUpdate;
+  end;
+  if FFileOperation = fmOpen then
+    EditFileName.ReadOnly:= true;
+end;
+
+function TmFileOpenSave.GetFileData: TmFileData;
+begin
+  Result := nil;
+  if FFileOperation = fmOpen then
+  begin
+    if Assigned(FCurrentFile) then
+    begin
+      Result := FCurrentFile.FileData;
+    end;
   end;
 end;
 

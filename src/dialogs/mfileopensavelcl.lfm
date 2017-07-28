@@ -38,8 +38,10 @@ object mFileOpenSave: TmFileOpenSave
     Width = 193
     Align = alLeft
     DefaultItemHeight = 18
+    ReadOnly = True
     TabOrder = 2
     OnSelectionChanged = TVFoldersSelectionChanged
+    Options = [tvoAutoItemHeight, tvoHideSelection, tvoKeepCollapsedNodes, tvoReadOnly, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
   end
   object Splitter1: TSplitter
     Left = 193
@@ -54,7 +56,9 @@ object mFileOpenSave: TmFileOpenSave
     Width = 425
     Align = alClient
     Columns = <>
+    ReadOnly = True
     TabOrder = 4
+    OnDblClick = LVFilesDblClick
     OnSelectItem = LVFilesSelectItem
   end
 end

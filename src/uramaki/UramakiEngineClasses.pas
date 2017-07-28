@@ -74,13 +74,15 @@ type
     FPlate : TUramakiPlate;
     FTransformations : TUramakiActualTransformations;
     FPublication : TUramakiActualPublication;
+    procedure SetPlate(AValue: TUramakiPlate);
+    procedure OnPlateDestroy (Sender : TObject);
   public
     constructor Create;
     destructor Destroy; override;
     procedure SaveToXml (aXMLElement : TmXmlElement);
     procedure LoadFromXml (aXMLElement : TmXmlElement; aPublishers : TUramakiPublishers; aTransformers : TUramakiTransformers);
 
-    property Plate : TUramakiPlate read FPlate write FPlate;
+    property Plate : TUramakiPlate read FPlate write SetPlate;
     property Transformations : TUramakiActualTransformations read FTransformations;
     property Publication : TUramakiActualPublication read FPublication;
     property InstanceIdentifier : TGuid read FInstanceIdentifier;
@@ -95,6 +97,18 @@ uses
   SysUtils;
 
 { TUramakiLivingPlate }
+
+procedure TUramakiLivingPlate.SetPlate(AValue: TUramakiPlate);
+begin
+  if FPlate=AValue then Exit;
+  FPlate:=AValue;
+  FPlate.OnDestroy:= Self.OnPlateDestroy;
+end;
+
+procedure TUramakiLivingPlate.OnPlateDestroy(Sender: TObject);
+begin
+  FPlate := nil;
+end;
 
 constructor TUramakiLivingPlate.Create;
 begin

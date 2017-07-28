@@ -216,29 +216,37 @@ var
   Garbage : TObjectList;
   tmpParent : TUramakiLivingPlate;
 begin
-  if aLivingPlate.Transformations.Count = 0 then
-    exit;
-  startUramakiId := aLivingPlate.Transformations.Items[0].Transformer.GetInputUramakiId;
+  if aLivingPlate.Publication.Publisher.GetInputUramakiId = NULL_URAMAKI_ID then
+  begin
+    aLivingPlate.Publication.Publisher.Publish(nil, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
+  end
+  else
+  begin
+    if aLivingPlate.Transformations.Count = 0 then
+      exit;
+    startUramakiId := aLivingPlate.Transformations.Items[0].Transformer.GetInputUramakiId;
 
-  Garbage := TObjectList.Create(true);
-  try
-    tmpParent := Self.FindLivingPlate(aLivingPlate.ParentIdentifier);
-    if Assigned(tmpParent) then
-    begin
-      inputUramakiRoll := aLivingPlate.Plate.GetUramakiRoll(startUramakiId);
-      Garbage.Add(inputUramakiRoll);
-    end
-    else
-      inputUramakiRoll := nil;
-    for i := 0 to aLivingPlate.Transformations.Count -1 do
-    begin
-      inputUramakiRoll := aLivingPlate.Transformations.Items[i].Transformer.Transform(inputUramakiRoll, aLivingPlate.Transformations.Items[0].TransformationContext);
-      Garbage.Add(inputUramakiRoll);
+    Garbage := TObjectList.Create(true);
+    try
+      tmpParent := Self.FindLivingPlate(aLivingPlate.ParentIdentifier);
+      if Assigned(tmpParent) then
+      begin
+        inputUramakiRoll := aLivingPlate.Plate.GetUramakiRoll(startUramakiId);
+        Garbage.Add(inputUramakiRoll);
+      end
+      else
+        inputUramakiRoll := nil;
+      for i := 0 to aLivingPlate.Transformations.Count -1 do
+      begin
+        inputUramakiRoll := aLivingPlate.Transformations.Items[i].Transformer.Transform(inputUramakiRoll, aLivingPlate.Transformations.Items[0].TransformationContext);
+        Garbage.Add(inputUramakiRoll);
+      end;
+
+      aLivingPlate.Publication.Publisher.Publish(inputUramakiRoll, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
+    finally
+      Garbage.Free;
     end;
 
-    aLivingPlate.Publication.Publisher.Publish(inputUramakiRoll, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
-  finally
-    Garbage.Free;
   end;
 end;
 

@@ -4,7 +4,28 @@ object Form1: TForm1
   Top = 180
   Width = 320
   Caption = 'Form1'
+  Menu = MainMenu1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '1.6.4.0'
+  object MainMenu1: TMainMenu
+    left = 97
+    top = 86
+    object MI_Add: TMenuItem
+      Caption = 'Add'
+      OnClick = MI_AddClick
+    end
+    object MI_Load: TMenuItem
+      Caption = 'Load'
+      OnClick = MI_LoadClick
+    end
+    object MI_Save: TMenuItem
+      Caption = 'Save'
+      OnClick = MI_SaveClick
+    end
+    object MI_Configure: TMenuItem
+      Caption = 'Configure'
+      OnClick = MI_ConfigureClick
+    end
+  end
 end

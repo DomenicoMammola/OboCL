@@ -305,7 +305,7 @@ var
   i : integer;
   simpleItem : TUramakiDesktopSimplePanel;
 begin
-  assert (tmpSource is TUramakiDesktopLayoutConfContainerItem);
+  assert (aSource is TUramakiDesktopLayoutConfContainerItem);
   tmpSource := aSource as TUramakiDesktopLayoutConfContainerItem;
   if Assigned(FTabData) then
   begin

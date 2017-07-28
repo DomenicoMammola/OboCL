@@ -16,10 +16,10 @@ unit UramakiDesktop;
 interface
 
 uses
-  Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls,
+  Classes, Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls,
 
   oMultiPanelSetup,
-  ATButtons, ATButtonsToolbar,
+  ATButtons,
   mXML,
 
   UramakiBase, UramakiEngine, UramakiEngineClasses,
@@ -33,18 +33,12 @@ type
   TUramakiDesktopManager = class
   strict private
     FEngine : TUramakiEngine;
-    FToolbar : TATButtonsToolbar;
     FParentControl : TWinControl;
     FContainer : TUramakiDesktopContainerPanel;
-    FRootPopupMenu : TPopupMenu;
     FDesktopDataModule: TUramakiDesktopDataModule;
 
-    procedure CreateToolbar;
-    procedure BuildRootPopupMenu (Sender: TObject);
+//    procedure CreateToolbar;
     procedure OnAddPlate (Sender : TObject);
-    procedure OnConfigureLayout (Sender : TObject);
-    procedure OnSaveToFile(Sender : TObject);
-    procedure OnLoadFromFile (Sender : TObject);
     procedure DoLinkLayoutItemToPlate(aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid);
   public
     constructor Create;
@@ -55,7 +49,10 @@ type
     procedure AddPublisher (aPublisher : TUramakiPublisher);
     procedure AddTransformer (aTransformer : TUramakiTransformer);
 
-    //property Toolbar : TToolBar read FToolbar;
+    procedure LoadFromStream (aStream : TStream);
+    procedure SaveToStream (aStream : TStream);
+    procedure ShowConfigurationForm;
+    procedure FillAddRootWidgetMenu (aMenuItem : TMenuItem);
   end;
 
 implementation
@@ -76,6 +73,7 @@ var
 
 { TUramakiDesktopManager }
 
+{
 procedure TUramakiDesktopManager.CreateToolbar;
 begin
 //  FToolbar.AddButton(ICON_ADD, nil, '', '', '', false);
@@ -85,81 +83,9 @@ begin
   FToolbar.AddButton(ICON_CONFIGURE, OnConfigureLayout, '', 'Configure layout of report', '', false);
   FToolbar.UpdateControls;
 
-(*
-var
-  tmpBtn : TToolButton;
-begin
-  tmpBtn := TToolButton.Create(FToolbar);
-  tmpBtn.Style:= tbsDropDown;
-  tmpBtn.Caption:= 'Nuovo';
-  tmpBtn.Parent := FToolbar;
-  tmpBtn.DropdownMenu := FRootPopupMenu;
-
-  tmpBtn := TToolButton.Create(FToolbar);
-  tmpBtn.Style := tbsButton;
-  tmpBtn.Caption:= 'Save';
-  tmpBtn.Parent := FToolbar;
-  tmpBtn.OnClick:= OnSaveToFile;
-
-  tmpBtn := TToolButton.Create(FToolbar);
-  tmpBtn.Style := tbsButton;
-  tmpBtn.Caption:= 'Load';
-  tmpBtn.Parent := FToolbar;
-  tmpBtn.OnClick:= OnLoadFromFile;
-
-  tmpBtn := TToolButton.Create(FToolbar);
-  tmpBtn.Style := tbsButton;
-  tmpBtn.Caption:= 'Conf';
-  tmpBtn.Parent := FToolbar;
-  tmpBtn.OnClick:= OnConfigureLayout;
 *)
-end;
+end;}
 
-procedure TUramakiDesktopManager.BuildRootPopupMenu(Sender: TObject);
-var
-  i, j : integer;
-  tempListOfTransformers : TUramakiTransformers;
-  tempListOfPublishers : TUramakiPublishers;
-  mt, mt2 : TMenuItem;
-  tmpMenu : TPopupMenu;
-  tmpMenuInfo : TMenuInfo;
-begin
-  tmpMenu := FRootPopupMenu;// (Sender as TPopupMenu);
-  tmpMenu.Items.Clear;
-  MenuGarbageCollector.Clear;
-
-  tempListOfTransformers := TUramakiTransformers.Create;
-  tempListOfPublishers := TUramakiPublishers.Create;
-  try
-    FEngine.GetAvailableTransformers(NULL_URAMAKI_ID, tempListOfTransformers);
-    for i := 0 to tempListOfTransformers.Count -1 do
-    begin
-      FEngine.GetAvailablePublishers(tempListOfTransformers.Get(i).GetOutputUramakiId, tempListOfPublishers);
-      if tempListOfPublishers.Count > 0 then
-      begin
-        mt := TMenuItem.Create(tmpMenu);
-        mt.Caption:= tempListOfTransformers.Get(i).GetDescription;
-        tmpMenu.Items.Add(mt);
-        for j := 0 to tempListOfPublishers.Count - 1 do
-        begin
-          mt2 := TMenuItem.Create(tmpMenu);
-          mt2.Caption := tempListOfPublishers.Get(j).GetDescription;
-          mt.Add(mt2);
-          mt2.OnClick:= Self.OnAddPlate;
-          tmpMenuInfo := TMenuInfo.Create;
-          tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
-          tmpMenuInfo.TransformerId:= tempListOfTransformers.Get(i).GetMyId;
-          tmpMenuInfo.LivingPlateIdenfier := GUID_NULL;
-          mt2.Tag:= PtrInt(tmpMenuInfo);
-          MenuGarbageCollector.Add(tmpMenuInfo);
-        end;
-      end;
-    end;
-  finally
-    tempListOfPublishers.Free;
-    tempListOfTransformers.Free;
-  end;
-end;
 
 procedure TUramakiDesktopManager.OnAddPlate(Sender: TObject);
 var
@@ -171,7 +97,8 @@ begin
   item := FContainer.AddItem;
   tmpLivingPlate := FEngine.CreateLivingPlate(tmpMenuInfo.LivingPlateIdenfier);
   item.LivingPlateInstanceIdentifier := tmpLivingPlate.InstanceIdentifier;
-  tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
+  if tmpMenuInfo.TransformerId <> '' then
+    tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
   tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
 
   tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(item);
@@ -181,7 +108,112 @@ begin
   FEngine.FeedLivingPlate(tmpLivingPlate);
 end;
 
-procedure TUramakiDesktopManager.OnConfigureLayout(Sender: TObject);
+
+procedure TUramakiDesktopManager.DoLinkLayoutItemToPlate(aItem: TPanel; aLivingPlateInstanceIdentificator: TGuid);
+var
+  tmpLivingPlate : TUramakiLivingPlate;
+begin
+  tmpLivingPlate := FEngine.FindLivingPlate(aLivingPlateInstanceIdentificator);
+
+  assert (not Assigned(tmpLivingPlate.Plate));
+  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(aItem);
+  tmpLivingPlate.Plate.Parent := aItem;
+  tmpLivingPlate.Plate.Align:= alClient;
+  FEngine.FeedLivingPlate(tmpLivingPlate);
+end;
+
+constructor TUramakiDesktopManager.Create;
+begin
+  FEngine := TUramakiEngine.Create;
+  FDesktopDataModule:= TUramakiDesktopDataModule.Create(nil);
+end;
+
+destructor TUramakiDesktopManager.Destroy;
+begin
+  FreeAndNil(FEngine);
+  FreeAndNil(FDesktopDataModule);
+  inherited Destroy;
+end;
+
+procedure TUramakiDesktopManager.Init(aParent : TWinControl);
+begin
+  FParentControl := aParent;
+
+  FContainer := TUramakiDesktopContainerPanel.Create(FParentControl);
+  FContainer.Parent := FParentControl;
+  FContainer.Init(ctHorizontal);
+  FContainer.Align:= alClient;
+end;
+
+procedure TUramakiDesktopManager.AddPublisher(aPublisher: TUramakiPublisher);
+begin
+  FEngine.AddPublisher(aPublisher);
+end;
+
+procedure TUramakiDesktopManager.AddTransformer(aTransformer: TUramakiTransformer);
+begin
+  FEngine.AddTransformer(aTransformer);
+end;
+
+procedure TUramakiDesktopManager.LoadFromStream(aStream : TStream);
+var
+  doc : TmXmlDocument;
+  cursor : TmXmlElementCursor;
+  tmp : TUramakiDesktopLayoutConfContainerItem;
+begin
+  doc := TmXmlDocument.Create;
+  try
+    doc.LoadFromStream(aStream);
+
+    cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
+    try
+      FEngine.LoadFromXMLElement(cursor.Elements[0]);
+    finally
+      cursor.Free;
+    end;
+
+    cursor := TmXmlElementCursor.Create(doc.RootElement, 'layout');
+    try
+      tmp := TUramakiDesktopLayoutConfContainerItem.Create;
+      try
+        tmp.LoadFromXMLElement(cursor.Elements[0]);
+        FContainer.ImportFromConfItem(tmp, Self.DoLinkLayoutItemToPlate);
+      finally
+        tmp.Free;
+      end;
+    finally
+      cursor.Free;
+    end;
+  finally
+    doc.Free;
+  end;
+end;
+
+procedure TUramakiDesktopManager.SaveToStream(aStream : TStream);
+var
+  doc : TmXmlDocument;
+  root : TmXmlElement;
+  tmp : TUramakiDesktopLayoutConfItem;
+begin
+  doc := TmXmlDocument.Create;
+  try
+    root := doc.CreateRootElement('uramakiReport');
+    root.SetIntegerAttribute('version', 1);
+    tmp := FContainer.ExportAsConfItem;
+    try
+      tmp.SaveToXMLElement(root.AddElement('layout'));
+      FEngine.SaveToXMLElement(root.AddElement('plates'));
+
+      doc.SaveToStream(aStream);
+    finally
+      tmp.Free;
+    end;
+  finally
+    doc.Free;
+  end;
+end;
+
+procedure TUramakiDesktopManager.ShowConfigurationForm;
 var
   Dlg : TDesktopLayoutConfigForm;
   tmpConfItem, tmpConfItemOut : TUramakiDesktopLayoutConfItem;
@@ -209,121 +241,71 @@ begin
   end;
 end;
 
-procedure TUramakiDesktopManager.OnSaveToFile(Sender: TObject);
+procedure TUramakiDesktopManager.FillAddRootWidgetMenu(aMenuItem: TMenuItem);
 var
-  doc : TmXmlDocument;
-  root : TmXmlElement;
-  tmp : TUramakiDesktopLayoutConfItem;
+  i, j : integer;
+  tempListOfTransformers : TUramakiTransformers;
+  tempListOfPublishers : TUramakiPublishers;
+  mt, mt2 : TMenuItem;
+  tmpMenuInfo : TMenuInfo;
 begin
-  doc := TmXmlDocument.Create;
+  aMenuItem.Clear;
+  MenuGarbageCollector.Clear;
+
+  tempListOfTransformers := TUramakiTransformers.Create;
+  tempListOfPublishers := TUramakiPublishers.Create;
   try
-    root := doc.CreateRootElement('uramakiReport');
-    root.SetIntegerAttribute('version', 1);
-    tmp := FContainer.ExportAsConfItem;
-    try
-      tmp.SaveToXMLElement(root.AddElement('layout'));
-      FEngine.SaveToXMLElement(root.AddElement('plates'));
 
-      doc.SaveToFile('layout.xml');
-    finally
-      tmp.Free;
-    end;
-  finally
-    doc.Free;
-  end;
-end;
-
-procedure TUramakiDesktopManager.OnLoadFromFile(Sender: TObject);
-var
-  doc : TmXmlDocument;
-  cursor : TmXmlElementCursor;
-  tmp : TUramakiDesktopLayoutConfContainerItem;
-begin
-  doc := TmXmlDocument.Create;
-  try
-    doc.LoadFromFile('layout.xml');
-
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
-    try
-      FEngine.LoadFromXMLElement(cursor.Elements[0]);
-    finally
-      cursor.Free;
-    end;
-
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'layout');
-    try
-      tmp := TUramakiDesktopLayoutConfContainerItem.Create;
-      try
-        tmp.LoadFromXMLElement(cursor.Elements[0]);
-        FContainer.ImportFromConfItem(tmp, Self.DoLinkLayoutItemToPlate);
-      finally
-        tmp.Free;
+    // publishers without transformers
+    FEngine.GetAvailablePublishers(NULL_URAMAKI_ID, tempListOfPublishers);
+    if tempListOfPublishers.Count > 0 then
+    begin
+      for j := 0 to tempListOfPublishers.Count - 1 do
+      begin
+        mt2 := TMenuItem.Create(aMenuItem);
+        mt2.Caption := tempListOfPublishers.Get(j).GetDescription;
+        aMenuItem.Add(mt2);
+        mt2.OnClick:= Self.OnAddPlate;
+        tmpMenuInfo := TMenuInfo.Create;
+        tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
+        tmpMenuInfo.TransformerId:= '';
+        tmpMenuInfo.LivingPlateIdenfier := GUID_NULL;
+        mt2.Tag:= PtrInt(tmpMenuInfo);
+        MenuGarbageCollector.Add(tmpMenuInfo);
       end;
-    finally
-      cursor.Free;
+    end;
+
+    // root transformers
+    FEngine.GetAvailableTransformers(NULL_URAMAKI_ID, tempListOfTransformers);
+    for i := 0 to tempListOfTransformers.Count -1 do
+    begin
+      FEngine.GetAvailablePublishers(tempListOfTransformers.Get(i).GetOutputUramakiId, tempListOfPublishers);
+      if tempListOfPublishers.Count > 0 then
+      begin
+        mt := TMenuItem.Create(aMenuItem);
+        mt.Caption:= tempListOfTransformers.Get(i).GetDescription;
+        aMenuItem.Add(mt);
+        for j := 0 to tempListOfPublishers.Count - 1 do
+        begin
+          mt2 := TMenuItem.Create(aMenuItem);
+          mt2.Caption := tempListOfPublishers.Get(j).GetDescription;
+          mt.Add(mt2);
+          mt2.OnClick:= Self.OnAddPlate;
+          tmpMenuInfo := TMenuInfo.Create;
+          tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
+          tmpMenuInfo.TransformerId:= tempListOfTransformers.Get(i).GetMyId;
+          tmpMenuInfo.LivingPlateIdenfier := GUID_NULL;
+          mt2.Tag:= PtrInt(tmpMenuInfo);
+          MenuGarbageCollector.Add(tmpMenuInfo);
+        end;
+      end;
     end;
   finally
-    doc.Free;
+    tempListOfPublishers.Free;
+    tempListOfTransformers.Free;
   end;
 end;
 
-procedure TUramakiDesktopManager.DoLinkLayoutItemToPlate(aItem: TPanel; aLivingPlateInstanceIdentificator: TGuid);
-var
-  tmpLivingPlate : TUramakiLivingPlate;
-begin
-  tmpLivingPlate := FEngine.FindLivingPlate(aLivingPlateInstanceIdentificator);
-  assert (not Assigned(tmpLivingPlate.Plate));
-  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(aItem);
-  tmpLivingPlate.Plate.Parent := aItem;
-  tmpLivingPlate.Plate.Align:= alClient;
-  FEngine.FeedLivingPlate(tmpLivingPlate);
-end;
-
-constructor TUramakiDesktopManager.Create;
-begin
-  FEngine := TUramakiEngine.Create;
-  FDesktopDataModule:= TUramakiDesktopDataModule.Create(nil);
-end;
-
-destructor TUramakiDesktopManager.Destroy;
-begin
-  FreeAndNil(FEngine);
-  FreeAndNil(FDesktopDataModule);
-  inherited Destroy;
-end;
-
-procedure TUramakiDesktopManager.Init(aParent : TWinControl);
-begin
-  FParentControl := aParent;
-
-  FRootPopupMenu := TPopupMenu.Create(FParentControl);
-  FRootPopupMenu.OnPopup:= Self.BuildRootPopupMenu;
-
-(*  FToolbar := TToolBar.Create(FParentControl);
-  FToolbar.Parent := FParentControl;
-  FToolbar.Align:= alTop;*)
-
-  FToolbar := TATButtonsToolbar.Create(FParentControl);
-  FToolbar.Images := FDesktopDataModule.UramakiDesktopImageList;
-  FToolbar.Parent := FParentControl;
-  FToolbar.Align:= alTop;
-  Self.CreateToolbar;
-
-  FContainer := TUramakiDesktopContainerPanel.Create(FParentControl);
-  FContainer.Parent := FParentControl;
-  FContainer.Init(ctHorizontal);
-  FContainer.Align:= alClient;
-end;
-
-procedure TUramakiDesktopManager.AddPublisher(aPublisher: TUramakiPublisher);
-begin
-  FEngine.AddPublisher(aPublisher);
-end;
-
-procedure TUramakiDesktopManager.AddTransformer(aTransformer: TUramakiTransformer);
-begin
-  FEngine.AddTransformer(aTransformer);
-end;
 
 initialization
   MenuGarbageCollector := TObjectList.Create(true);

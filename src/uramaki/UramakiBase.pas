@@ -46,16 +46,22 @@ type
 
 
 
+
   { TUramakiPlate }
 
   TUramakiPlate = class (TPanel)
   protected
     FEngineController : IUramakiEngineController;
+    FOnUramakiPlateDestroy : TNotifyEvent;
   public
+    destructor Destroy; override;
+
     function GetUramakiRoll(const aUramakiRollId: String) : TUramakiRoll; virtual; abstract;
     procedure GetAvailableUramakiRolls (aUramakiRollIdList : TStringList); virtual; abstract;
     procedure StartTransaction(const aTransactionId : TGuid); virtual;
     procedure EndTransaction(const aTransactionId: TGuid); virtual;
+
+    property OnDestroy : TNotifyEvent read FOnUramakiPlateDestroy write FOnUramakiPlateDestroy;
   end;
 
   TUramakiPublicationContext = class abstract
@@ -167,6 +173,13 @@ begin
 end;
 
 { TUramakiPlate }
+
+destructor TUramakiPlate.Destroy;
+begin
+  if Assigned(FOnUramakiPlateDestroy) then
+    FOnUramakiPlateDestroy(Self);
+  inherited Destroy;
+end;
 
 procedure TUramakiPlate.StartTransaction(const aTransactionId: TGuid);
 begin

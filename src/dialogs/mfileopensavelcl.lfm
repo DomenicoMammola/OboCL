@@ -14,6 +14,7 @@ object mFileOpenSave: TmFileOpenSave
     Width = 611
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
+    OKButton.OnClick = OKButtonClick
     HelpButton.Name = 'HelpButton'
     HelpButton.DefaultCaption = True
     CloseButton.Name = 'CloseButton'
@@ -29,12 +30,13 @@ object mFileOpenSave: TmFileOpenSave
     Top = 238
     Width = 623
     Align = alBottom
+    OnEditingDone = EditFileNameEditingDone
     TabOrder = 1
   end
   object TVFolders: TTreeView
     Left = 0
-    Height = 238
-    Top = 0
+    Height = 220
+    Top = 18
     Width = 193
     Align = alLeft
     DefaultItemHeight = 18
@@ -45,14 +47,14 @@ object mFileOpenSave: TmFileOpenSave
   end
   object Splitter1: TSplitter
     Left = 193
-    Height = 238
-    Top = 0
+    Height = 220
+    Top = 18
     Width = 5
   end
   object LVFiles: TListView
     Left = 198
-    Height = 238
-    Top = 0
+    Height = 220
+    Top = 18
     Width = 425
     Align = alClient
     Columns = <>
@@ -60,5 +62,15 @@ object mFileOpenSave: TmFileOpenSave
     TabOrder = 4
     OnDblClick = LVFilesDblClick
     OnSelectItem = LVFilesSelectItem
+  end
+  object PanelCurrentFolder: TPanel
+    Left = 0
+    Height = 18
+    Top = 0
+    Width = 623
+    Align = alTop
+    Alignment = taLeftJustify
+    BevelOuter = bvNone
+    TabOrder = 5
   end
 end

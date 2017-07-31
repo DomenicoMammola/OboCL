@@ -165,9 +165,9 @@ begin
   try
     doc.LoadFromStream(aStream);
 
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
+    cursor := TmXmlElementCursor.Create(doc.RootElement, 'livingPlates');
     try
-      FEngine.LoadFromXMLElement(cursor.Elements[0]);
+      FEngine.LoadLivingPlatesFromXMLElement(cursor.Elements[0]);
     finally
       cursor.Free;
     end;
@@ -184,6 +184,15 @@ begin
     finally
       cursor.Free;
     end;
+
+    cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
+    try
+      if Cursor.Count > 0 then
+        FEngine.LoadPlatesFromXMLElement(Cursor.Elements[0]);
+    finally
+      cursor.Free;
+    end;
+
   finally
     doc.Free;
   end;
@@ -202,7 +211,8 @@ begin
     tmp := FContainer.ExportAsConfItem;
     try
       tmp.SaveToXMLElement(root.AddElement('layout'));
-      FEngine.SaveToXMLElement(root.AddElement('plates'));
+      FEngine.SaveLivingPlatesToXMLElement(root.AddElement('livingPlates'));
+      FEngine.SavePlatesToXMLElement(root.AddElement('plates'));
 
       doc.SaveToStream(aStream);
     finally

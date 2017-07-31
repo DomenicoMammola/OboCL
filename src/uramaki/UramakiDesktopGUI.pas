@@ -17,7 +17,7 @@ interface
 
 uses
   Controls, Classes, StdCtrls, ExtCtrls, ComCtrls, contnrs,
-  Graphics, Menus,
+  Graphics, Menus, Dialogs,
   oMultiPanelSetup, OMultiPanel,
   ATTabs,
   UramakiDesktopLayout, UramakiDesktopPanelConfigForm;
@@ -38,6 +38,7 @@ type
     procedure CreateTabs;
     procedure OnPopupMenu (Sender : TObject);
     procedure OnConfigurePanel (Sender : TObject);
+    procedure OnAddChild(Sender : TObject);
   public
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; virtual; abstract;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
@@ -123,10 +124,11 @@ begin
   FPopupMenu := TPopupMenu.Create(Self);
   FTabs.PopupMenu := FPopupMenu;
   FAddMenuItem := TMenuItem.Create(FPopupMenu);
-  FAddMenuItem.Caption:= 'Add child';
+  FAddMenuItem.Caption:= 'Add a new child to report';
+  FAddMenuItem.OnClick := Self.OnAddChild;
   FPopupMenu.Items.Add(FAddMenuItem);
   FConfigureMenuItem := TMenuItem.Create(FPopupMenu);
-  FConfigureMenuItem.Caption := 'Configure';
+  FConfigureMenuItem.Caption := 'Configure header';
   FConfigureMenuItem.OnClick:= Self.OnConfigurePanel;
   FPopupMenu.Items.Add(FConfigureMenuItem);
   FPopupMenu.OnPopup:= Self.OnPopupMenu;
@@ -174,6 +176,14 @@ begin
     end;
   finally
     Dlg.Free;
+  end;
+end;
+
+procedure TUramakiDesktopPanel.OnAddChild(Sender: TObject);
+begin
+  if Self is TUramakiDesktopSimplePanel then
+  begin
+    ShowMessage('ci sono');
   end;
 end;
 

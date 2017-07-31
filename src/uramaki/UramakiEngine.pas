@@ -48,8 +48,11 @@ type
     procedure FeedLivingPlate (aLivingPlate : TUramakiLivingPlate);
     procedure FreePlatesOfLivingPlates;
 
-    procedure LoadFromXMLElement (aElement : TmXmlElement);
-    procedure SaveToXMLElement (aElement : TmXmlElement);
+    procedure LoadLivingPlatesFromXMLElement (aElement : TmXmlElement);
+    procedure SaveLivingPlatesToXMLElement (aElement : TmXmlElement);
+
+    procedure LoadPlatesFromXMLElement (aElement : TmXmlElement);
+    procedure SavePlatesToXMLElement (aElement : TmXmlElement);
 
     procedure GetAvailableTransformers (const aInputUramakiId : string; aList : TUramakiTransformers);
     procedure GetAvailablePublishers (const aInputUramakiId : string; aList : TUramakiPublishers);
@@ -261,7 +264,7 @@ begin
   end;
 end;
 
-procedure TUramakiEngine.LoadFromXMLElement(aElement: TmXmlElement);
+procedure TUramakiEngine.LoadLivingPlatesFromXMLElement(aElement: TmXmlElement);
 var
   cursor : TmXmlElementCursor;
   i : integer;
@@ -282,13 +285,45 @@ begin
   end;
 end;
 
-procedure TUramakiEngine.SaveToXMLElement(aElement: TmXmlElement);
+procedure TUramakiEngine.SaveLivingPlatesToXMLElement(aElement: TmXmlElement);
 var
   i : integer;
 begin
   for i := 0 to FLivingPlates.Count - 1 do
   begin
     (FLivingPlates.Items[i] as TUramakiLivingPlate).SaveToXml(aElement.AddElement('livingPlate'));
+  end;
+end;
+
+procedure TUramakiEngine.LoadPlatesFromXMLElement(aElement: TmXmlElement);
+var
+  cursor : TmXmlElementCursor;
+  i : integer;
+  tmpPlate : TUramakiLivingPlate;
+  tmpId : TGUID;
+begin
+  cursor := TmXmlElementCursor.Create(aElement, 'plateConfiguration');
+  try
+    for i := 0 to cursor.Count - 1 do
+    begin
+      tmpId := StringToGUID(cursor.Elements[i].GetAttribute('identifier'));
+      FindLivingPlate(tmpId).Plate.LoadConfigurationFromXML(cursor.Elements[i]);
+    end;
+  finally
+    cursor.Free;
+  end;
+end;
+
+procedure TUramakiEngine.SavePlatesToXMLElement(aElement: TmXmlElement);
+var
+  i : integer;
+  tmpElement : TmXmlElement;
+begin
+  for i := 0 to FLivingPlates.Count - 1 do
+  begin
+    tmpElement := aElement.AddElement('plateConfiguration');
+    tmpElement.SetAttribute('identifier', GUIDToString((FLivingPlates.Items[i] as TUramakiLivingPlate).InstanceIdentifier));
+    (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate.SaveConfigurationToXml(tmpElement);
   end;
 end;
 

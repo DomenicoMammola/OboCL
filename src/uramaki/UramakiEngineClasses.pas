@@ -175,17 +175,20 @@ begin
   try
     for i := 0 to cursor.Count - 1 do
     begin
-      tmpId := cursor.Elements[i].GetAttribute('transformerId');
-      tmpTransformation := Self.Transformations.Add;
-      tmpTransformation.Transformer := aTransformers.FindById(tmpId);
-      if Assigned(tmpTransformation.TransformationContext) then
+      if cursor.Elements[i].HasAttribute('transformerId') then
       begin
-        cursor2 := TmXmlElementCursor.Create(cursor.Elements[i], 'transformationContext');
-        try
-          assert (cursor2.Count = 1);
-          tmpTransformation.TransformationContext.LoadFromXML(cursor2.Elements[0]);
-        finally
-          cursor2.Free;
+        tmpId := cursor.Elements[i].GetAttribute('transformerId');
+        tmpTransformation := Self.Transformations.Add;
+        tmpTransformation.Transformer := aTransformers.FindById(tmpId);
+        if Assigned(tmpTransformation.TransformationContext) then
+        begin
+          cursor2 := TmXmlElementCursor.Create(cursor.Elements[i], 'transformationContext');
+          try
+            assert (cursor2.Count = 1);
+            tmpTransformation.TransformationContext.LoadFromXML(cursor2.Elements[0]);
+          finally
+            cursor2.Free;
+          end;
         end;
       end;
     end;

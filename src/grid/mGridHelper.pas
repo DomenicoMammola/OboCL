@@ -51,8 +51,12 @@ type
     constructor Create(aGrid : TDBGrid);
     destructor Destroy; override;
     function EditSettings : boolean;
+    procedure OnEditSettings(Sender : TObject);
+
     procedure LoadSettings (aStream : TStream);
     procedure SaveSettings (aStream : TStream);
+    procedure LoadSettingsFromXML (aXMLElement : TmXmlElement);
+    procedure SaveSettingsToXML (aXMLElement : TmXMLElement);
     procedure EnableSort (aSortManager : ISortableDatasetManager);
     procedure EnableHeaderPopupMenu (aOriginalGridPopupMenu : TPopupMenu);
     procedure ExportGridAsCsv (aStream : TStream); overload;
@@ -246,24 +250,22 @@ begin
   end;
 end;
 
+procedure TmDBGridHelper.OnEditSettings(Sender: TObject);
+begin
+  Self.EditSettings;
+end;
+
 procedure TmDBGridHelper.LoadSettings(aStream: TStream);
 var
   doc : TmXmlDocument;
-  cursor : TmXmlElementCursor;
 begin
   doc := TmXmlDocument.Create;
   try
     doc.LoadFromStream(aStream);
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'columns');
-    try
-      FSettings.LoadFromXmlElement(cursor.Elements[0]);
-    finally
-      cursor.Free;
-    end;
+    LoadSettingsFromXML(doc.RootElement);
   finally
     doc.Free;
   end;
-  ApplySettingsToGrid(FSettings, FDBGrid);
 end;
 
 procedure TmDBGridHelper.SaveSettings(aStream: TStream);
@@ -271,16 +273,34 @@ var
   doc : TmXmlDocument;
   root : TmXmlElement;
 begin
-  ReadSettingsFromGrid(FSettings, FDBGrid);
   doc := TmXmlDocument.Create;
   try
     root := doc.CreateRootElement('configuration');
-    root.SetAttribute('version', '1');
-    FSettings.SaveToXmlElement(root.AddElement('columns'));
+    SaveSettingsToXML(root);
     doc.SaveToStream(aStream);
   finally
     doc.Free;
   end;
+end;
+
+procedure TmDBGridHelper.LoadSettingsFromXML(aXMLElement: TmXmlElement);
+var
+  cursor : TmXmlElementCursor;
+begin
+  cursor := TmXmlElementCursor.Create(aXMLElement, 'columns');
+  try
+    FSettings.LoadFromXmlElement(cursor.Elements[0]);
+  finally
+    cursor.Free;
+  end;
+  ApplySettingsToGrid(FSettings, FDBGrid);
+end;
+
+procedure TmDBGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
+begin
+  ReadSettingsFromGrid(FSettings, FDBGrid);
+  aXMLElement.SetAttribute('version', '1');
+  FSettings.SaveToXmlElement(aXMLElement.AddElement('columns'));
 end;
 
 procedure TmDBGridHelper.EnableSort(aSortManager : ISortableDatasetManager);

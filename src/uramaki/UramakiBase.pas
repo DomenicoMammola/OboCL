@@ -60,6 +60,8 @@ type
     procedure GetAvailableUramakiRolls (aUramakiRollIdList : TStringList); virtual; abstract;
     procedure StartTransaction(const aTransactionId : TGuid); virtual;
     procedure EndTransaction(const aTransactionId: TGuid); virtual;
+    procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); virtual;
+    procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); virtual;
 
     property OnDestroy : TNotifyEvent read FOnUramakiPlateDestroy write FOnUramakiPlateDestroy;
   end;
@@ -187,6 +189,16 @@ begin
 end;
 
 procedure TUramakiPlate.EndTransaction(const aTransactionId: TGuid);
+begin
+  //
+end;
+
+procedure TUramakiPlate.LoadConfigurationFromXML(aXMLElement: TmXmlElement);
+begin
+  //
+end;
+
+procedure TUramakiPlate.SaveConfigurationToXML(aXMLElement: TmXmlElement);
 begin
   //
 end;

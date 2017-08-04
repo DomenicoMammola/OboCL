@@ -52,7 +52,7 @@ type
     procedure LoadFromStream (aStream : TStream);
     procedure SaveToStream (aStream : TStream);
     procedure ShowConfigurationForm;
-    procedure FillAddRootWidgetMenu (aMenuItem : TMenuItem);
+    procedure FillAddWidgetMenu (aMenuItem : TMenuItem; const aInputUramakiId : string);
   end;
 
 implementation
@@ -92,6 +92,7 @@ var
   tmpMenuInfo : TMenuInfo;
   item : TUramakiDesktopSimplePanel;
   tmpLivingPlate : TUramakiLivingPlate;
+  parentRolls : TStringList;
 begin
   tmpMenuInfo := TMenuInfo((Sender as TMenuItem).Tag);
   item := FContainer.AddItem;
@@ -105,6 +106,14 @@ begin
   tmpLivingPlate.Plate.Parent := item;
   tmpLivingPlate.Plate.Align := alClient;
 
+  parentRolls := TStringList.Create;
+  try
+    tmpLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
+    if parentRolls.Count > 0 then
+      Self.FillAddWidgetMenu(item.AddMenuItem, parentRolls.Strings[0]);
+  finally
+    parentRolls.Free;
+  end;
   FEngine.FeedLivingPlate(tmpLivingPlate);
 end;
 
@@ -251,7 +260,7 @@ begin
   end;
 end;
 
-procedure TUramakiDesktopManager.FillAddRootWidgetMenu(aMenuItem: TMenuItem);
+procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const aInputUramakiId : string);
 var
   i, j : integer;
   tempListOfTransformers : TUramakiTransformers;
@@ -267,7 +276,7 @@ begin
   try
 
     // publishers without transformers
-    FEngine.GetAvailablePublishers(NULL_URAMAKI_ID, tempListOfPublishers);
+    FEngine.GetAvailablePublishers(aInputUramakiId, tempListOfPublishers);
     if tempListOfPublishers.Count > 0 then
     begin
       for j := 0 to tempListOfPublishers.Count - 1 do
@@ -286,7 +295,7 @@ begin
     end;
 
     // root transformers
-    FEngine.GetAvailableTransformers(NULL_URAMAKI_ID, tempListOfTransformers);
+    FEngine.GetAvailableTransformers(aInputUramakiId, tempListOfTransformers);
     for i := 0 to tempListOfTransformers.Count -1 do
     begin
       FEngine.GetAvailablePublishers(tempListOfTransformers.Get(i).GetOutputUramakiId, tempListOfPublishers);

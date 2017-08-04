@@ -225,9 +225,10 @@ begin
   end
   else
   begin
-    if aLivingPlate.Transformations.Count = 0 then
-      exit;
-    startUramakiId := aLivingPlate.Transformations.Items[0].Transformer.GetInputUramakiId;
+    if aLivingPlate.Transformations.Count > 0 then
+      startUramakiId := aLivingPlate.Transformations.Items[0].Transformer.GetInputUramakiId
+    else
+      startUramakiId:=aLivingPlate.Publication.Publisher.GetInputUramakiId;
 
     Garbage := TObjectList.Create(true);
     try

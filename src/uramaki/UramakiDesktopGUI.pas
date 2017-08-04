@@ -35,10 +35,9 @@ type
     FConfigureMenuItem : TMenuItem;
     FTabs : TATTabs;
     FTabData : TATTabData;
-    procedure CreateTabs;
+    procedure CreateTabs; virtual;
     procedure OnPopupMenu (Sender : TObject);
     procedure OnConfigurePanel (Sender : TObject);
-    procedure OnAddChild(Sender : TObject);
   public
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; virtual; abstract;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
@@ -52,6 +51,9 @@ type
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
     FLivingPlateInstanceIdentifier : TGuid;
+    procedure OnAddChild(Sender : TObject);
+  protected
+    procedure CreateTabs; override;
   public
     constructor Create(TheOwner: TComponent); override;
     procedure AddTab;
@@ -61,6 +63,7 @@ type
     function HowManySubReports : integer; override;
 
     property LivingPlateInstanceIdentifier : TGuid read FLivingPlateInstanceIdentifier write FLivingPlateInstanceIdentifier;
+    property AddMenuItem : TMenuItem read FAddMenuItem;
   end;
 
 
@@ -124,8 +127,7 @@ begin
   FPopupMenu := TPopupMenu.Create(Self);
   FTabs.PopupMenu := FPopupMenu;
   FAddMenuItem := TMenuItem.Create(FPopupMenu);
-  FAddMenuItem.Caption:= 'Add a new child to report';
-  FAddMenuItem.OnClick := Self.OnAddChild;
+  FAddMenuItem.Caption:= 'Add a new child to report..';
   FPopupMenu.Items.Add(FAddMenuItem);
   FConfigureMenuItem := TMenuItem.Create(FPopupMenu);
   FConfigureMenuItem.Caption := 'Configure header';
@@ -178,15 +180,6 @@ begin
     Dlg.Free;
   end;
 end;
-
-procedure TUramakiDesktopPanel.OnAddChild(Sender: TObject);
-begin
-  if Self is TUramakiDesktopSimplePanel then
-  begin
-    ShowMessage('ci sono');
-  end;
-end;
-
 
 { TUramakiDesktopContainerPanel }
 
@@ -399,6 +392,17 @@ begin
 end;
 
 { TUramakiDesktopSimplePanel }
+
+procedure TUramakiDesktopSimplePanel.OnAddChild(Sender: TObject);
+begin
+  ShowMessage('ehila');
+end;
+
+procedure TUramakiDesktopSimplePanel.CreateTabs;
+begin
+  inherited CreateTabs;
+  FAddMenuItem.OnClick := Self.OnAddChild;
+end;
 
 constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
 begin

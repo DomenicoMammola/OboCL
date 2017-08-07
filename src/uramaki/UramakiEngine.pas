@@ -16,11 +16,96 @@ unit UramakiEngine;
 interface
 
 uses
-  Classes, contnrs,
+  Classes, contnrs, syncobjs, Forms,
   mMaps, mUtility, mXML,
-  UramakiBase, UramakiEngineConnector, UramakiEngineClasses;
+  UramakiBase, UramakiEngineClasses;
 
 type
+
+  TUramakiEngine = class;
+
+  TUramakiEngineMessage = class
+  end;
+
+  { TUramakiEngineMessageQueue }
+
+  TUramakiEngineMessageQueue = class
+  private
+    FMessages: TObjectList;
+    FCriticalSection: TCriticalSection;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure Put(aMessage : TUramakiEngineMessage);
+    function Pick : TUramakiEngineMessage;
+  end;
+
+  TDoProcessMessage = procedure (aMessage : TUramakiEngineMessage) of object;
+
+  { TUramakiEngineMessagesThread }
+
+  TUramakiEngineMessagesThread = class(TThread)
+  strict private
+    FQueue : TUramakiEngineMessageQueue;
+    FLetsGoEvent : TSimpleEvent;
+    FLetsDieEvent : TSimpleEvent;
+    FCurrentMessage: TUramakiEngineMessage;
+    FDoProcessMessage : TDoProcessMessage;
+
+    procedure FProcessMessage;
+  public
+    constructor Create; reintroduce;
+    destructor Destroy; override;
+    procedure Execute; override;
+
+    property LetsGoEvent : TSimpleEvent read FLetsGoEvent;
+    property LetsDieEvent : TSimpleEvent read FLetsDieEvent write FLetsDieEvent;
+    property MessagesQueue : TUramakiEngineMessageQueue read FQueue write FQueue;
+    property DoProcessMessage : TDoProcessMessage read FDoProcessMessage write FDoProcessMessage;
+  end;
+
+
+(*  TSushiPostMessageProcedure = procedure(Msg: TSushiQueuedMessage) of object;
+  TSushiOnStartProcessingMessagesProcedure = procedure of object;
+  TSushiOnStopProcessingMessagesProcedure = procedure of object;
+
+  TSushiThreadMessagePump = class(TThread)
+  private
+    FMessagesList: TSushiQueuedMessagesList;
+    FCurrentMsg: TSushiQueuedMessage;
+    FPostaMessaggioProcedure: TSushiPostMessageProcedure;
+    FOnStartProcedure : TSushiOnStartProcessingMessagesProcedure;
+    FOnStopProcedure : TSushiOnStopProcessingMessagesProcedure;
+    FSomethingToDo : TEvent;
+    FEndEvent : TEvent;
+
+    procedure FPostaMessaggio;
+    procedure FOnStartProcessing;
+    procedure FOnEndProcessing;
+  public
+    procedure Execute; override;
+    constructor Create(AMessagesList: TSushiQueuedMessagesList; APostMessageProcedure:
+      TSushiPostMessageProcedure; aEndEvent : TEvent;
+      aOnStart : TSushiOnStartProcessingMessagesProcedure;
+      aOnStop : TSushiOnStopProcessingMessagesProcedure); reintroduce;
+    destructor Destroy; override;
+
+    property SomethingToDo : TEvent read FSomethingToDo;
+  end;*)
+
+
+  { TUramakiEngineMediator }
+
+  TUramakiEngineMediator = class (TUramakiAbstractEngineMediator)
+  strict private
+    FEngine : TUramakiEngine;
+  public
+    constructor Create (aEngine : TUramakiEngine);
+    procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); override;
+    function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; override;
+  end;
+
 
   { TUramakiEngine }
 
@@ -30,10 +115,16 @@ type
     FPublishers : TUramakiPublishers;
 
     FLivingPlates : TObjectList;
+    FMediator : TUramakiEngineMediator;
+
+    FMessagesQueue : TUramakiEngineMessageQueue;
+    FMessagesThread : TUramakiEngineMessagesThread;
+    FWaitForCloseThreadEvent : TSimpleEvent;
 
     FCurrentTransactionId : TGuid;
     procedure StartTransaction;
     procedure EndTransaction;
+    procedure ProcessMessage(aMessage : TUramakiEngineMessage);
   public
     constructor Create;
     destructor Destroy; override;
@@ -42,7 +133,9 @@ type
     procedure AddTransformer (aTransformer : TUramakiTransformer);
 
     function CreateLivingPlate(aParentPlateId : TGuid) : TUramakiLivingPlate;
-    function FindLivingPlate (aPlateId : TGuid) : TUramakiLivingPlate;
+    function FindLivingPlateByPlateId (aPlateId : TGuid) : TUramakiLivingPlate;
+    function FindLivingPlateByPlate (aPlate : TUramakiPlate) : TUramakiLivingPlate;
+    procedure FindLivingPlatesByParent(aParentPlate : TUramakiPlate; aList : TObjectList);
     function FindTransformer (aTransformerId : string) : TUramakiTransformer;
     function FindPublisher (aPublisherId : string) : TUramakiPublisher;
     procedure FeedLivingPlate (aLivingPlate : TUramakiLivingPlate);
@@ -56,12 +149,141 @@ type
 
     procedure GetAvailableTransformers (const aInputUramakiId : string; aList : TUramakiTransformers);
     procedure GetAvailablePublishers (const aInputUramakiId : string; aList : TUramakiPublishers);
+
+    property Mediator : TUramakiEngineMediator read FMediator;
   end;
 
 implementation
 
 uses
   SysUtils;
+
+{ TUramakiEngineMessagesThread }
+
+procedure TUramakiEngineMessagesThread.FProcessMessage;
+begin
+  FDoProcessMessage(FCurrentMessage);
+end;
+
+constructor TUramakiEngineMessagesThread.Create;
+begin
+  inherited Create(false);
+  FLetsGoEvent := TSimpleEvent.Create;
+  Self.Priority:= tpHigher;
+end;
+
+destructor TUramakiEngineMessagesThread.Destroy;
+begin
+  FLetsGoEvent.Free;
+  inherited Destroy;
+end;
+
+procedure TUramakiEngineMessagesThread.Execute;
+var
+  tmpMessage: TUramakiEngineMessage;
+begin
+  while not Terminated do
+  begin
+    tmpMessage := FQueue.Pick;
+    while (tmpMessage <> nil) and (not Self.Terminated) do
+    begin
+      FCurrentMessage := tmpMessage;
+      try
+        Synchronize(FProcessMessage);
+      except
+        on e:Exception do
+        begin
+          Application.ShowException(e);
+        end;
+      end;
+      tmpMessage := FQueue.Pick;
+    end;
+
+    if not Terminated then
+    begin
+      FLetsGoEvent.ResetEvent;
+      FLetsGoEvent.WaitFor(10000);
+    end;
+  end;
+  Sleep (10);
+  FLetsDieEvent.SetEvent;
+end;
+
+{ TUramakiEngineMessageQueue }
+
+constructor TUramakiEngineMessageQueue.Create;
+begin
+  FMessages := TObjectList.Create(false);
+  FCriticalSection:= TCriticalSection.Create;
+end;
+
+destructor TUramakiEngineMessageQueue.Destroy;
+begin
+  FCriticalSection.Free;
+  FMessages.Free;
+  inherited Destroy;
+end;
+
+procedure TUramakiEngineMessageQueue.Put(aMessage: TUramakiEngineMessage);
+begin
+  FCriticalSection.Acquire;
+  try
+    FMessages.Add(aMessage);
+  finally
+    FCriticalSection.Leave;
+  end;
+end;
+
+function TUramakiEngineMessageQueue.Pick: TUramakiEngineMessage;
+begin
+  FCriticalSection.Acquire;
+  try
+    if FMessages.Count > 0 then
+    begin
+      Result := FMessages.Items[0] as TUramakiEngineMessage;
+      FMessages.Delete(0);
+    end
+    else
+      Result := nil;
+  finally
+    FCriticalSection.Leave;
+  end;
+
+end;
+
+{ TUramakiEngineMediator }
+
+constructor TUramakiEngineMediator.Create(aEngine: TUramakiEngine);
+begin
+  FEngine := aEngine;
+end;
+
+procedure TUramakiEngineMediator.PleaseRefreshMyChilds(aPlate: TUramakiPlate);
+var
+  childs : TObjectList;
+  i: integer;
+begin
+  childs := TObjectList.Create(false);
+  try
+    FEngine.FindLivingPlatesByParent(aPlate, childs);
+    for i := 0 to childs.Count - 1 do
+    begin
+      FEngine.FeedLivingPlate(childs.Items[i] as TUramakiLivingPlate);
+    end;
+  finally
+    childs.Free;
+  end;
+end;
+
+function TUramakiEngineMediator.GetInstanceIdentifier(aPlate: TUramakiPlate): TGuid;
+var
+  tmpLivingPlate : TUramakiLivingPlate;
+begin
+  Result := GUID_NULL;;
+  tmpLivingPlate := FEngine.FindLivingPlateByPlate(aPlate);
+  if Assigned(tmpLivingPlate) then
+    Result := tmpLivingPlate.InstanceIdentifier;
+end;
 
 { TUramakiEngine }
 
@@ -101,6 +323,23 @@ begin
     (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate.EndTransaction(FCurrentTransactionId);
 
   FCurrentTransactionId := GUID_NULL;
+end;
+
+procedure TUramakiEngine.ProcessMessage(aMessage: TUramakiEngineMessage);
+var
+  childs : TObjectList;
+  i: integer;
+begin
+(*  childs := TObjectList.Create(false);
+  try
+    FindLivingPlatesByParent(aPlate, childs);
+    for i := 0 to childs.Count - 1 do
+    begin
+      Self.FeedLivingPlate(childs.Items[i] as TUramakiLivingPlate);
+    end;
+  finally
+    childs.Free;
+  end;*)
 end;
 
 (*
@@ -151,13 +390,31 @@ begin
   FPublishers := TUramakiPublishers.Create;
   FLivingPlates := TObjectList.Create(true);
   FCurrentTransactionId := GUID_NULL;
+  FMediator := TUramakiEngineMediator.Create(Self);
+
+  FWaitForCloseThreadEvent := TSimpleEvent.Create;
+  FWaitForCloseThreadEvent.ResetEvent;
+  FMessagesQueue := TUramakiEngineMessageQueue.Create;
+
+  FMessagesThread := TUramakiEngineMessagesThread.Create;
+  FMessagesThread.LetsDieEvent := FWaitForCloseThreadEvent;
+  FMessagesThread.MessagesQueue := FMessagesQueue;
+  FMessagesThread.DoProcessMessage:= Self.ProcessMessage;
 end;
 
 destructor TUramakiEngine.Destroy;
 begin
+  FMessagesThread.Terminate;
+  FMessagesThread.LetsGoEvent.SetEvent;
+  FWaitForCloseThreadEvent.WaitFor(3000);
+  FreeAndNil(FWaitForCloseThreadEvent);
+  FreeAndNil(FMessagesThread);
+  FreeAndNil(FMessagesQueue);
+
   FTransformers.Free;
   FPublishers.Free;
   FLivingPlates.Free;
+  FMediator.Free;
   inherited Destroy;
 end;
 
@@ -184,7 +441,7 @@ begin
   Result.ParentIdentifier := aParentPlateId;
 end;
 
-function TUramakiEngine.FindLivingPlate(aPlateId: TGuid): TUramakiLivingPlate;
+function TUramakiEngine.FindLivingPlateByPlateId(aPlateId: TGuid): TUramakiLivingPlate;
 var
   i : integer;
 begin
@@ -199,6 +456,44 @@ begin
       exit;
     end;
   end;
+end;
+
+function TUramakiEngine.FindLivingPlateByPlate(aPlate: TUramakiPlate): TUramakiLivingPlate;
+var
+  i : integer;
+begin
+  Result := nil;
+  if not Assigned(aPlate) then
+    exit;
+  for i := 0 to FLivingPlates.Count - 1 do
+  begin
+    if (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate = aPlate then
+    begin
+      Result := FLivingPlates.Items[i] as TUramakiLivingPlate;
+      exit;
+    end;
+  end;
+end;
+
+procedure TUramakiEngine.FindLivingPlatesByParent(aParentPlate: TUramakiPlate; aList: TObjectList);
+var
+  parentGuid : TGuid;
+  i : integer;
+begin
+  assert(aList.OwnsObjects = false);
+
+  aList.Clear;
+  if not Assigned(aParentPlate) then
+    exit;
+  parentGuid := FindLivingPlateByPlate(aParentPlate).InstanceIdentifier;
+  for i := 0 to FLivingPlates.Count - 1 do
+  begin
+    if IsEqualGUID((FLivingPlates.Items[i] as TUramakiLivingPlate).ParentIdentifier, parentGuid) then
+    begin
+      aList.Add(FLivingPlates.Items[i]);
+    end;
+  end;
+
 end;
 
 function TUramakiEngine.FindTransformer(aTransformerId: string): TUramakiTransformer;
@@ -232,10 +527,10 @@ begin
 
     Garbage := TObjectList.Create(true);
     try
-      tmpParent := Self.FindLivingPlate(aLivingPlate.ParentIdentifier);
-      if Assigned(tmpParent) then
+      tmpParent := Self.FindLivingPlateByPlateId(aLivingPlate.ParentIdentifier);
+      if Assigned(tmpParent) and Assigned(tmpParent.Plate) then
       begin
-        inputUramakiRoll := aLivingPlate.Plate.GetUramakiRoll(startUramakiId);
+        inputUramakiRoll := tmpParent.Plate.GetUramakiRoll(startUramakiId);
         Garbage.Add(inputUramakiRoll);
       end
       else
@@ -250,7 +545,6 @@ begin
     finally
       Garbage.Free;
     end;
-
   end;
 end;
 
@@ -308,7 +602,7 @@ begin
     for i := 0 to cursor.Count - 1 do
     begin
       tmpId := StringToGUID(cursor.Elements[i].GetAttribute('identifier'));
-      FindLivingPlate(tmpId).Plate.LoadConfigurationFromXML(cursor.Elements[i]);
+      FindLivingPlateByPlateId(tmpId).Plate.LoadConfigurationFromXML(cursor.Elements[i]);
     end;
   finally
     cursor.Free;

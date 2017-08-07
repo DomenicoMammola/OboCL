@@ -39,19 +39,17 @@ type
     procedure AfterRead; virtual;
   end;
 
-  IUramakiEngineController = interface
-    procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate);
-    function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid;
+  TUramakiAbstractEngineMediator = class abstract
+  public
+    procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); virtual; abstract;
+    function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; virtual; abstract;
   end;
-
-
-
 
   { TUramakiPlate }
 
   TUramakiPlate = class (TPanel)
-  protected
-    FEngineController : IUramakiEngineController;
+  strict private
+    FEngineMediator : TUramakiAbstractEngineMediator;
     FOnUramakiPlateDestroy : TNotifyEvent;
   public
     destructor Destroy; override;
@@ -63,6 +61,7 @@ type
     procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); virtual;
     procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); virtual;
 
+    property EngineMediator : TUramakiAbstractEngineMediator read FEngineMediator write FEngineMediator;
     property OnDestroy : TNotifyEvent read FOnUramakiPlateDestroy write FOnUramakiPlateDestroy;
   end;
 

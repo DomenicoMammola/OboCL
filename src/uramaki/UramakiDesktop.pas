@@ -38,6 +38,7 @@ type
     FDesktopDataModule: TUramakiDesktopDataModule;
 
 //    procedure CreateToolbar;
+    procedure BuildAndFeedPlate(aLivingPlate: TUramakiLivingPlate; aItem: TPanel);
     procedure OnAddPlate (Sender : TObject);
     procedure DoLinkLayoutItemToPlate(aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid);
   public
@@ -52,7 +53,7 @@ type
     procedure LoadFromStream (aStream : TStream);
     procedure SaveToStream (aStream : TStream);
     procedure ShowConfigurationForm;
-    procedure FillAddWidgetMenu (aMenuItem : TMenuItem; const aInputUramakiId : string);
+    procedure FillAddWidgetMenu (aMenuItem : TMenuItem; const aInputUramakiId : string; aLivingPlateIdentifier : TGuid);
   end;
 
 implementation
@@ -92,7 +93,6 @@ var
   tmpMenuInfo : TMenuInfo;
   item : TUramakiDesktopSimplePanel;
   tmpLivingPlate : TUramakiLivingPlate;
-  parentRolls : TStringList;
 begin
   tmpMenuInfo := TMenuInfo((Sender as TMenuItem).Tag);
   item := FContainer.AddItem;
@@ -101,34 +101,41 @@ begin
   if tmpMenuInfo.TransformerId <> '' then
     tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
   tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
+  item.TabData.TabCaption:= tmpLivingPlate.Publication.Publisher.GetDescription;
 
-  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(item);
-  tmpLivingPlate.Plate.Parent := item;
-  tmpLivingPlate.Plate.Align := alClient;
-
-  parentRolls := TStringList.Create;
-  try
-    tmpLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
-    if parentRolls.Count > 0 then
-      Self.FillAddWidgetMenu(item.AddMenuItem, parentRolls.Strings[0]);
-  finally
-    parentRolls.Free;
-  end;
-  FEngine.FeedLivingPlate(tmpLivingPlate);
+  BuildAndFeedPlate(tmpLivingPlate, item);
 end;
 
+procedure TUramakiDesktopManager.BuildAndFeedPlate(aLivingPlate : TUramakiLivingPlate; aItem: TPanel);
+var
+  parentRolls : TStringList;
+begin
+  aLivingPlate.Plate := aLivingPlate.Publication.Publisher.CreatePlate(aItem);
+  aLivingPlate.Plate.Parent := aItem;
+  aLivingPlate.Plate.Align := alClient;
+  aLivingPlate.Plate.EngineMediator := FEngine.Mediator;
+
+  if aItem is TUramakiDesktopSimplePanel then
+  begin
+    parentRolls := TStringList.Create;
+    try
+      aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
+      if parentRolls.Count > 0 then
+        Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[0], aLivingPlate.InstanceIdentifier);
+    finally
+      parentRolls.Free;
+    end;
+  end;
+  FEngine.FeedLivingPlate(aLivingPlate);
+end;
 
 procedure TUramakiDesktopManager.DoLinkLayoutItemToPlate(aItem: TPanel; aLivingPlateInstanceIdentificator: TGuid);
 var
   tmpLivingPlate : TUramakiLivingPlate;
 begin
-  tmpLivingPlate := FEngine.FindLivingPlate(aLivingPlateInstanceIdentificator);
+  tmpLivingPlate := FEngine.FindLivingPlateByPlateId(aLivingPlateInstanceIdentificator);
 
-  assert (not Assigned(tmpLivingPlate.Plate));
-  tmpLivingPlate.Plate := tmpLivingPlate.Publication.Publisher.CreatePlate(aItem);
-  tmpLivingPlate.Plate.Parent := aItem;
-  tmpLivingPlate.Plate.Align:= alClient;
-  FEngine.FeedLivingPlate(tmpLivingPlate);
+  BuildAndFeedPlate(tmpLivingPlate, aItem);
 end;
 
 constructor TUramakiDesktopManager.Create;
@@ -260,7 +267,7 @@ begin
   end;
 end;
 
-procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const aInputUramakiId : string);
+procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const aInputUramakiId : string; aLivingPlateIdentifier : TGuid);
 var
   i, j : integer;
   tempListOfTransformers : TUramakiTransformers;
@@ -288,7 +295,7 @@ begin
         tmpMenuInfo := TMenuInfo.Create;
         tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
         tmpMenuInfo.TransformerId:= '';
-        tmpMenuInfo.LivingPlateIdenfier := GUID_NULL;
+        tmpMenuInfo.LivingPlateIdenfier := aLivingPlateIdentifier;
         mt2.Tag:= PtrInt(tmpMenuInfo);
         MenuGarbageCollector.Add(tmpMenuInfo);
       end;
@@ -313,7 +320,7 @@ begin
           tmpMenuInfo := TMenuInfo.Create;
           tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
           tmpMenuInfo.TransformerId:= tempListOfTransformers.Get(i).GetMyId;
-          tmpMenuInfo.LivingPlateIdenfier := GUID_NULL;
+          tmpMenuInfo.LivingPlateIdenfier := aLivingPlateIdentifier;
           mt2.Tag:= PtrInt(tmpMenuInfo);
           MenuGarbageCollector.Add(tmpMenuInfo);
         end;

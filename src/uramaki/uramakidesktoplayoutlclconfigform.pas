@@ -179,19 +179,20 @@ function TDesktopLayoutConfigForm.ExtractModifiedLayout: TUramakiDesktopLayoutCo
     if (layoutItem is TUramakiDesktopLayoutConfContainerItem) then
     begin
       tmpNode := aNode.GetFirstChild;
-      if Assigned(tmpNode) then
+      while Assigned(tmpNode) and (not Result) do
       begin
         if TUramakiDesktopLayoutConfItem(tmpNode.Data) is TUramakiDesktopLayoutConfSimpleItem then
         begin
           Result := true;
-          exit;
+          break;
         end
         else
         begin
           Result := AlmenoUnDiscendenteNonContainer(tmpNode);
           if Result then
-            exit;
+            break;
         end;
+        tmpNode := tmpNode.GetNextSibling;
       end;
     end;
   end;

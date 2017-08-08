@@ -16,29 +16,29 @@ unit UramakiDesktopGUI;
 interface
 
 uses
-  Controls, Classes, StdCtrls, ExtCtrls, ComCtrls, contnrs,
+  Controls, Classes, StdCtrls, ExtCtrls, contnrs,
   Graphics, Menus, Dialogs,
   oMultiPanelSetup, OMultiPanel,
   ATTabs,
-  UramakiDesktopLayout, UramakiDesktopPanelConfigForm;
+  UramakiDesktopLayout, UramakiDesktopPanelConfigForm, PilePanel;
 
 type
 
   { TUramakiDesktopPanel }
 
   TUramakiDesktopPanel = class (TPanel)
-  private
-    procedure SetTabData(AValue: TATTabData);
   protected
-    FPopupMenu : TPopupMenu;
-    FAddMenuItem : TMenuItem;
-    FConfigureMenuItem : TMenuItem;
     FTabs : TATTabs;
     FTabData : TATTabData;
+    FPopupMenu : TPopupMenu;
+    FConfigureMenuItem : TMenuItem;
+
     procedure CreateTabs; virtual;
-    procedure OnPopupMenu (Sender : TObject);
     procedure OnConfigurePanel (Sender : TObject);
+    procedure SetTabData(AValue: TATTabData); virtual;
   public
+    procedure CreatePopupMenu; virtual;
+
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; virtual; abstract;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); virtual; abstract;
     function HowManySubReports : integer; virtual; abstract;
@@ -51,12 +51,11 @@ type
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
     FLivingPlateInstanceIdentifier : TGuid;
-    procedure OnAddChild(Sender : TObject);
-  protected
-    procedure CreateTabs; override;
+    FAddMenuItem : TMenuItem;
   public
     constructor Create(TheOwner: TComponent); override;
-    procedure AddTab;
+    procedure CreateCaptionPanel;
+    procedure CreatePopupMenu; override;
 
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
@@ -74,7 +73,7 @@ type
   strict private
     FContainerType : TContainerType;
     FRootPanel : TOMultiPanel;
-    FPageControl : TPageControl;
+    FPageControl : TPilePanel;
     FItems : TObjectList;
     FPopupMenu : TPopupMenu;
 
@@ -107,6 +106,19 @@ procedure TUramakiDesktopPanel.SetTabData(AValue: TATTabData);
 begin
   if FTabData=AValue then Exit;
   FTabData:=AValue;
+  if Assigned(FPopupMenu) then
+    FTabData.TabPopupMenu := Self.FPopupMenu;
+end;
+
+procedure TUramakiDesktopPanel.CreatePopupMenu;
+begin
+  FPopupMenu := TPopupMenu.Create(Self);
+  FConfigureMenuItem := TMenuItem.Create(FPopupMenu);
+  FConfigureMenuItem.Caption := 'Configure header';
+  FConfigureMenuItem.OnClick:= Self.OnConfigurePanel;
+  FPopupMenu.Items.Add(FConfigureMenuItem);
+  if Assigned(FTabData) then
+    FTabData.TabPopupMenu := Self.FPopupMenu;
 end;
 
 procedure TUramakiDesktopPanel.CreateTabs;
@@ -123,19 +135,11 @@ begin
   FTabs.TabShowEntireColor:= true;
   FTabs.Height:= 24;
   FTabs.TabHeight:= 18;
+  FTabs.TabWidthMax:= 200;
   FTabs.ColorBg:= clMenu;
-  FPopupMenu := TPopupMenu.Create(Self);
-  FTabs.PopupMenu := FPopupMenu;
-  FAddMenuItem := TMenuItem.Create(FPopupMenu);
-  FAddMenuItem.Caption:= 'Add a new child to report..';
-  FPopupMenu.Items.Add(FAddMenuItem);
-  FConfigureMenuItem := TMenuItem.Create(FPopupMenu);
-  FConfigureMenuItem.Caption := 'Configure header';
-  FConfigureMenuItem.OnClick:= Self.OnConfigurePanel;
-  FPopupMenu.Items.Add(FConfigureMenuItem);
-  FPopupMenu.OnPopup:= Self.OnPopupMenu;
 end;
 
+(*
 procedure TUramakiDesktopPanel.OnPopupMenu(Sender: TObject);
 begin
   if Self is TUramakiDesktopContainerPanel then
@@ -148,7 +152,7 @@ begin
       end;
     end
   end;
-end;
+end;*)
 
 procedure TUramakiDesktopPanel.OnConfigurePanel(Sender: TObject);
 var
@@ -186,7 +190,7 @@ end;
 procedure TUramakiDesktopContainerPanel.OnTabClick(aSender: TObject);
 begin
   if (Self.FContainerType = ctTabbed) then
-    FPageControl.ActivePageIndex:= FTabs.TabIndex;
+    FPageControl.ActivePanelIndex:= FTabs.TabIndex;
 end;
 
 constructor TUramakiDesktopContainerPanel.Create(TheOwner: TComponent);
@@ -215,12 +219,12 @@ begin
   FreeAndNil(FTabs);
   if FContainerType = ctTabbed then
   begin
-    FPageControl := TPageControl.Create(Self);
+    FPageControl := TPilePanel.Create(Self);
     FPageControl.Parent := Self;
     FPageControl.Align:= alClient;
-    FPageControl.BorderWidth:= 0;
-    FPageControl.BorderSpacing.InnerBorder := 0;
-    FPageControl.ShowTabs:= false;
+    //FPageControl.BorderWidth:= 0;
+    //FPageControl.BorderSpacing.InnerBorder := 0;
+    //FPageControl.ShowTabs:= false;
     CreateTabs;
     FTabs.OnTabClick:= Self.OnTabClick;
     FTabs.BorderWidth:= 0;
@@ -343,23 +347,25 @@ end;
 
 function TUramakiDesktopContainerPanel.AddItem : TUramakiDesktopSimplePanel;
 var
-  ts : TTabSheet;
+  ts : TPanel;
 begin
   if FContainerType = ctTabbed then
   begin
     FTabs.AddTab(-1, 'report ' + IntToStr(FTabs.TabCount));
-    ts := FPageControl.AddTabSheet;
+    ts := FPageControl.AddPanel;
     ts.BorderWidth:= 0;
     Result := TUramakiDesktopSimplePanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
     Result.TabData := FTabs.GetTabData(FTabs.TabCount - 1);
+    Result.CreatePopupMenu;
+    FTabs.TabIndex:= FTabs.TabCount - 1;
   end
   else
   begin
     Result := TUramakiDesktopSimplePanel.Create(FRootPanel);
-    Result.AddTab;
-    Result.TabData := Result.FTabs.GetTabData(0);
+    Result.CreateCaptionPanel;
+    Result.CreatePopupMenu;
     Result.Parent := FRootPanel;
     Result.Align:= alClient;
     FRootPanel.PanelCollection.AddControl(Result);
@@ -369,16 +375,18 @@ end;
 
 function TUramakiDesktopContainerPanel.AddContainer: TUramakiDesktopContainerPanel;
 var
-  ts : TTabSheet;
+  ts : TPanel;
 begin
   if FContainerType = ctTabbed then
   begin
-    ts := FPageControl.AddTabSheet;
+    ts := FPageControl.AddPanel;
     Result := TUramakiDesktopContainerPanel.Create(ts);
     Result.Parent := ts;
     Result.Align := alClient;
     FTabs.AddTab(-1, 'report ' + IntToStr(FTabs.TabCount));
     Result.TabData := FTabs.GetTabData(FTabs.TabCount - 1);
+    Result.CreatePopupMenu;
+    FTabs.TabIndex:= FTabs.TabCount - 1;
   end
   else
   begin
@@ -393,16 +401,17 @@ end;
 
 { TUramakiDesktopSimplePanel }
 
-procedure TUramakiDesktopSimplePanel.OnAddChild(Sender: TObject);
+
+procedure TUramakiDesktopSimplePanel.CreatePopupMenu;
 begin
-  ShowMessage('ehila');
+  inherited;
+  FAddMenuItem := TMenuItem.Create(FPopupMenu);
+  FAddMenuItem.Caption:= 'Add a new child to report..';
+  FPopupMenu.Items.Add(FAddMenuItem);
+
+//  FPopupMenu.OnPopup:= Self.OnPopupMenu;
 end;
 
-procedure TUramakiDesktopSimplePanel.CreateTabs;
-begin
-  inherited CreateTabs;
-  FAddMenuItem.OnClick := Self.OnAddChild;
-end;
 
 constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
 begin
@@ -423,7 +432,7 @@ begin
   FTitleBar.Height:= 20;*)
 end;
 
-procedure TUramakiDesktopSimplePanel.AddTab;
+procedure TUramakiDesktopSimplePanel.CreateCaptionPanel;
 begin
   CreateTabs;
   FTabs.AddTab(-1, 'report');
@@ -433,6 +442,8 @@ begin
   FTabs.Height:= FTabs.TabHeight;
   FTabs.TabIndentTop:= 0;
   FTabs.TabIndentInit:= 0;
+  Self.TabData := FTabs.GetTabData(0);
+  FTabs.TabIndex:= FTabs.TabCount - 1;
 end;
 
 

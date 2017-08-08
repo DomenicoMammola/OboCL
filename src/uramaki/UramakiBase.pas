@@ -15,7 +15,7 @@ unit UramakiBase;
 
 interface
 uses
-  Classes, SysUtils, contnrs, Controls, ExtCtrls,
+  Classes, SysUtils, contnrs, Controls, ExtCtrls, db,
   mXML;
 
 const

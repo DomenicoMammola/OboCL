@@ -36,6 +36,8 @@ type
     FParentControl : TWinControl;
     FContainer : TUramakiDesktopContainerPanel;
     FDesktopDataModule: TUramakiDesktopDataModule;
+    FMenuGarbageCollector : TObjectList;
+
 
 //    procedure CreateToolbar;
     procedure BuildAndFeedPlate(aLivingPlate: TUramakiLivingPlate; aItem: TPanel);
@@ -69,9 +71,6 @@ type
     PublisherId : string;
   end;
 
-var
-  MenuGarbageCollector : TObjectList;
-
 { TUramakiDesktopManager }
 
 {
@@ -102,6 +101,7 @@ begin
     tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
   tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
   item.TabData.TabCaption:= tmpLivingPlate.Publication.Publisher.GetDescription;
+  item.TabData.TabColor:= clGray;
 
   BuildAndFeedPlate(tmpLivingPlate, item);
 end;
@@ -142,12 +142,14 @@ constructor TUramakiDesktopManager.Create;
 begin
   FEngine := TUramakiEngine.Create;
   FDesktopDataModule:= TUramakiDesktopDataModule.Create(nil);
+  FMenuGarbageCollector := TObjectList.Create(true);
 end;
 
 destructor TUramakiDesktopManager.Destroy;
 begin
   FreeAndNil(FEngine);
   FreeAndNil(FDesktopDataModule);
+  FreeAndNil(FMenuGarbageCollector);
   inherited Destroy;
 end;
 
@@ -243,6 +245,7 @@ procedure TUramakiDesktopManager.ShowConfigurationForm;
 var
   Dlg : TDesktopLayoutConfigForm;
   tmpConfItem, tmpConfItemOut : TUramakiDesktopLayoutConfItem;
+  fakeDocument : TmXmlDocument;
 begin
   Dlg := TDesktopLayoutConfigForm.Create(nil);
   try
@@ -254,7 +257,14 @@ begin
         tmpConfItemOut := Dlg.ExtractModifiedLayout;
         try
           assert (tmpConfItemOut is TUramakiDesktopLayoutConfContainerItem);
-          FContainer.ImportFromConfItem(tmpConfItemOut, Self.DoLinkLayoutItemToPlate);
+          fakeDocument := TmXmlDocument.Create;
+          try
+            FEngine.SavePlatesToXMLElement(fakeDocument.CreateRootElement('root'));
+            FContainer.ImportFromConfItem(tmpConfItemOut, Self.DoLinkLayoutItemToPlate);
+            FEngine.LoadPlatesFromXMLElement(fakeDocument.RootElement);
+          finally
+            fakeDocument.Free;
+          end;
         finally
           tmpConfItemOut.Free;
         end;
@@ -275,8 +285,10 @@ var
   mt, mt2 : TMenuItem;
   tmpMenuInfo : TMenuInfo;
 begin
+  if not Assigned(aMenuItem) then
+    exit;
+
   aMenuItem.Clear;
-  MenuGarbageCollector.Clear;
 
   tempListOfTransformers := TUramakiTransformers.Create;
   tempListOfPublishers := TUramakiPublishers.Create;
@@ -297,7 +309,7 @@ begin
         tmpMenuInfo.TransformerId:= '';
         tmpMenuInfo.LivingPlateIdenfier := aLivingPlateIdentifier;
         mt2.Tag:= PtrInt(tmpMenuInfo);
-        MenuGarbageCollector.Add(tmpMenuInfo);
+        FMenuGarbageCollector.Add(tmpMenuInfo);
       end;
     end;
 
@@ -322,7 +334,7 @@ begin
           tmpMenuInfo.TransformerId:= tempListOfTransformers.Get(i).GetMyId;
           tmpMenuInfo.LivingPlateIdenfier := aLivingPlateIdentifier;
           mt2.Tag:= PtrInt(tmpMenuInfo);
-          MenuGarbageCollector.Add(tmpMenuInfo);
+          FMenuGarbageCollector.Add(tmpMenuInfo);
         end;
       end;
     end;
@@ -332,11 +344,5 @@ begin
   end;
 end;
 
-
-initialization
-  MenuGarbageCollector := TObjectList.Create(true);
-
-finalization
-  MenuGarbageCollector.Free;
 
 end.

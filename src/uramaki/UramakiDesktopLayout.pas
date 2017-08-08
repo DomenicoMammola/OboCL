@@ -116,6 +116,8 @@ end;
 procedure TUramakiDesktopLayoutConfItem.InternalAssign(aSource: TUramakiDesktopLayoutConfItem);
 begin
   Self.FPosition:= aSource.FPosition;
+  Self.FCaption:= aSource.FCaption;
+  Self.FColor:= aSource.FColor;
 end;
 
 constructor TUramakiDesktopLayoutConfItem.Create;
@@ -144,7 +146,7 @@ end;
 
 function TUramakiDesktopLayoutConfSimpleItem.GetDescription: String;
 begin
-  Result := GUIDToString(Self.LivingPlateIdentifier);
+  Result := Self.Caption + ' [' + GUIDToString(Self.LivingPlateIdentifier) + ']';
 end;
 
 procedure TUramakiDesktopLayoutConfSimpleItem.Assign(aSource: TUramakiDesktopLayoutConfItem);

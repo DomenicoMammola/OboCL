@@ -74,6 +74,9 @@ type
   { TUramakiPublisher }
 
   TUramakiPublisher = class abstract
+  protected
+    function GenerateStandardDescription (const aDescriptionOfSourceData, aDescriptionOfPlateData, aDescriptionOfRepresentation : string) : string; overload;
+    function GenerateStandardDescription (const aDescriptionOfPlateData, aDescriptionOfRepresentation : string) : string; overload;
   public
     function GetMyId : String; virtual; abstract;
     function GetDescription : String; virtual; abstract;
@@ -152,6 +155,19 @@ type
 implementation
 
 { TUramakiPublisher }
+
+function TUramakiPublisher.GenerateStandardDescription(const aDescriptionOfSourceData, aDescriptionOfPlateData, aDescriptionOfRepresentation: string): string;
+begin
+  if (aDescriptionOfSourceData <> aDescriptionOfPlateData) then
+    Result := aDescriptionOfSourceData + ' -> ' + aDescriptionOfPlateData + ' [' + aDescriptionOfRepresentation + ']'
+  else
+    Result := GenerateStandardDescription(aDescriptionOfSourceData, aDescriptionOfRepresentation);
+end;
+
+function TUramakiPublisher.GenerateStandardDescription(const aDescriptionOfPlateData, aDescriptionOfRepresentation: string): string;
+begin
+  Result := aDescriptionOfPlateData + ' [' + aDescriptionOfRepresentation + ']'
+end;
 
 function TUramakiPublisher.GetHelp: String;
 begin

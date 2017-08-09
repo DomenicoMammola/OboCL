@@ -16,7 +16,7 @@ unit UramakiDesktop;
 interface
 
 uses
-  Classes, Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls,
+  Classes, Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls, Forms,
 
   oMultiPanelSetup,
   ATButtons,
@@ -246,6 +246,7 @@ var
   Dlg : TDesktopLayoutConfigForm;
   tmpConfItem, tmpConfItemOut : TUramakiDesktopLayoutConfItem;
   fakeDocument : TmXmlDocument;
+  oldCursor : TCursor;
 begin
   Dlg := TDesktopLayoutConfigForm.Create(nil);
   try
@@ -254,19 +255,25 @@ begin
       Dlg.Init(tmpConfItem);
       if Dlg.ShowModal = mrOk then
       begin
-        tmpConfItemOut := Dlg.ExtractModifiedLayout;
+        oldCursor := Screen.Cursor;
         try
-          assert (tmpConfItemOut is TUramakiDesktopLayoutConfContainerItem);
-          fakeDocument := TmXmlDocument.Create;
+          Screen.Cursor:= crHourGlass;
+          tmpConfItemOut := Dlg.ExtractModifiedLayout;
           try
-            FEngine.SavePlatesToXMLElement(fakeDocument.CreateRootElement('root'));
-            FContainer.ImportFromConfItem(tmpConfItemOut, Self.DoLinkLayoutItemToPlate);
-            FEngine.LoadPlatesFromXMLElement(fakeDocument.RootElement);
+            assert (tmpConfItemOut is TUramakiDesktopLayoutConfContainerItem);
+            fakeDocument := TmXmlDocument.Create;
+            try
+              FEngine.SavePlatesToXMLElement(fakeDocument.CreateRootElement('root'));
+              FContainer.ImportFromConfItem(tmpConfItemOut, Self.DoLinkLayoutItemToPlate);
+              FEngine.LoadPlatesFromXMLElement(fakeDocument.RootElement);
+            finally
+              fakeDocument.Free;
+            end;
           finally
-            fakeDocument.Free;
+            tmpConfItemOut.Free;
           end;
         finally
-          tmpConfItemOut.Free;
+          Screen.Cursor:= oldCursor;
         end;
       end;
     finally

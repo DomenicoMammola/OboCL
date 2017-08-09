@@ -137,6 +137,8 @@ begin
   FTabs.TabHeight:= 18;
   FTabs.TabWidthMax:= 200;
   FTabs.ColorBg:= clMenu;
+  FTabs.TabDragEnabled:= false; //enable drag-drop
+  FTabs.TabDragOutEnabled:= false; //also enable drag-drop to another controls
 end;
 
 (*
@@ -177,8 +179,8 @@ begin
     if Dlg.ShowModal = mrOk then
     begin
       Dlg.GetValues(Ref.TabCaption, Ref.TabColor);
-      if Assigned(FTabs) then
-        FTabs.Invalidate;
+      //if Assigned(FTabs) then
+      //  FTabs.Invalidate;
     end;
   finally
     Dlg.Free;

@@ -21,7 +21,11 @@ uses
   {$IFDEF WINDOWS}Windows,{$ENDIF} DateUtils, contnrs,
 
   {$IFDEF FPC}
-  LCLType, {$IFDEF DEBUG}LazLogger,{$ENDIF}
+  InterfaceBase,
+  LCLIntf,
+  LclType,
+  LclProc,
+  {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ENDIF}
 
   mDateTimeUtility,

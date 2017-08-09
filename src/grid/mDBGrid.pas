@@ -29,7 +29,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    property OnSelection;
+//    property OnSelection;
   end;
 
 implementation

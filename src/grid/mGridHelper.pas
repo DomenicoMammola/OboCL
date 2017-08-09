@@ -25,6 +25,10 @@ uses
   mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
   mDatasetInterfaces;
 
+resourcestring
+  SFilterValuesMenuCaption = 'Filter values..';
+  SAddSummaryMenuCaption = 'Add summary..';
+
 type
 
   { TmDBGridHelper }
@@ -152,10 +156,10 @@ begin
   begin
     FHeaderPopupMenu:= TPopupMenu.Create(FDBGrid);
     tmpMenuItem := TMenuItem.Create(FHeaderPopupMenu);
-    tmpMenuItem.Caption:= 'Filter values..';
+    tmpMenuItem.Caption:= SFilterValuesMenuCaption;
     FHeaderPopupMenu.Items.Add(tmpMenuItem);
     tmpMenuItem := TMenuItem.Create(FHeaderPopupMenu);
-    tmpMenuItem.Caption:= 'Add summary..';
+    tmpMenuItem.Caption:= SAddSummaryMenuCaption;
     FHeaderPopupMenu.Items.Add(tmpMenuItem);
   end;
 end;

@@ -172,7 +172,7 @@ begin
   FFilterButton := TButton.Create(Self);
   FFilterButton.Parent := Self;
   FFilterButton.Align := alClient;
-  FFilterButton.Caption := 'Filtra';
+  FFilterButton.Caption := 'Cerca';
   FOnClickClear:= nil;
   FOnClickFilter:= nil;
   FClearButton.OnClick:= Self.InternalOnClickClear;

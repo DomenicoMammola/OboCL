@@ -343,6 +343,11 @@ begin
         FRootPanel.PanelCollection.Items[i].Position:= tmpSource.Get(i).Position;
     end;
   end;
+
+  if Assigned(FTabs) and (FTabs.TabCount > 0) then
+    FTabs.TabIndex := 0;
+  if Assigned(FPageControl) and (FPageControl.Count > 0) then
+    FPageControl.ActivePanelIndex:= 0;
 end;
 
 function TUramakiDesktopContainerPanel.AddItem : TUramakiDesktopSimplePanel;

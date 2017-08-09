@@ -31,6 +31,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     function AddPanel : TPanel;
+    function Count : integer;
 
     property ActivePanelIndex : integer read FActivePanelIndex write SetActivePanelIndex;
   end;
@@ -80,6 +81,11 @@ begin
   Result.BevelOuter:= bvNone;
   FList.Add(Result);
   Self.SetActivePanelIndex(FList.Count -1);
+end;
+
+function TPilePanel.Count: integer;
+begin
+  Result := FList.Count;
 end;
 
 end.

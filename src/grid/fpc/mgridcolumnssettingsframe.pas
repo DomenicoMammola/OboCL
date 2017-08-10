@@ -17,7 +17,7 @@ interface
 uses
   Classes, SysUtils, BufDataset, db, memds, FileUtil, Forms, Controls, DBGrids,
 
-  mGridColumnSettings, mDBGrid;
+  mGridColumnSettings;
 
 type
 
@@ -28,7 +28,7 @@ type
     ColSettingsDataset: TMemDataset;
   private
     FSettings : TmGridColumnsSettings;
-    FColSettingsGrid: TmDBGrid;
+    FColSettingsGrid: TDBGrid;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -38,6 +38,9 @@ type
   end;
 
 implementation
+
+uses
+  mDBGrid;
 
 {$R *.lfm}
 

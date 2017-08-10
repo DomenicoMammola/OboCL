@@ -22,12 +22,15 @@ uses
   {$IFDEF FPC}
   fpstypes, fpspreadsheet, fpsallformats,
   {$ENDIF}
-  mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
+  mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons, mDBGrid,
   mDatasetInterfaces;
 
 resourcestring
-  SFilterValuesMenuCaption = 'Filter values..';
-  SAddSummaryMenuCaption = 'Add summary..';
+  SCSVFileDescription = 'Comma Separated Values files';
+  SExcelFileDescription = 'Excel 97-2003 files';
+  SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again.';
+  SConfirmFileOverwriteCaption = 'Confirm';
+  SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
 
 type
 
@@ -36,23 +39,12 @@ type
   TmDBGridHelper = class
   strict private
     FSettings : TmGridColumnsSettings;
-    FDBGrid : TDBGrid;
-    FSortManager : ISortableDatasetManager;
-    FGridIcons: TmGridIconsDataModule;
-    FHeaderPopupMenu : TPopupMenu;
-    FCurrentGridCol : longint;
-    FGridPopupMenu : TPopupMenu;
+    FDBGrid : TmDBGrid;
     FSaveDialog: TSaveDialog;
-    // original events
-    FOriginalOnTitleClick : TDBGridClickEvent;
-    FOriginalOnMouseDown : TMouseEvent;
-    procedure OnTitleClick (Column: TColumn);
-    procedure OnMouseDown (Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure BuildHeaderPopupMenu;
     function ConfirmFileOverwrite : boolean;
     procedure ExportGridToFile(aFileType : String);
   public
-    constructor Create(aGrid : TDBGrid);
+    constructor Create(aGrid : TmDBGrid);
     destructor Destroy; override;
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
@@ -61,14 +53,13 @@ type
     procedure SaveSettings (aStream : TStream);
     procedure LoadSettingsFromXML (aXMLElement : TmXmlElement);
     procedure SaveSettingsToXML (aXMLElement : TmXMLElement);
-    procedure EnableSort (aSortManager : ISortableDatasetManager);
-    procedure EnableHeaderPopupMenu (aOriginalGridPopupMenu : TPopupMenu);
+
     procedure ExportGridAsCsv (aStream : TStream); overload;
     procedure ExportGridAsCsv (Sender : TObject); overload;
     procedure ExportGridAsXls (aStream : TStream); overload;
     procedure ExportGridAsXls (Sender : TObject); overload;
 
-    property Grid : TDBGrid read FDBGrid;
+    property Grid : TmDBGrid read FDBGrid;
   end;
 
 implementation
@@ -79,94 +70,9 @@ uses
 { TmDBGridHelper }
 
 
-// inspired by http://forum.lazarus.freepascal.org/index.php?topic=24510.0
-procedure TmDBGridHelper.OnTitleClick(Column: TColumn);
-var
-  tmpSortType : TSortType;
-  i, idx : integer;
-begin
-  try
-    tmpSortType := stAscending;
-
-    // remove every arrow from column captions
-    for i := 0 to FDBGrid.Columns.Count - 1 do
-      FDBGrid.Columns[i].Title.ImageIndex := -1;
-
-    // analize current filter
-    if (FSortManager.GetSorted) and (FSortManager.GetSortByConditions.Count > 0) and (FSortManager.GetSortByConditions.Items[0].FieldName = Column.FieldName) then
-    begin
-      if FSortManager.GetSortByConditions.Items[0].SortType = stAscending then
-        tmpSortType:= stDescending
-      else
-      begin
-        FSortManager.ClearSort;
-        exit;
-      end
-    end;
-
-    // set new sort condition
-    FSortManager.GetSortByConditions.Clear;
-    with FSortManager.GetSortByConditions.Add do
-    begin
-      FieldName:= Column.FieldName;
-      SortType:= tmpSortType;
-    end;
-
-    // do sort
-    if FSortManager.Sort then
-    begin
-      if tmpSortType = stAscending then
-        idx := 0
-      else
-        idx := 1;
-      FDBGrid.Columns[Column.Index].Title.ImageIndex := idx;
-    end;
-  finally
-    if Assigned(FOriginalOnTitleClick) then
-      FOriginalOnTitleClick(Column);
-  end;
-end;
-
-procedure TmDBGridHelper.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  tmpCol, tmpRow : longint;
-begin
-  // https://www.codeproject.com/Articles/199506/Improving-Delphi-TDBGrid
-  if Button = mbRight then
-  begin
-    if Y < FDBGrid.DefaultRowHeight then
-    begin
-       FDBGrid.PopupMenu := FHeaderPopupMenu;
-       FDBGrid.MouseToCell(X, Y, tmpCol, tmpRow);
-       FCurrentGridCol := tmpCol;
-    end
-    else
-       FDBGrid.PopupMenu := FGridPopupMenu;
-  end;
-
-  if Assigned(FOriginalOnMouseDown) then
-    FOriginalOnMouseDown(Sender, Button, Shift, X, Y);
-end;
-
-procedure TmDBGridHelper.BuildHeaderPopupMenu;
-var
-  tmpMenuItem : TMenuItem;
-begin
-  if not Assigned(FHeaderPopupMenu) then
-  begin
-    FHeaderPopupMenu:= TPopupMenu.Create(FDBGrid);
-    tmpMenuItem := TMenuItem.Create(FHeaderPopupMenu);
-    tmpMenuItem.Caption:= SFilterValuesMenuCaption;
-    FHeaderPopupMenu.Items.Add(tmpMenuItem);
-    tmpMenuItem := TMenuItem.Create(FHeaderPopupMenu);
-    tmpMenuItem.Caption:= SAddSummaryMenuCaption;
-    FHeaderPopupMenu.Items.Add(tmpMenuItem);
-  end;
-end;
-
 function TmDBGridHelper.ConfirmFileOverwrite: boolean;
 begin
-  Result := MessageDlg('Confirm', 'The selected file already exists. Overwrite it?', mtConfirmation, mbYesNo, 0) = mrYes;
+  Result := MessageDlg(SConfirmFileOverwriteCaption, SConfirmFileOverwriteMessage, mtConfirmation, mbYesNo, 0) = mrYes;
 end;
 
 procedure TmDBGridHelper.ExportGridToFile(aFileType: String);
@@ -177,13 +83,13 @@ begin
   if aFileType = 'CSV' then
   begin
     FSaveDialog.DefaultExt:= 'csv';
-    FSaveDialog.Filter:='Comma Separated Values files|*.csv';
+    FSaveDialog.Filter:=SCSVFileDescription + '|*.csv';
   end
   else
   if aFileType = 'XLS' then
   begin
     FSaveDialog.DefaultExt:= 'xls';
-    FSaveDialog.Filter:='Excel 97-2003 files|*.xls';
+    FSaveDialog.Filter:=SExcelFileDescription + '|*.xls';
   end;
   if FSaveDialog.Execute then
   begin
@@ -211,24 +117,22 @@ begin
     except
       on E:Exception do
       begin
-        MessageDlg('Unable to write file. Check if the file is open by another application. If so, close it and run this command again.', mtInformation, [mbOk], 0);
+        MessageDlg(SUnableToWriteFileMessage, mtInformation, [mbOk], 0);
       end;
     end;
   end;
 
 end;
 
-constructor TmDBGridHelper.Create(aGrid : TDBGrid);
+constructor TmDBGridHelper.Create(aGrid : TmDBGrid);
 begin
   FSettings := TmGridColumnsSettings.Create;
-  FSortManager := nil;
   FDBGrid := aGrid;
   FSaveDialog := TSaveDialog.Create(nil);
 end;
 
 destructor TmDBGridHelper.Destroy;
 begin
-  FSortManager := nil;
   FDBGrid := nil;
   FSettings.Free;
   FSaveDialog.Free;
@@ -240,13 +144,13 @@ var
   frm : TGridSettingsForm;
 begin
   Result := false;
-  ReadSettingsFromGrid(FSettings, FDBGrid);
+  FDBGrid.ReadSettings(FSettings);
   frm := TGridSettingsForm.Create(nil);
   try
     frm.Init(FSettings);
     if frm.ShowModal = mrOk then
     begin
-      ApplySettingsToGrid(FSettings, FDBGrid);
+      FDBGrid.ApplySettings(FSettings);
       Result := true;
     end;
   finally
@@ -297,35 +201,14 @@ begin
   finally
     cursor.Free;
   end;
-  ApplySettingsToGrid(FSettings, FDBGrid);
+  FDBGrid.ApplySettings(FSettings);
 end;
 
 procedure TmDBGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
 begin
-  ReadSettingsFromGrid(FSettings, FDBGrid);
+  FDBGrid.ReadSettings(FSettings);
   aXMLElement.SetAttribute('version', '1');
   FSettings.SaveToXmlElement(aXMLElement.AddElement('columns'));
-end;
-
-procedure TmDBGridHelper.EnableSort(aSortManager : ISortableDatasetManager);
-begin
-  if Assigned(FDBGrid) then
-  begin
-    FGridIcons:= TmGridIconsDataModule.Create(FDBGrid);
-    FDBGrid.TitleImageList := FGridIcons.GridImageList;
-    FOriginalOnTitleClick := FDBGrid.OnTitleClick;
-    FDBGrid.OnTitleClick:= Self.OnTitleClick;
-    FSortManager:= aSortManager;
-  end;
-end;
-
-procedure TmDBGridHelper.EnableHeaderPopupMenu(aOriginalGridPopupMenu : TPopupMenu);
-begin
-  if not Assigned(FHeaderPopupMenu) then
-    Self.BuildHeaderPopupMenu;
-  FGridPopupMenu := aOriginalGridPopupMenu;
-  FOriginalOnMouseDown := FDBGrid.OnMouseDown;
-  FDBGrid.OnMouseDown:= Self.OnMouseDown;
 end;
 
 procedure TmDBGridHelper.ExportGridAsCsv(aStream: TStream);

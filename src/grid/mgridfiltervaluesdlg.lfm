@@ -1,0 +1,47 @@
+object FilterValuesDlg: TFilterValuesDlg
+  Left = 661
+  Height = 240
+  Top = 291
+  Width = 320
+  Caption = 'Filter values'
+  ClientHeight = 240
+  ClientWidth = 320
+  LCLVersion = '1.6.4.0'
+  object ButtonPanel1: TButtonPanel
+    Left = 6
+    Height = 34
+    Top = 200
+    Width = 308
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 2
+    ShowButtons = [pbOK, pbCancel]
+  end
+  object ListFilterEdit: TListFilterEdit
+    Left = 0
+    Height = 23
+    Top = 0
+    Width = 320
+    ButtonWidth = 23
+    NumGlyphs = 1
+    Align = alTop
+    MaxLength = 0
+    TabOrder = 0
+    FilteredListbox = ValuesListBox
+  end
+  object ValuesListBox: TCheckListBox
+    Left = 0
+    Height = 171
+    Top = 23
+    Width = 320
+    Align = alClient
+    ItemHeight = 0
+    TabOrder = 1
+  end
+end

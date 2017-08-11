@@ -11,17 +11,19 @@ unit mDBGrid;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
 
 uses
-  Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs,
+  Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants,
   mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
-  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg;
+  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg, mFilter;
 
 resourcestring
-  SFilterValuesMenuCaption = 'Filter values..';
+  SFilterValuesMenuCaption = 'Filter by value..';
+  SRemoveFiltersMenuCaption = 'Remove all filters';
   SAddSummaryMenuCaption = 'Add summary..';
 
 
@@ -47,6 +49,8 @@ type
     FOriginalPopupMenu : TPopupMenu;
     FSortManager : ISortableDatasetManager;
     FFilterManager : IFilterDatasetManager;
+    // menu
+    FMI_RemoveAllFilters : TMenuItem;
   strict private
     procedure BuildHeaderPopupMenu;
     procedure InternalOnTitleClick(Column: TColumn); // inspired by http://forum.lazarus.freepascal.org/index.php?topic=24510.0
@@ -56,8 +60,9 @@ type
     procedure ExtractSettingsFromField(aColumn: TColumn; aSettings : TmGridColumnSettings);
     procedure SetFilterManager(AValue: IFilterDatasetManager);
     procedure SetSortManager(AValue: ISortableDatasetManager);
-    procedure OnPColumnsHeaderMenuPopup (Sender : TObject);
+    procedure OnColumnsHeaderMenuPopup (Sender : TObject);
     procedure OnFilterValues(Sender : TObject);
+    procedure OnRemoveAllFilters (Sender : TObject);
   protected
     function GetImageForCheckBox(const aCol,aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap; override;
   protected
@@ -96,11 +101,18 @@ begin
     tmpMenuItem.Caption:= SFilterValuesMenuCaption;
     tmpMenuItem.OnClick:=Self.OnFilterValues;
     FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
+
+    FMI_RemoveAllFilters := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    FMI_RemoveAllFilters.Caption:= SRemoveFiltersMenuCaption;
+    FMI_RemoveAllFilters.OnClick:=Self.OnRemoveAllFilters;
+    FColumnsHeaderPopupMenu.Items.Add(FMI_RemoveAllFilters);
+
     tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
     tmpMenuItem.Caption:= SAddSummaryMenuCaption;
-    tmpMenuItem.OnClick:=Self.OnFilterValues;
+    //tmpMenuItem.OnClick:=Self.OnFilterValues;
     FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
-    FColumnsHeaderPopupMenu.OnPopup := Self.OnPColumnsHeaderMenuPopup;
+
+    FColumnsHeaderPopupMenu.OnPopup := Self.OnColumnsHeaderMenuPopup;
   end;
 end;
 
@@ -121,7 +133,14 @@ begin
 
         // remove every arrow from column captions
         for i := 0 to Self.Columns.Count - 1 do
-          Self.Columns[i].Title.ImageIndex := -1;
+        begin
+          case Self.Columns[i].Title.ImageIndex of
+            GRID_ICON_DOWN, GRID_ICON_UP :
+              Self.Columns[i].Title.ImageIndex := -1;
+            GRID_ICON_UP_FILTER, GRID_ICON_DOWN_FILTER:
+              Self.Columns[i].Title.ImageIndex := GRID_ICON_FILTER;
+          end;
+        end;
 
         // analize current filter
         if (FSortManager.GetSorted) and (FSortManager.GetSortByConditions.Count > 0) and (FSortManager.GetSortByConditions.Items[0].FieldName = Column.FieldName) then
@@ -146,11 +165,20 @@ begin
         // do sort
         if FSortManager.Sort then
         begin
-          if tmpSortType = stAscending then
-            idx := 0
+          if Self.Columns[Column.Index].Title.ImageIndex = GRID_ICON_FILTER then
+          begin
+            if tmpSortType = stAscending then
+              Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_UP_FILTER
+            else
+              Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_DOWN_FILTER;
+          end
           else
-            idx := 1;
-          Self.Columns[Column.Index].Title.ImageIndex := idx;
+          begin
+            if tmpSortType = stAscending then
+              Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_UP
+            else
+              Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_DOWN;
+          end;
         end;
       finally
         Screen.Cursor := OldCursor;
@@ -254,27 +282,67 @@ begin
   end;
 end;
 
-procedure TmDBGrid.OnPColumnsHeaderMenuPopup(Sender: TObject);
+procedure TmDBGrid.OnColumnsHeaderMenuPopup(Sender: TObject);
 begin
-  //
+  FMI_RemoveAllFilters.Enabled := Self.FilterManager.GetFiltered;
 end;
 
 procedure TmDBGrid.OnFilterValues(Sender: TObject);
 var
   dlg : TFilterValuesDlg;
   values : TStringList;
+  checkedValues : TStringList;
+  OldCursor : TCursor;
+  i : integer;
+  tmpFilter : TmFilter;
+  tmpVariant : Variant;
+  currentColumn : TColumn;
 begin
   if Assigned(FFilterManager) then
   begin
-    if Col >= -1 then
+    if FCurrentGridCol >= -1 then
     begin
+      currentColumn := Columns[FCurrentGridCol-1];
       values := TStringList.Create;
       dlg := TFilterValuesDlg.Create(Self);
       try
-        FFilterManager.GetUniqueStringValuesForField(Columns[Col].FieldName, values);
-        dlg.Init(values);
+        OldCursor := Screen.Cursor;
+        try
+          Screen.Cursor := crHourGlass;
+          FFilterManager.GetUniqueStringValuesForField(currentColumn.FieldName, values);
+          dlg.Init(values);
+        finally
+          Screen.Cursor:= OldCursor;
+        end;
         if dlg.ShowModal = mrOk then
         begin
+          checkedValues := TStringList.Create;
+          try
+            dlg.GetCheckedValues(checkedValues);
+            Self.FilterManager.GetFilters.ClearForField(currentColumn.FieldName);
+            if checkedValues.Count > 0 then
+            begin
+              tmpFilter := Self.FilterManager.GetFilters.Add;
+              tmpFilter.FieldName:= currentColumn.FieldName;
+              tmpFilter.FilterOperator:= foIn;
+              tmpVariant := variants.VarArrayCreate([0, checkedValues.Count - 1], varOleStr);
+              for i := 0 to checkedValues.Count -1 do
+                VarArrayPut(tmpVariant, checkedValues.Strings[i], [i]);
+              tmpFilter.Value:= tmpVariant;
+              if Self.FilterManager.Filter then
+              begin
+                // update icons..
+                if currentColumn.Title.ImageIndex = GRID_ICON_UP then
+                  currentColumn.Title.ImageIndex:= GRID_ICON_UP_FILTER
+                else if currentColumn.Title.ImageIndex = GRID_ICON_DOWN then
+                  currentColumn.Title.ImageIndex:= GRID_ICON_DOWN_FILTER
+                else
+                  currentColumn.Title.ImageIndex:= GRID_ICON_FILTER;
+              end;
+            end;
+          finally
+            checkedValues.Free;
+          end;
 
         end;
       finally
@@ -282,6 +350,22 @@ begin
         values.Free;
       end;
     end;
+  end;
+end;
+
+procedure TmDBGrid.OnRemoveAllFilters(Sender: TObject);
+var
+  i : integer;
+begin
+  Self.FilterManager.ClearFilter;
+  for i := 0 to Columns.Count - 1 do
+  begin
+    if Columns[i].Title.ImageIndex = GRID_ICON_UP_FILTER then
+      Columns[i].Title.ImageIndex := GRID_ICON_UP
+    else if Columns[i].Title.ImageIndex = GRID_ICON_DOWN_FILTER then
+      Columns[i].Title.ImageIndex := GRID_ICON_DOWN
+    else
+      Columns[i].Title.ImageIndex := -1;
   end;
 end;
 

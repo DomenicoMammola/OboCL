@@ -28,12 +28,12 @@ object FilterValuesDlg: TFilterValuesDlg
     Height = 23
     Top = 0
     Width = 320
+    UseFormActivate = True
     ButtonWidth = 23
     NumGlyphs = 1
     Align = alTop
     MaxLength = 0
     TabOrder = 0
-    FilteredListbox = ValuesListBox
   end
   object ValuesListBox: TCheckListBox
     Left = 0

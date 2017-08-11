@@ -19,7 +19,8 @@ type
   private
     { private declarations }
   public
-    procedure Init (aList : TStringList);
+    procedure Init (const aList : TStringList);
+    procedure GetCheckedValues (aList : TStringList);
   end;
 
 implementation
@@ -28,9 +29,28 @@ implementation
 
 { TFilterValuesDlg }
 
-procedure TFilterValuesDlg.Init(aList: TStringList);
+procedure TFilterValuesDlg.Init(const aList: TStringList);
 begin
-  ListFilterEdit.Items.AddStrings(aList);
+  ListFilterEdit.FilteredListbox := ValuesListBox;
+  ValuesListBox.Items.BeginUpdate;
+  try
+    ListFilterEdit.Items.AddStrings(aList);
+  finally
+    ValuesListBox.Items.EndUpdate;
+  end;
+  ListFilterEdit.ForceFilter('#');
+  ListFilterEdit.ResetFilter;
+end;
+
+procedure TFilterValuesDlg.GetCheckedValues(aList: TStringList);
+var
+  i : integer;
+begin
+  for i := 0 to ValuesListBox.Count - 1 do
+  begin
+    if ValuesListBox.Checked[i] then
+      aList.Append(ValuesListBox.Items[i]);
+  end;
 end;
 
 end.

@@ -17,6 +17,13 @@ interface
 uses
   Classes, SysUtils, FileUtil, Controls;
 
+const
+  GRID_ICON_UP = 0;
+  GRID_ICON_DOWN = 1;
+  GRID_ICON_FILTER = 2;
+  GRID_ICON_UP_FILTER = 3;
+  GRID_ICON_DOWN_FILTER = 4;
+
 type
 
   { TmGridIconsDataModule }

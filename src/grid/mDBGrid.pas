@@ -120,7 +120,7 @@ end;
 procedure TmDBGrid.InternalOnTitleClick(Column: TColumn);
 var
   tmpSortType : TSortType;
-  i, idx : integer;
+  i : integer;
   OldCursor : TCursor;
 begin
   try

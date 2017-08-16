@@ -22,7 +22,7 @@ uses
   mMaps, mXML, mNullables;
 
 const
-  MINIMUM_GRID_COLUMN_WIDTH = 4;
+  MINIMUM_GRID_COLUMN_WIDTH = 10;
 
 type
 

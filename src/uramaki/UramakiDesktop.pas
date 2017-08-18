@@ -110,23 +110,26 @@ procedure TUramakiDesktopManager.BuildAndFeedPlate(aLivingPlate : TUramakiLiving
 var
   parentRolls : TStringList;
 begin
-  aLivingPlate.Plate := aLivingPlate.Publication.Publisher.CreatePlate(aItem);
-  aLivingPlate.Plate.Parent := aItem;
-  aLivingPlate.Plate.Align := alClient;
-  aLivingPlate.Plate.EngineMediator := FEngine.Mediator;
-
-  if aItem is TUramakiDesktopSimplePanel then
+  if Assigned(aLivingPlate.Publication) and Assigned(aLivingPlate.Publication.Publisher) then
   begin
-    parentRolls := TStringList.Create;
-    try
-      aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
-      if parentRolls.Count > 0 then
-        Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[0], aLivingPlate.InstanceIdentifier);
-    finally
-      parentRolls.Free;
+    aLivingPlate.Plate := aLivingPlate.Publication.Publisher.CreatePlate(aItem);
+    aLivingPlate.Plate.Parent := aItem;
+    aLivingPlate.Plate.Align := alClient;
+    aLivingPlate.Plate.EngineMediator := FEngine.Mediator;
+
+    if aItem is TUramakiDesktopSimplePanel then
+    begin
+      parentRolls := TStringList.Create;
+      try
+        aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
+        if parentRolls.Count > 0 then
+          Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[0], aLivingPlate.InstanceIdentifier);
+      finally
+        parentRolls.Free;
+      end;
     end;
+    FEngine.FeedLivingPlate(aLivingPlate);
   end;
-  FEngine.FeedLivingPlate(aLivingPlate);
 end;
 
 procedure TUramakiDesktopManager.DoLinkLayoutItemToPlate(aItem: TPanel; aLivingPlateInstanceIdentificator: TGuid);
@@ -134,8 +137,8 @@ var
   tmpLivingPlate : TUramakiLivingPlate;
 begin
   tmpLivingPlate := FEngine.FindLivingPlateByPlateId(aLivingPlateInstanceIdentificator);
-
-  BuildAndFeedPlate(tmpLivingPlate, aItem);
+  if Assigned(tmpLivingPlate) then
+    BuildAndFeedPlate(tmpLivingPlate, aItem);
 end;
 
 constructor TUramakiDesktopManager.Create;

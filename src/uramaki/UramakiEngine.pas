@@ -514,6 +514,8 @@ var
   Garbage : TObjectList;
   tmpParent : TUramakiLivingPlate;
 begin
+  if not Assigned(aLivingPlate.Publication.Publisher) then
+    exit;
   if aLivingPlate.Publication.Publisher.GetInputUramakiId = NULL_URAMAKI_ID then
   begin
     aLivingPlate.Publication.Publisher.Publish(nil, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
@@ -602,7 +604,9 @@ begin
     for i := 0 to cursor.Count - 1 do
     begin
       tmpId := StringToGUID(cursor.Elements[i].GetAttribute('identifier'));
-      FindLivingPlateByPlateId(tmpId).Plate.LoadConfigurationFromXML(cursor.Elements[i]);
+      tmpPlate := FindLivingPlateByPlateId(tmpId);
+      if Assigned(tmpPlate) and Assigned(tmpPlate.Plate) then
+        tmpPlate.Plate.LoadConfigurationFromXML(cursor.Elements[i]);
     end;
   finally
     cursor.Free;

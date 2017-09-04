@@ -67,6 +67,8 @@ type
   private
     FLabel : TLabel;
     FEdit : TEdit;
+    FForceUppercase : boolean;
+    procedure OnEditValueChanged (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
@@ -74,6 +76,8 @@ type
     procedure SetFilterValue (aValue : Variant);
     function IsEmpty : boolean; override;
     procedure Clear; override;
+
+    property ForceUppercase : boolean read FForceUppercase write FForceUppercase;
   end;
 
   { TmComboFilterConditionPanel }
@@ -256,6 +260,17 @@ end;
 
 { TmEditFilterConditionPanel }
 
+procedure TmEditFilterConditionPanel.OnEditValueChanged(Sender: TObject);
+begin
+  FEdit.OnEditingDone:= nil;
+  try
+    if FForceUppercase then
+      FEdit.Text:= UpperCase(FEdit.Text);
+  finally
+    FEdit.OnEditingDone:= Self.OnEditValueChanged;
+  end;
+end;
+
 constructor TmEditFilterConditionPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -263,7 +278,9 @@ begin
   FEdit.Parent := Self;
   FEdit.Align := alBottom;
   FEdit.Text := '';
+  FEdit.OnEditingDone:= Self.OnEditValueChanged;
   FLabel := Self.CreateStandardLabel;
+  FForceUppercase:= false;
 end;
 
 procedure TmEditFilterConditionPanel.SetFilterCaption(aValue: String);
@@ -276,7 +293,12 @@ begin
   if FEdit.Text = '' then
     Result := null
   else
-    Result := FEdit.Text;
+  begin
+    if FForceUppercase then
+      Result := Uppercase(FEdit.Text)
+    else
+      Result := FEdit.Text;
+  end;
 end;
 
 procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant);

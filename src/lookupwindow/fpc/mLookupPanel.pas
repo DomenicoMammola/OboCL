@@ -152,10 +152,12 @@ begin
 //      col.AutoSize:= true;
       FFieldsList.Add(tmpField.FieldName);
       if CompareText(aFieldNames.Strings[i], aKeyFieldName) = 0 then
-      begin
         FIdxKeyFieldName := FFieldsList.Count - 1;
-      end;
     end;
+
+    if FIdxKeyFieldName < 0 then
+      raise Exception.Create('Key fieldname is missing!');
+
     aValues.DisableControls;
     try
       aValues.First;

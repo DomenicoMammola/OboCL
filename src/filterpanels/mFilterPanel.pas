@@ -18,7 +18,7 @@ interface
 
 uses
   Controls, Classes, StdCtrls, StrUtils, Contnrs, Variants,
-  ExtCtrls, EditBtn,
+  ExtCtrls, EditBtn, Menus,
   mFilter, mBaseClassesAsObjects;
 
 type
@@ -26,13 +26,20 @@ type
 
   TmFilterConditionPanel = class (TCustomPanel)
   private
+    procedure SetFilterOperator(AValue: TmFilterOperator);
     procedure SetFlex(AValue: integer);
   protected
     FFlex : integer;
     FFieldName : String;
     FFilterOperator : TmFilterOperator;
-    function CreateStandardLabel : TLabel;
+    FOperatorsMenu : TPopupMenu;
+    FAllowedOperators : TmFilterOperatorsSet;
+    function CreateStandardLabel: TLabel;
+    function CreateStandardOperatorMenu (aLabel: TLabel) : TPopupMenu;
     function FormatFilterCaption (aValue : String) : String;
+    procedure UpdateCurrentOperatorCheck;
+    procedure OperatorMenuItemClick (Sender : TObject);
+    procedure OperatorMenuPopup (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); virtual; abstract;
@@ -44,7 +51,8 @@ type
 
     property Flex : integer read FFlex write SetFlex;
     property FieldName : String read FFieldName write FFieldName;
-    property FilterOperator : TmFilterOperator read FFilterOperator write FFilterOperator;
+    property FilterOperator : TmFilterOperator read FFilterOperator write SetFilterOperator;
+    property AllowedOperators : TmFilterOperatorsSet read FAllowedOperators write FAllowedOperators;
   end;
 
   { TmDateFilterConditionPanel }
@@ -281,6 +289,7 @@ begin
   FEdit.OnEditingDone:= Self.OnEditValueChanged;
   FLabel := Self.CreateStandardLabel;
   FForceUppercase:= false;
+  CreateStandardOperatorMenu(FLabel);
 end;
 
 procedure TmEditFilterConditionPanel.SetFilterCaption(aValue: String);
@@ -470,6 +479,13 @@ end;
 
 { TmFilterConditionPanel }
 
+procedure TmFilterConditionPanel.SetFilterOperator(AValue: TmFilterOperator);
+begin
+  if FFilterOperator=AValue then Exit;
+  FFilterOperator:=AValue;
+  UpdateCurrentOperatorCheck;
+end;
+
 procedure TmFilterConditionPanel.SetFlex(AValue: integer);
 begin
   if FFlex=AValue then Exit;
@@ -487,12 +503,89 @@ begin
   Result.Alignment:= taCenter;
 end;
 
+function TmFilterConditionPanel.CreateStandardOperatorMenu (aLabel: TLabel) : TPopupMenu;
+var
+  mi : TMenuItem;
+begin
+  if not Assigned(FOperatorsMenu) then
+  begin
+    FOperatorsMenu := TPopupMenu.Create(Self);
+    aLabel.PopupMenu := FOperatorsMenu;
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= '=';
+    mi.Tag:= integer(foEq);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:='contains';
+    mi.Tag := integer(foLike);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= '<>';
+    mi.Tag:= integer(foNotEq);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= '>=';
+    mi.Tag:= integer(foGtOrEq);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= '<=';
+    mi.Tag:= integer(foLtOrEq);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= 'starts';
+    mi.Tag:= integer(foStartWith);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= 'ends';
+    mi.Tag:= integer(foEndWith);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+
+    UpdateCurrentOperatorCheck;
+    FOperatorsMenu.OnPopup:= OperatorMenuPopup;
+  end;
+end;
+
 function TmFilterConditionPanel.FormatFilterCaption(aValue: String) : String;
 begin
   if not AnsiEndsText(':', aValue) then
     Result := aValue + ':'
   else
     Result := aValue;
+end;
+
+procedure TmFilterConditionPanel.UpdateCurrentOperatorCheck;
+var
+  i : integer;
+begin
+  if Assigned(FOperatorsMenu) then
+  begin
+    for i := 0 to FOperatorsMenu.Items.Count - 1 do
+      FOperatorsMenu.Items[i].Checked:= FOperatorsMenu.Items[i].Tag = integer(FFilterOperator);
+  end;
+end;
+
+procedure TmFilterConditionPanel.OperatorMenuItemClick(Sender: TObject);
+begin
+  if (Sender is TMenuItem) then
+    Self.FilterOperator := TmFilterOperator((Sender as TMenuItem).Tag);
+end;
+
+procedure TmFilterConditionPanel.OperatorMenuPopup(Sender: TObject);
+var
+  i : integer;
+begin
+  if Assigned(FOperatorsMenu) then
+  begin
+    for i := 0 to FOperatorsMenu.Items.Count - 1 do
+      FOperatorsMenu.Items[i].Enabled:= (TmFilterOperator(FOperatorsMenu.Items[i].Tag) in FAllowedOperators);
+  end;
 end;
 
 constructor TmFilterConditionPanel.Create(TheOwner: TComponent);
@@ -505,6 +598,7 @@ begin
   Self.Caption := '';
   Self.Height := 40;
   Self.FFilterOperator:= foUnknown;
+  Self.FAllowedOperators:= [];
 end;
 
 

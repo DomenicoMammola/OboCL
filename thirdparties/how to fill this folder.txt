@@ -15,7 +15,7 @@ http://www.kluug.net/omultipanel.php
 and put it in folder omultipanel
 
 Clone
-https://github.com/Alexey-T/ATButtons.git
-in folder ATButtons
+https://github.com/Alexey-T/ATTabs.git
+in folder ATTabs
 
 

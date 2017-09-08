@@ -30,16 +30,24 @@ implementation
 { TFilterValuesDlg }
 
 procedure TFilterValuesDlg.Init(const aList: TStringList);
+var
+  OldCursor : TCursor;
 begin
-  ListFilterEdit.FilteredListbox := ValuesListBox;
-  ValuesListBox.Items.BeginUpdate;
+  OldCursor := Screen.Cursor;
   try
-    ListFilterEdit.Items.AddStrings(aList);
+    Screen.Cursor:= crHourGlass;
+    ListFilterEdit.FilteredListbox := ValuesListBox;
+    ValuesListBox.Items.BeginUpdate;
+    try
+      ListFilterEdit.Items.AddStrings(aList);
+    finally
+      ValuesListBox.Items.EndUpdate;
+    end;
+    ListFilterEdit.ForceFilter('#');
+    ListFilterEdit.ResetFilter;
   finally
-    ValuesListBox.Items.EndUpdate;
+    Screen.Cursor := OldCursor;
   end;
-  ListFilterEdit.ForceFilter('#');
-  ListFilterEdit.ResetFilter;
 end;
 
 procedure TFilterValuesDlg.GetCheckedValues(aList: TStringList);

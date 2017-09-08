@@ -322,28 +322,33 @@ begin
             Self.FilterManager.GetFilters.ClearForField(currentColumn.FieldName);
             if checkedValues.Count > 0 then
             begin
-              tmpFilter := Self.FilterManager.GetFilters.Add;
-              tmpFilter.FieldName:= currentColumn.FieldName;
-              tmpFilter.FilterOperator:= foIn;
-              tmpVariant := variants.VarArrayCreate([0, checkedValues.Count - 1], varOleStr);
-              for i := 0 to checkedValues.Count -1 do
-                VarArrayPut(tmpVariant, checkedValues.Strings[i], [i]);
-              tmpFilter.Value:= tmpVariant;
-              if Self.FilterManager.Filter then
-              begin
-                // update icons..
-                if currentColumn.Title.ImageIndex = GRID_ICON_UP then
-                  currentColumn.Title.ImageIndex:= GRID_ICON_UP_FILTER
-                else if currentColumn.Title.ImageIndex = GRID_ICON_DOWN then
-                  currentColumn.Title.ImageIndex:= GRID_ICON_DOWN_FILTER
-                else
-                  currentColumn.Title.ImageIndex:= GRID_ICON_FILTER;
+              OldCursor := Screen.Cursor;
+              try
+                Screen.Cursor := crHourGlass;
+                tmpFilter := Self.FilterManager.GetFilters.Add;
+                tmpFilter.FieldName:= currentColumn.FieldName;
+                tmpFilter.FilterOperator:= foIn;
+                tmpVariant := variants.VarArrayCreate([0, checkedValues.Count - 1], varOleStr);
+                for i := 0 to checkedValues.Count -1 do
+                  VarArrayPut(tmpVariant, checkedValues.Strings[i], [i]);
+                tmpFilter.Value:= tmpVariant;
+                if Self.FilterManager.Filter then
+                begin
+                  // update icons..
+                  if currentColumn.Title.ImageIndex = GRID_ICON_UP then
+                    currentColumn.Title.ImageIndex:= GRID_ICON_UP_FILTER
+                  else if currentColumn.Title.ImageIndex = GRID_ICON_DOWN then
+                    currentColumn.Title.ImageIndex:= GRID_ICON_DOWN_FILTER
+                  else
+                    currentColumn.Title.ImageIndex:= GRID_ICON_FILTER;
+                end;
+              finally
+                Screen.Cursor:= OldCursor;
               end;
             end;
           finally
             checkedValues.Free;
           end;
-
         end;
       finally
         dlg.Free;

@@ -19,7 +19,6 @@ uses
   Classes, Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls, Forms,
 
   oMultiPanelSetup,
-  ATButtons,
   mXML,
 
   UramakiBase, UramakiEngine, UramakiEngineClasses,

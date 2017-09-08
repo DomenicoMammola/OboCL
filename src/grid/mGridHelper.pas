@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, DB, Dialogs, Forms,
-  DBGrids, Controls, Menus,
+  DBGrids, Controls, Menus, LCLIntf,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet, fpsallformats,
   {$ENDIF}
@@ -31,6 +31,7 @@ resourcestring
   SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again.';
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
+  SWantToOpenFileMessage = 'Do you want to open the file?';
 
 type
 
@@ -114,6 +115,9 @@ begin
       finally
         Screen.Cursor:= oldCursor;
       end;
+
+      if MessageDlg(SWantToOpenFileMessage, mtConfirmation, mbYesNo, 0) = mrYes then
+        OpenDocument(FSaveDialog.FileName);
     except
       on E:Exception do
       begin
@@ -268,7 +272,7 @@ var
   MyWorkbook: TsWorkbook;
   MyWorksheet : TsWorksheet;
   tmpFields : TFields;
-  i, rn, row : integer;
+  i, rn, row, col : integer;
 begin
   MyWorkbook := TsWorkbook.Create;
   try
@@ -277,10 +281,15 @@ begin
     FDBGrid.DataSource.DataSet.DisableControls;
     try
       tmpFields := FDBGrid.DataSource.DataSet.Fields;
+      col := 0;
       for i := 0 to tmpFields.Count - 1 do
       begin
-        MyWorksheet.WriteText(0, i, tmpFields[i].DisplayLabel);
-        MyWorksheet.WriteBackgroundColor(0, i, $00D0D0D0);
+        if tmpFields[i].Visible then
+        begin
+          MyWorksheet.WriteText(0, col, tmpFields[i].DisplayLabel);
+          MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
+          inc (col);
+        end;
       end;
 
       rn := FDBGrid.DataSource.DataSet.RecNo;
@@ -289,23 +298,28 @@ begin
       FDBGrid.DataSource.DataSet.First;
       while not FDBGrid.DataSource.DataSet.EOF do
       begin
+        col := 0;
         for i := 0 to tmpFields.Count - 1 do
         begin
-          if not tmpFields[i].IsNull then
+          if tmpFields[i].Visible then
           begin
-            if (tmpFields[i].DataType = ftSmallint) or (tmpFields[i].DataType = ftInteger) or (tmpFields[i].DataType = ftLargeint) then
-              MyWorksheet.WriteNumber(row, i, tmpFields[i].AsFloat, nfGeneral, 0)
-            else
-            if (tmpFields[i].DataType = ftFloat) then
-              MyWorksheet.WriteNumber(row, i, tmpFields[i].AsFloat)
-            else
-            if (tmpFields[i].DataType = ftDate) or (tmpFields[i].DataType = ftDateTime) or (tmpFields[i].DataType = ftTime) or (tmpFields[i].DataType = ftTimeStamp) then
-              MyWorksheet.WriteDateTime(row, i, tmpFields[i].AsDateTime)
-            else
-            if (tmpFields[i].DataType = ftBoolean) then
-              MyWorksheet.WriteBoolValue(row, i, tmpFields[i].AsBoolean)
-            else
-              MyWorksheet.WriteText(row, i, tmpFields[i].AsString);
+            if not tmpFields[i].IsNull then
+            begin
+              if (tmpFields[i].DataType = ftSmallint) or (tmpFields[i].DataType = ftInteger) or (tmpFields[i].DataType = ftLargeint) then
+                MyWorksheet.WriteNumber(row, col, tmpFields[i].AsFloat, nfGeneral, 0)
+              else
+              if (tmpFields[i].DataType = ftFloat) then
+                MyWorksheet.WriteNumber(row, col, tmpFields[i].AsFloat)
+              else
+              if (tmpFields[i].DataType = ftDate) or (tmpFields[i].DataType = ftDateTime) or (tmpFields[i].DataType = ftTime) or (tmpFields[i].DataType = ftTimeStamp) then
+                MyWorksheet.WriteDateTime(row, col, tmpFields[i].AsDateTime)
+              else
+              if (tmpFields[i].DataType = ftBoolean) then
+                MyWorksheet.WriteBoolValue(row, col, tmpFields[i].AsBoolean)
+              else
+                MyWorksheet.WriteText(row, col, tmpFields[i].AsString);
+            end;
+            inc(col);
           end;
         end;
 

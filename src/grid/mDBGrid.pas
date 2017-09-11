@@ -81,6 +81,7 @@ type
     property ColumnsHeaderMenuVisible : boolean read FColumnsHeaderMenuVisible write SetColumnsHeaderMenuVisible;
     property SortManager : ISortableDatasetManager read FSortManager write SetSortManager;
     property FilterManager : IFilterDatasetManager read FFilterManager write SetFilterManager;
+    property Row;
   end;
 
 implementation

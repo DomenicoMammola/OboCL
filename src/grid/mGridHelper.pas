@@ -60,6 +60,8 @@ type
     procedure ExportGridAsXls (aStream : TStream); overload;
     procedure ExportGridAsXls (Sender : TObject); overload;
 
+    procedure SelectAllRows;
+
     property Grid : TmDBGrid read FDBGrid;
   end;
 
@@ -340,6 +342,25 @@ end;
 procedure TmDBGridHelper.ExportGridAsXls(Sender : TObject);
 begin
   ExportGridToFile('XLS');
+end;
+
+procedure TmDBGridHelper.SelectAllRows;
+begin
+  if dgMultiselect in FDBGrid.Options then
+  begin
+    FDBGrid.DataSource.DataSet.DisableControls;
+    try
+      FDBGrid.ClearSelections;
+      FDBGrid.DataSource.DataSet.First;
+      while not FDBGrid.DataSource.DataSet.EOF do
+      begin
+        FDBGrid.SelectedRows.CurrentRowSelected:= true;
+        FDBGrid.DataSource.DataSet.Next;
+      end;
+    finally
+      FDBGrid.DataSource.DataSet.EnableControls;
+    end;
+  end;
 end;
 
 {$ELSE}

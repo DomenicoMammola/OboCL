@@ -550,6 +550,8 @@ begin
     UpdateCurrentOperatorCheck;
     FOperatorsMenu.OnPopup:= OperatorMenuPopup;
   end;
+
+  Result := FOperatorsMenu;
 end;
 
 function TmFilterConditionPanel.FormatFilterCaption(aValue: String) : String;

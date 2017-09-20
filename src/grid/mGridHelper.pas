@@ -17,7 +17,7 @@ unit mGridHelper;
 interface
 
 uses
-  Classes, DB, Dialogs, Forms,
+  Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
   DBGrids, Controls, Menus, LCLIntf,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet, fpsallformats,
@@ -32,6 +32,13 @@ resourcestring
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
   SWantToOpenFileMessage = 'Do you want to open the file?';
+  SConfigureCommandHint = 'Configure..';
+  SConfigureGridCommandHint = 'Configure grid..';
+  SConfigureGridCommandCaption = 'Configure grid';
+  SExportGridAsCsvCommandHint = 'Export grid data to csv file';
+  SExportGridAsCsvCommandCaption = 'Export to csv file..';
+  SExportGridAsXlsCommandHint = 'Export grid data to Excel file (.xls)';
+  SExportGridAsXlsCommandCaption = 'Export to Excel file (.xls)..';
 
 type
 
@@ -47,6 +54,10 @@ type
   public
     constructor Create(aGrid : TmDBGrid);
     destructor Destroy; override;
+
+    procedure SetupGrid;
+    procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer);
+
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
 
@@ -55,10 +66,10 @@ type
     procedure LoadSettingsFromXML (aXMLElement : TmXmlElement);
     procedure SaveSettingsToXML (aXMLElement : TmXMLElement);
 
-    procedure ExportGridAsCsv (aStream : TStream); overload;
-    procedure ExportGridAsCsv (Sender : TObject); overload;
-    procedure ExportGridAsXls (aStream : TStream); overload;
-    procedure ExportGridAsXls (Sender : TObject); overload;
+    procedure ExportGridAsCsv (aStream : TStream);
+    procedure OnExportGridAsCsv (Sender : TObject);
+    procedure ExportGridAsXls (aStream : TStream);
+    procedure OnExportGridAsXls (Sender : TObject);
 
     procedure SelectAllRows;
 
@@ -143,6 +154,57 @@ begin
   FSettings.Free;
   FSaveDialog.Free;
   inherited Destroy;
+end;
+
+procedure TmDBGridHelper.SetupGrid;
+begin
+  FDBGrid.Align:= alClient;
+  FDBGrid.AlternateColor:= clMoneyGreen;
+  FDBGrid.Flat := True;
+  FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
+end;
+
+procedure TmDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex : integer);
+var
+  tmpConfigurePopupMenu : TPopupMenu;
+  tmp : TToolButton;
+  itm : TMenuItem;
+begin
+  tmpConfigurePopupMenu := TPopupMenu.Create(aToolbar);
+//  tmpConfigurePopupMenu.Images := aToolbar.Images;
+
+  tmp := TToolButton.Create(aToolbar);
+  tmp.Style:= tbsDropDown;
+  tmp.DropdownMenu := tmpConfigurePopupMenu;
+  tmp.ImageIndex := aConfigureImageIndex;
+  tmp.Parent := aToolbar;
+  tmp.Hint := SConfigureCommandHint;
+  itm := TMenuItem.Create(tmpConfigurePopupMenu);
+  tmpConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnEditSettings;
+  itm.Hint:= SConfigureGridCommandHint;
+  itm.Caption:= SConfigureGridCommandCaption;
+  //itm.ImageIndex:= ICON_GRID;
+
+  itm := TMenuItem.Create(tmpConfigurePopupMenu);
+  itm.Caption:= '-';
+  tmpConfigurePopupMenu.Items.Add(itm);
+
+  itm := TMenuItem.Create(tmpConfigurePopupMenu);
+  tmpConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsCsv;
+  itm.Hint:= SExportGridAsCsvCommandHint;
+  itm.Caption:= SExportGridAsCsvCommandCaption;
+
+  itm := TMenuItem.Create(tmpConfigurePopupMenu);
+  tmpConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsXls;
+  itm.Hint:= SExportGridAsXlsCommandHint;
+  itm.Caption:= SExportGridAsXlsCommandCaption;
+
+  tmp := TToolButton.Create(aToolbar);
+  tmp.Style:= tbsDivider;
+  tmp.Parent := aToolbar;
 end;
 
 function TmDBGridHelper.EditSettings : boolean;
@@ -262,7 +324,7 @@ begin
   end;
 end;
 
-procedure TmDBGridHelper.ExportGridAsCsv(Sender : TObject);
+procedure TmDBGridHelper.OnExportGridAsCsv(Sender : TObject);
 begin
   ExportGridToFile('CSV');
 end;
@@ -339,7 +401,7 @@ begin
   end;
 end;
 
-procedure TmDBGridHelper.ExportGridAsXls(Sender : TObject);
+procedure TmDBGridHelper.OnExportGridAsXls(Sender : TObject);
 begin
   ExportGridToFile('XLS');
 end;

@@ -18,8 +18,8 @@ interface
 
 uses
   Controls, Classes, StdCtrls, StrUtils, Contnrs, Variants,
-  ExtCtrls, EditBtn, Menus,
-  mFilter, mBaseClassesAsObjects;
+  ExtCtrls, EditBtn, Menus, Spin,
+  mFilter, mBaseClassesAsObjects, mMathUtility;
 
 type
   { TmFilterConditionPanel }
@@ -69,13 +69,15 @@ type
     procedure Clear; override;
   end;
 
+  TmEditFilterValueType = (efString, efUppercaseString, efInteger, efFloat);
+
   { TmEditFilterConditionPanel }
 
   TmEditFilterConditionPanel = class (TmFilterConditionPanel)
   private
     FLabel : TLabel;
     FEdit : TEdit;
-    FForceUppercase : boolean;
+    FValueType : TmEditFilterValueType;
     procedure OnEditValueChanged (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -85,7 +87,8 @@ type
     function IsEmpty : boolean; override;
     procedure Clear; override;
 
-    property ForceUppercase : boolean read FForceUppercase write FForceUppercase;
+    property ValueType : TmEditFilterValueType read FValueType write FValueType;
+
   end;
 
   { TmComboFilterConditionPanel }
@@ -272,8 +275,22 @@ procedure TmEditFilterConditionPanel.OnEditValueChanged(Sender: TObject);
 begin
   FEdit.OnEditingDone:= nil;
   try
-    if FForceUppercase then
+    if FValueType = efInteger then
+    begin
+      if not IsNumeric(FEdit.Text, false) then
+        FEdit.Text := '';
+    end
+    else
+    if FValueType = efFloat then
+    begin
+      if not IsNumeric(FEdit.Text, true) then
+        FEdit.Text := '';
+    end
+    else
+    if FValueType = efUppercaseString then
+    begin
       FEdit.Text:= UpperCase(FEdit.Text);
+    end;
   finally
     FEdit.OnEditingDone:= Self.OnEditValueChanged;
   end;
@@ -288,7 +305,7 @@ begin
   FEdit.Text := '';
   FEdit.OnEditingDone:= Self.OnEditValueChanged;
   FLabel := Self.CreateStandardLabel;
-  FForceUppercase:= false;
+  FValueType:= efString;
   CreateStandardOperatorMenu(FLabel);
 end;
 
@@ -298,16 +315,39 @@ begin
 end;
 
 function TmEditFilterConditionPanel.GetFilterValue: Variant;
+var
+  tmp : Double;
 begin
   if FEdit.Text = '' then
     Result := null
   else
+  if FValueType = efUppercaseString then
   begin
-    if FForceUppercase then
-      Result := Uppercase(FEdit.Text)
+    Result := Uppercase(FEdit.Text)
+  end
+  else
+  if FValueType = efInteger then
+  begin
+    if IsNumeric(FEdit.Text, false) then
+      Result := StrToInt(FEdit.Text)
     else
-      Result := FEdit.Text;
-  end;
+      Result := null;
+  end
+  else
+  if FValueType = efFloat then
+  begin
+    if IsNumeric(FEdit.Text, true) then
+    begin
+      if TryToConvertToDouble(FEdit.Text, tmp) then
+        Result := tmp
+      else
+        Result := null;
+    end
+    else
+      Result := null;
+  end
+  else
+    Result := FEdit.Text;
 end;
 
 procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant);
@@ -452,6 +492,7 @@ begin
   FDateEdit.Parent := Self;
   FDateEdit.Align:= alBottom;
   FLabel := Self.CreateStandardLabel;
+  CreateStandardOperatorMenu(FLabel);
 end;
 
 procedure TmDateFilterConditionPanel.SetFilterCaption(aValue: String);

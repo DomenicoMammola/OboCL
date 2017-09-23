@@ -15,7 +15,8 @@ http://www.kluug.net/omultipanel.php
 and put it in folder omultipanel
 
 Clone
-https://github.com/Alexey-T/ATTabs.git
+https://github.com/DomenicoMammola/ATTabs.git
+branch restore_tab_popup_menu
 in folder ATTabs
 
 

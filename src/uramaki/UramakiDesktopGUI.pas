@@ -128,17 +128,22 @@ begin
   FTabs.Align:= alTop;
   //FTabs.TabAngle:= 4;
   //FTabs.Height:= 56;
-  FTabs.TabDoubleClickClose:= false;
-  FTabs.TabDoubleClickPlus:= false;
-  FTabs.TabShowClose:= tbShowNone;
-  FTabs.TabShowPlus:= false;
-  FTabs.TabShowEntireColor:= true;
+  FTabs.OptMouseDoubleClickClose:= false;
+  FTabs.OptShowPlusTab:= false;
+  FTabs.OptShowXButtons:= tbShowNone;
+  FTabs.OptMouseDoubleClickClose:= false;
+  FTabs.OptShowEntireColor:= true;
   FTabs.Height:= 24;
-  FTabs.TabHeight:= 18;
-  FTabs.TabWidthMax:= 200;
+  FTabs.OptTabHeight:= 18;
+  FTabs.OptTabWidthNormal:= 200;
   FTabs.ColorBg:= clMenu;
-  FTabs.TabDragEnabled:= false; //enable drag-drop
-  FTabs.TabDragOutEnabled:= false; //also enable drag-drop to another controls
+  FTabs.OptMouseDragEnabled:= false; //enable drag-drop
+  FTabs.OptMouseDragOutEnabled:= false; //also enable drag-drop to another controls
+  FTabs.OptShowArrowsNear:= false;
+  FTabs.OptShowDropMark:= false;
+  FTabs.OptShowAtBottom:= false;
+  FTabs.OptShowScrollMark:= false;
+  FTabs.OptButtonLayout:= '';
 end;
 
 (*
@@ -443,12 +448,16 @@ procedure TUramakiDesktopSimplePanel.CreateCaptionPanel;
 begin
   CreateTabs;
   FTabs.AddTab(-1, 'report');
-  FTabs.TabWidthMax:= 3000;
-  FTabs.TabShowMenu := false;
-  FTabs.TabAngle:= 0;
-  FTabs.Height:= FTabs.TabHeight;
-  FTabs.TabIndentTop:= 0;
-  FTabs.TabIndentInit:= 0;
+  FTabs.OptTabWidthMinimal:= 3000;
+  FTabs.OptShowDropMark := false;
+  FTabs.OptShowArrowsNear:= false;
+  FTabs.OptShowAtBottom:= false;
+  FTabs.OptShowScrollMark:= false;
+  FTabs.OptButtonLayout:= '';
+  FTabs.OptTabAngle:= 0;
+  FTabs.Height:= FTabs.OptTabHeight;
+  FTabs.OptSpaceOnTop:= 0;
+  FTabs.OptSpaceBeforeText:= 0;
   Self.TabData := FTabs.GetTabData(0);
   FTabs.TabIndex:= FTabs.TabCount - 1;
 end;

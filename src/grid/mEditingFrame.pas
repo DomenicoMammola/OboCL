@@ -57,7 +57,8 @@ type
     procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind);
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
     procedure ExtractFields (aVirtualFields : TVirtualFieldDefs; aList : TStringList);
-    function GetValue (const aName : string) : String;
+    function GetValue (const aName : string) : string;
+    function GetValueFromMemo (const aName : string) : string;
     // override these:
     procedure OnEditValue(const aName : string; const aNewValue : variant); virtual;
     procedure OnValidateValue(const aName : string; const aOldValue : String; var aNewValue : String); virtual;
@@ -300,12 +301,29 @@ begin
     aList.Add(aVirtualFields.VirtualFieldDefs[i].Name);
 end;
 
-function TmEditingFrame.GetValue(const aName: string): String;
+function TmEditingFrame.GetValue(const aName: string): string;
 var
   curLine : TEditorLine;
 begin
   curLine := FLinesByName.Find(aName) as TEditorLine;
   Result := FValueListEditor.Rows[curLine.Index + 1].Strings[1];
+end;
+
+function TmEditingFrame.GetValueFromMemo(const aName: string): string;
+var
+  i : integer;
+  sep : string;
+  tmpMemo : TMemo;
+begin
+  tmpMemo := FMemosByName.Find(aName) as TMemo;
+  Result := '';
+  sep := '';
+  for i := 0 to tmpMemo.Lines.Count -1 do
+  begin
+    Result := Result + sep + tmpMemo.Lines[i];
+    sep := Chr(13);
+  end;
+  Result := Trim(Result);
 end;
 
 procedure TmEditingFrame.OnEditValue(const aName: string; const aNewValue: variant);

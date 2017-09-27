@@ -1,0 +1,31 @@
+object ProgressForm: TProgressForm
+  Left = 600
+  Height = 67
+  Top = 294
+  Width = 320
+  BorderStyle = bsNone
+  Caption = 'ProgressForm'
+  ClientHeight = 67
+  ClientWidth = 320
+  FormStyle = fsStayOnTop
+  Position = poMainFormCenter
+  ShowInTaskBar = stNever
+  LCLVersion = '1.6.4.0'
+  object ProgressBar1: TProgressBar
+    Left = 0
+    Height = 20
+    Top = 0
+    Width = 320
+    Align = alTop
+    TabOrder = 0
+  end
+  object Label1: TLabel
+    Left = 0
+    Height = 47
+    Top = 20
+    Width = 320
+    Align = alClient
+    Caption = 'Label1'
+    ParentColor = False
+  end
+end

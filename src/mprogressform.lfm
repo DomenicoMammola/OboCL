@@ -3,11 +3,13 @@ object ProgressForm: TProgressForm
   Height = 67
   Top = 294
   Width = 320
-  BorderStyle = bsNone
+  BorderIcons = []
+  BorderStyle = bsSingle
   Caption = 'ProgressForm'
   ClientHeight = 67
   ClientWidth = 320
-  FormStyle = fsStayOnTop
+  OnHide = FormHide
+  OnShow = FormShow
   Position = poMainFormCenter
   ShowInTaskBar = stNever
   LCLVersion = '1.6.4.0'

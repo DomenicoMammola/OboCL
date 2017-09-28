@@ -1,3 +1,12 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit mProgressGUIDesktop;
 
 {$IFDEF FPC}
@@ -7,7 +16,7 @@ unit mProgressGUIDesktop;
 interface
 
 uses
-  Classes, syncobjs,
+  Classes, Forms,
   mProgressClasses, mProgressForm;
 
 type
@@ -23,8 +32,6 @@ type
     destructor Destroy; override;
 
     procedure AddProgress(aProgress : TmAbstractProgress); override;
-    procedure RemoveProgress(aProgress : TmAbstractProgress); override;
-    procedure RefreshProgress (aProgress : TmAbstractProgress); override;
   end;
 
 implementation
@@ -44,22 +51,9 @@ end;
 
 procedure TmProgressGUIDesktop.AddProgress(aProgress: TmAbstractProgress);
 begin
-  //
+  FDlg.AddProgress(aProgress);
 end;
 
-procedure TmProgressGUIDesktop.RemoveProgress(aProgress: TmAbstractProgress);
-begin
-  FDlg.Hide;
-end;
-
-procedure TmProgressGUIDesktop.RefreshProgress(aProgress: TmAbstractProgress);
-begin
-  if not FDlg.Visible then
-  begin
-    FDlg.Show;
-  end;
-  FDlg.Advance(aProgress.Caption);
-end;
 
 initialization
   GetProgressGUIFactory.RegisterProgressGUIClass(TmProgressGUIDesktop);

@@ -1,0 +1,1 @@
+c:\lazarus\tools\lazres ..\lcl_biru_images.lrs fixedbackground.bmp scrollingbackground.bmp banana.bmp banana_mask.bmp kiwi.bmp kiwi_mask.bmp

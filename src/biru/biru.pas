@@ -6,16 +6,17 @@ unit Biru;
 interface
 
 uses
-  Windows, SysUtils, Classes, Graphics, Controls, ExtCtrls;
+  Windows, SysUtils, Classes, Graphics, Controls, ExtCtrls, contnrs;
 
 type
 
   TBiruAnimationType = (tatBouncing, tatSizing, tatScrolling);
+  TBiruShape = (bsBanana, bsKiwi);
 
   { TBiru }
 
   TBiru = class(TGraphicControl)
-  private
+  strict private
     FBiruShape: TBitmap;
     FBiruImage: TBitmap;
     DefImage: TBitmap;
@@ -34,13 +35,14 @@ type
     StretchingY: integer;
     FPlayingAnimation: boolean;
     FAnimation: TBiruAnimationType;
-    MFace: integer;
+    FShape: TBiruShape;
+    FImages : TObjectList;
+    FMasks : TObjectList;
     procedure SetAnimation(Value: TBiruAnimationType);
-    procedure SetFace(Value: integer);
+    procedure SetShape(Value: TBiruShape);
     procedure FAnimateTimerTimer(Sender: TObject);
   protected
     procedure Paint; override;
-
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -48,7 +50,7 @@ type
     procedure StopAnimation;
   published
     property Animation: TBiruAnimationType read FAnimation write SetAnimation default tatBouncing;
-    property Face: integer read MFace write SetFace default 1;
+    property Shape: TBiruShape read FShape write SetShape default bsBanana;
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
@@ -60,6 +62,9 @@ type
 
 
 implementation
+
+uses
+  LResources;
 
 {$R biru.res}
 
@@ -88,29 +93,22 @@ begin
   end;
 end;
 
-procedure TBiru.SetFace(Value: integer);
+procedure TBiru.SetShape(Value: TBiruShape);
 begin
-  if ((Value <= 2) and (Value > 0) and (Value <> MFace)) then
+  if Value = FShape then
+    exit;
+
+  if Value = bsKiwi then
   begin
-    MFace := Value;
-    FreeAndNil(FBiruImage);
-    FreeAndNil(FBiruShape);
-    if (MFace = 1) then
-    begin
-      FBiruImage := TBitmap.Create;
-      FBiruShape := TBitmap.Create;
-      FBiruImage.LoadFromResourceName(hInstance, 'BIRU1');
-      FBiruShape.LoadFromResourceName(hInstance, 'SAGOMA1');
-    end
-    else
-    begin
-      FBiruImage := TBitmap.Create;
-      FBiruShape := TBitmap.Create;
-      FBiruImage.LoadFromResourceName(hInstance, 'BIRU2');
-      FBiruShape.LoadFromResourceName(hInstance, 'SAGOMA2');
-    end;
-    Refresh;
+    FBiruImage := FImages.Items[1] as TBitmap;
+    FBiruShape := FMasks.Items[1] as TBitmap;
+  end
+  else
+  begin
+    FBiruImage := FImages.Items[0] as TBitmap;
+    FBiruShape := FMasks.Items[0] as TBitmap;
   end;
+  Refresh;
 end;
 
 procedure TBiru.SetAnimation(Value: TBiruAnimationType);
@@ -209,12 +207,14 @@ end;
 constructor TBiru.Create(AOwner: TComponent);
 var
   R: TRect;
-  Temp: TBitmap;
+  tmpBitmap: TBitmap;
   risultato: boolean;
 begin
   inherited Create(AOwner);
+  FImages:= TObjectList.Create(true);
+  FMasks := TObjectList.Create(true);
   { default values }
-  MFace := 1;
+  FShape := bsBanana;
   XPos := 0;
   YPos := 0;
   ShiftX := 1;
@@ -225,24 +225,35 @@ begin
   FPlayingAnimation := False;
   Self.Height:= 80;
   Self.Width:= 80;
-  //HintMessageList := TStrings.Create;
   DefImage := TBitmap.Create;
   DefImage.Width := 80;
   DefImage.Height := 80;
   R := Rect(0, 0, 80, 80);
   DefImage.Canvas.Brush.Color := clWhite;
   DefImage.Canvas.FillRect(R);
+
   FFixedBackground := TBitmap.Create;
-  FFixedBackground.LoadFromResourceName(hInstance, 'SFONDO1');
+  FFixedBackground.LoadFromLazarusResource('fixedbackground');
   FScrollingBackground := TBitmap.Create;
-  //FScrollingBackground.LoadFromFile ('FFixedBackground5.bmp');
-  FScrollingBackground.LoadFromResourceName(hInstance, 'SFONDO2');
-  FBiruImage := TBitmap.Create;
-  FBiruImage.LoadFromResourceName(hInstance, 'BIRU1');
+  FScrollingBackground.LoadFromLazarusResource('scrollingbackground');
+  tmpBitmap := TBitmap.Create;
+  FImages.Add(tmpBitmap);
+  tmpBitmap.LoadFromLazarusResource('banana');
+  tmpBitmap := TBitmap.Create;
+  FMasks.Add(tmpBitmap);
+  tmpBitmap.LoadFromLazarusResource('banana_mask');
+
+  tmpBitmap := TBitmap.Create;
+  FImages.Add(tmpBitmap);
+  tmpBitmap.LoadFromLazarusResource('kiwi');
+  tmpBitmap := TBitmap.Create;
+  FMasks.Add(tmpBitmap);
+  tmpBitmap.LoadFromLazarusResource('kiwi_mask');
+
+  FBiruImage := FImages.Items[0] as TBitmap;
+  FBiruShape := FMasks.Items[0] as TBitmap;
   StretchingX := FBiruImage.Width;
   StretchingY := FBiruImage.Height;
-  FBiruShape := TBitmap.Create;
-  FBiruShape.LoadFromResourceName(hInstance, 'SAGOMA1');
   BiruDefaultX := (FFixedBackground.Width - FBiruImage.Width) div 2;
   BiruDefaultY := (FFixedBackground.Height - FBiruImage.Height) div 2;
 
@@ -257,8 +268,8 @@ begin
   DefImage.Free;
   FFixedBackground.Free;
   FScrollingBackground.Free;
-  FBiruShape.Free;
-  FBiruImage.Free;
+  FImages.Free;
+  FMasks.Free;
 
   inherited Destroy;
 
@@ -276,5 +287,8 @@ begin
   FAnimateTimer.Enabled := False;
   Refresh;
 end;
+
+initialization
+  {$I lcl_biru_images.lrs}
 
 end.

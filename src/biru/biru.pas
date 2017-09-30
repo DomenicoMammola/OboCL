@@ -17,6 +17,8 @@ type
 
   TBiru = class(TGraphicControl)
   strict private
+    const SQUARE_LENGTH = 120;
+  strict private
     FBiruShape: TBitmap;
     FBiruImage: TBitmap;
     DefImage: TBitmap;
@@ -76,9 +78,9 @@ begin
   try
     if (not FPlayingAnimation) then
     begin
-      Temp.Width := 80;
-      Temp.Height := 80;
-      BitBlt(Temp.Canvas.Handle, 0, 0, 80, 80,
+      Temp.Width := SQUARE_LENGTH;
+      Temp.Height := SQUARE_LENGTH;
+      BitBlt(Temp.Canvas.Handle, 0, 0, SQUARE_LENGTH, SQUARE_LENGTH,
         FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
       BitBlt(Temp.Canvas.Handle, BiruDefaultX,
         BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
@@ -223,12 +225,12 @@ begin
   FAnimation := tatBouncing;
   FStretchingDirection := -1;
   FPlayingAnimation := False;
-  Self.Height:= 80;
-  Self.Width:= 80;
+  Self.Height:= SQUARE_LENGTH;
+  Self.Width:= SQUARE_LENGTH;
   DefImage := TBitmap.Create;
-  DefImage.Width := 80;
-  DefImage.Height := 80;
-  R := Rect(0, 0, 80, 80);
+  DefImage.Width := SQUARE_LENGTH;
+  DefImage.Height := SQUARE_LENGTH;
+  R := Rect(0, 0, SQUARE_LENGTH, SQUARE_LENGTH);
   DefImage.Canvas.Brush.Color := clWhite;
   DefImage.Canvas.FillRect(R);
 

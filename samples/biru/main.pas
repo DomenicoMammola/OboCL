@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ExtCtrls, biru;
+  ExtCtrls, Biru, Biru_FreshFruit;
 
 type
 
@@ -21,7 +21,7 @@ type
     procedure FormCreate(Sender: TObject);
   private
     { private declarations }
-    FBiru : TBiru;
+    FBiru : TBiruFreshFruit;
   public
     { public declarations }
   end;
@@ -37,11 +37,11 @@ implementation
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  FBiru := TBiru.Create(Self);
+  FBiru := TBiruFreshFruit.Create(Self);
   FBiru.Parent := Self;
   FBiru.Top := 0;
   FBiru.Left := 0;
-  FBiru.Shape := bsBanana;
+  FBiru.Shape := bsCherry;
   FBiru.Animation:= tatBouncing;
 end;
 

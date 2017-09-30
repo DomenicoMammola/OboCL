@@ -40,7 +40,7 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 66
+    ClientHeight = 67
     ClientWidth = 173
     ItemIndex = 0
     Items.Strings = (

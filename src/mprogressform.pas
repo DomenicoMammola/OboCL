@@ -90,12 +90,14 @@ end;
 
 procedure TProgressForm.RemoveProgress(aProgress: TmAbstractProgress);
 begin
-  FAnimation.StopAnimation;
-  Self.Hide;
-
   FProgresses.Remove(aProgress.Id);
   if FProgresses.Count = 0 then
+  begin
+    FAnimation.StopAnimation;
+    Self.Hide;
+    FListBox.Clear;
     FGarbage.Clear;
+  end;
 end;
 
 constructor TProgressForm.Create(AOwner: TComponent);

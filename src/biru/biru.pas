@@ -66,7 +66,7 @@ type
     procedure StopAnimation;
   published
     property Animation: TBiruAnimationType read FAnimation write SetAnimation default tatBouncing;
-    property Speed: integer read FSpeed write SetSpeed default 5;
+    property Speed: integer read FSpeed write SetSpeed;
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
@@ -248,6 +248,7 @@ begin
 
   FAnimateTimer := TTimer.Create(self);
   FAnimateTimer.Enabled := False;
+  FSpeed := 5;
   FAnimateTimer.Interval := FSpeed;
   FAnimateTimer.OnTimer := Self.FAnimateTimerTimer;
 end;

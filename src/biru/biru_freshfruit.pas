@@ -111,6 +111,6 @@ begin
 end;
 
 initialization
-  {$I lcl_biru_images.lrs}
+  {$I lcl_biru_freshfruit_images.lrs}
 
 end.

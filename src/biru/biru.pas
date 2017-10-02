@@ -31,6 +31,7 @@ type
   strict private
     DefImage: TBitmap;
     FAnimateTimer: TTimer;
+    FSpeed: integer;
     XPos: integer;
     YPos: integer;
     ShiftX: integer;
@@ -45,6 +46,7 @@ type
     FAnimation: TBiruAnimationType;
     procedure SetAnimation(Value: TBiruAnimationType);
     procedure FAnimateTimerTimer(Sender: TObject);
+    procedure SetSpeed(AValue: integer);
   protected
     FFixedBackground: TBitmap;
     FScrollingBackground: TBitmap;
@@ -64,6 +66,7 @@ type
     procedure StopAnimation;
   published
     property Animation: TBiruAnimationType read FAnimation write SetAnimation default tatBouncing;
+    property Speed: integer read FSpeed write SetSpeed default 5;
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
@@ -217,6 +220,13 @@ begin
   end;
 end;
 
+procedure TBiru.SetSpeed(AValue: integer);
+begin
+  if FSpeed=AValue then Exit;
+  FSpeed:=AValue;
+  FAnimateTimer.Interval:= FSpeed;
+end;
+
 constructor TBiru.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -238,7 +248,7 @@ begin
 
   FAnimateTimer := TTimer.Create(self);
   FAnimateTimer.Enabled := False;
-  FAnimateTimer.Interval := 5;
+  FAnimateTimer.Interval := FSpeed;
   FAnimateTimer.OnTimer := Self.FAnimateTimerTimer;
 end;
 

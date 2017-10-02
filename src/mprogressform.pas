@@ -15,24 +15,29 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
-  StdCtrls, LCLIntf, windows,
-  mProgressClasses;
+  StdCtrls, LCLIntf, windows, contnrs,
+  mProgressClasses, mBaseClassesAsObjects, mMaps,
+  Biru_FreshFruit, Biru;
 
 type
 
   { TProgressForm }
   TProgressForm = class(TForm)
-    Label1: TLabel;
-    ProgressBar1: TProgressBar;
     procedure FormHide(Sender: TObject);
     procedure FormShow(Sender: TObject);
+  strict private
+    FListBox : TListBox;
+    FAnimation : TBiruFreshFruit;
+    FProgresses : TmStringDictionary;
+    FGarbage : TObjectList;
   private
     { private declarations }
-    FProgress : TmAbstractProgress;
-    procedure Advance (const aMsg : string);
-    procedure RefreshProgress (aProgress : TObject);
-    procedure RemoveProgress(aProgress : TObject);
+    procedure Advance (const aMsg : string; const aIndex : integer);
+    procedure RefreshProgress (aProgress : TmAbstractProgress);
+    procedure RemoveProgress(aProgress : TmAbstractProgress);
   public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     procedure AddProgress (aProgress : TmAbstractProgress);
   end;
 
@@ -50,32 +55,70 @@ procedure TProgressForm.FormHide(Sender: TObject);
 begin
 end;
 
-procedure TProgressForm.Advance(const aMsg: string);
+procedure TProgressForm.Advance(const aMsg: string; const aIndex : integer);
 begin
-  Label1.Caption:= aMsg;
-  if ProgressBar1.Position = ProgressBar1.Max then
-    ProgressBar1.Position:= 0
-  else
-    ProgressBar1.Position:= ProgressBar1.Position + 1;
+  if FListBox.Count >= aIndex then
+    FListBox.Items[aIndex] := aMsg;
 end;
 
 procedure TProgressForm.AddProgress(aProgress: TmAbstractProgress);
+var
+  tmp : TIntegerObject;
 begin
-  FProgress := aProgress;
-  FProgress.OnRefresh:= @Self.RefreshProgress;
-  FProgress.OnRemove:= @Self.RemoveProgress;
+  aProgress.OnRefresh:= @Self.RefreshProgress;
+  aProgress.OnRemove:= @Self.RemoveProgress;
+  tmp := TIntegerObject.Create(FListBox.Count);
+  FGarbage.Add(tmp);
+  FListBox.Items.Add(aProgress.Caption);
+  FProgresses.Add(aProgress.Id, tmp);
 end;
 
-procedure TProgressForm.RefreshProgress(aProgress: TObject);
+procedure TProgressForm.RefreshProgress(aProgress: TmAbstractProgress);
+var
+  i : integer;
+  tmp : TIntegerObject;
 begin
   if not Self.Visible then
+  begin
     Self.Show;
-  Self.Advance((aProgress as TmAbstractProgress).Caption);
+    FAnimation.PlayAnimation;
+  end;
+  tmp := FProgresses.Find(aProgress.Id) as TIntegerObject;
+  if Assigned(tmp) then
+    Self.Advance(aProgress.Caption, tmp.Value);
 end;
 
-procedure TProgressForm.RemoveProgress(aProgress: TObject);
+procedure TProgressForm.RemoveProgress(aProgress: TmAbstractProgress);
 begin
+  FAnimation.StopAnimation;
   Self.Hide;
+
+  FProgresses.Remove(aProgress.Id);
+  if FProgresses.Count = 0 then
+    FGarbage.Clear;
+end;
+
+constructor TProgressForm.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  FAnimation := TBiruFreshFruit.Create(Self);
+  FAnimation.Parent := Self;
+  Self.Height:= FAnimation.Height;
+  FAnimation.Align:= alLeft;
+  FAnimation.Shape:= bsBanana;
+  FAnimation.Animation:= tatScrolling;
+  FListBox := TListBox.Create(Self);
+  FListBox.Parent := Self;
+  FListBox.Align := alClient;
+  FProgresses := TmStringDictionary.Create();
+  FGarbage := TObjectList.Create(true);
+end;
+
+destructor TProgressForm.Destroy;
+begin
+  FProgresses.Free;
+  FGarbage.Free;
+  inherited Destroy;
 end;
 
 end.

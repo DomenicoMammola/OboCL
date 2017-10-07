@@ -25,6 +25,8 @@ uses
   LCLIntf,
   LclType,
   LclProc,
+  LResources,
+  LMessages,
   {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ENDIF}
 
@@ -69,7 +71,12 @@ type
     procedure SetOneBucketWidth(AValue: Integer);
     procedure NotifyLayoutChanged(MustInvalidateTimebar : boolean);
 
+    {$ifdef fpc}
+    procedure CMMouseWheel(var Message: TLMMouseEvent); message LM_MOUSEWHEEL;
+    {$else}
     procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
+    {$endif}
+
 
     procedure PaintTimeline(ARect: TRect; StartDate: TDateTime; Timeline: TmTimeline);
     procedure SaveMouseMoveData(X, Y: integer);
@@ -122,14 +129,18 @@ begin
 end;
 
 
-procedure TmTimeruler.WMMouseWheel(var Message: TWMMouseWheel);
+{$ifdef fpc}
+procedure TmTimeruler.CMMouseWheel(var Message: TLMMouseEvent);
+{$else}
+procedure TmTimeruler.WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
+{$endif}
 var
   ScrollCount, ScrollLines: integer;
 begin
   if Assigned(FMainTimelineRef) then
   begin
     SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, @ScrollLines, 0);
-    ScrollCount := -ScrollLines * Message.WheelDelta div WHEEL_DELTA;
+    ScrollCount := -ScrollLines * Message.WheelDelta div {$ifdef fpc}Message.WheelDelta{$else}WHEEL_DELTA{$endif};
     CurrentDate := FMainTimelineRef.Scale.AddTicks(Self.CurrentDate, ScrollCount);
   end;
 end;
@@ -326,7 +337,7 @@ procedure TmTimeruler.MouseMove(Shift: TShiftState; X, Y: integer);
 var
   fattore : Double;
 begin
-  if FResizingBuckets and (GetAsyncKeyState(VK_LBUTTON) and $8000 <> 0) then
+  if FResizingBuckets and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
   begin
     if (FMouseMoveData.LastCalculatedOneBucketWidth = 0) then
       FMouseMoveData.LastCalculatedOneBucketWidth := OneBucketWidth;

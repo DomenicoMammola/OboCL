@@ -18,6 +18,7 @@ interface
 
 uses
   Classes,
+  {$ifdef fpc}LCLIntf, LCLType, LMessages,{$endif}
   Graphics;
 
 procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
@@ -42,9 +43,14 @@ procedure WriteText(ACanvas: TCanvas; ARect: TRect; const Text: string; Flags: C
 begin
   SetBkMode(ACanvas.Handle, TRANSPARENT);
   ACanvas.Font.Size := max(8, (ARect.Bottom - ARect.Top) - 10);
+  {$ifndef windows}
+  DrawText(ACanvas.Handle, PChar(Text), -1, ARect, Flags);
+  {$else}
   if DrawText(ACanvas.Handle, PChar(Text), -1, ARect, Flags) = 0 then
     RaiseLastOSError;
+  {$endif}
 end;
+
 
 
 procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
@@ -59,7 +65,7 @@ begin
     taRightJustify: TempFlags := DT_RIGHT;
     taCenter: TempFlags := DT_CENTER;
   end;
-  TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE + DT_WORD_ELLIPSIS);
+  TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
   WriteText(ACanvas, ARect, Text, TempFlags);
 end;
 

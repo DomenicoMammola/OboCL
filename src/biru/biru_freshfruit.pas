@@ -77,7 +77,7 @@ begin
 
 
   FFixedBackground.LoadFromLazarusResource('fixedbackground');
-  FScrollingBackground.LoadFromLazarusResource('scrollingbackground');
+  FScrollingBackground.LoadFromLazarusResource('scrollingbackground_sea');
 
   tmpBitmap := TBitmap.Create;
   FImages.Add(tmpBitmap);

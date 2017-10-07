@@ -41,7 +41,7 @@ begin
   FBiru.Parent := Self;
   FBiru.Top := 0;
   FBiru.Left := 0;
-  FBiru.Shape := bsCherry;
+  FBiru.Shape := bsBanana;
   FBiru.Animation:= tatBouncing;
 end;
 

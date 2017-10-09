@@ -20,10 +20,9 @@ uses
   Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
   DBGrids, Controls, Menus, LCLIntf,
   {$IFDEF FPC}
-  fpstypes, fpspreadsheet, fpsallformats,
+  fpstypes, fpspreadsheet, (*fpsallformats,*)
   {$ENDIF}
-  mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons, mDBGrid,
-  mDatasetInterfaces;
+  mGridColumnSettings, mXML, mGridSettingsForm, mDBGrid;
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';

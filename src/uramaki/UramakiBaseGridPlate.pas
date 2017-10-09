@@ -16,11 +16,11 @@ unit UramakiBaseGridPlate;
 interface
 
 uses
-  Classes, Controls, StdCtrls, ExtCtrls, DB, ComCtrls, Windows, DBGrids,
+  Classes, Controls, ExtCtrls, DB, ComCtrls, Windows, DBGrids,
   Forms,
 
   UramakiBase,
-  mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid, mSortConditions,
+  mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid,
   mQuickReadOnlyVirtualDataSet, mXML, mVirtualDataSetInterfaces;
 
 const
@@ -32,7 +32,7 @@ type
 
   { TBaseGridPlate }
 
-  TBaseGridPlate = class(TUramakiPlate)
+  TBaseGridPlate = class abstract (TUramakiPlate)
   protected
     FGrid: TmDBGrid;
     FDataset: TVirtualDataset;

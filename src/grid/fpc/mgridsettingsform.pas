@@ -17,7 +17,12 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   Buttons, ComCtrls,
-  mGridColumnsSettingsFrame, mGridColumnSettings;
+  mGridColumnsSettingsFrame, mformulafieldsconfigurationframe, mGridColumnSettings;
+
+
+resourcestring
+  STabColumnsSettings = 'Columns';
+  STabFormulaFieldsConfiguration = 'Calculated fields';
 
 type
 
@@ -28,11 +33,13 @@ type
     CancelBtn: TBitBtn;
     OkBtn: TBitBtn;
     PCSettings: TPageControl;
+    TSFormulaFields: TTabSheet;
     TSColumns: TTabSheet;
     procedure FormCreate(Sender: TObject);
     procedure OkBtnClick(Sender: TObject);
   private
     FColumnsSettingsFrame : TGridColumnsSettingsFrame;
+    FFormulaFieldsFrame: TFormulaFieldsConfFrame;
   public
     procedure Init (aSettings : TmGridColumnsSettings);
   end;
@@ -46,9 +53,16 @@ implementation
 
 procedure TGridSettingsForm.FormCreate(Sender: TObject);
 begin
+  TSColumns.Caption:= STabColumnsSettings;
+  TSFormulaFields.Caption:= STabFormulaFieldsConfiguration;
+
   FColumnsSettingsFrame := TGridColumnsSettingsFrame.Create(Self);
   FColumnsSettingsFrame.Parent := TSColumns;
   FColumnsSettingsFrame.Align:= alClient;
+
+  FFormulaFieldsFrame := TFormulaFieldsConfFrame.Create(Self);
+  FFormulaFieldsFrame.Parent := TSFormulaFields;
+  FFormulaFieldsFrame.Align:= alClient;
 end;
 
 procedure TGridSettingsForm.OkBtnClick(Sender: TObject);
@@ -60,6 +74,7 @@ end;
 procedure TGridSettingsForm.Init(aSettings: TmGridColumnsSettings);
 begin
   FColumnsSettingsFrame.Init(aSettings);
+  TSFormulaFields.Visible:= false;
 end;
 
 end.

@@ -55,5 +55,8 @@ object GridSettingsForm: TGridSettingsForm
     object TSColumns: TTabSheet
       Caption = 'Columns'
     end
+    object TSFormulaFields: TTabSheet
+      Caption = 'Formula fields'
+    end
   end
 end

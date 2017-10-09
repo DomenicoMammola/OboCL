@@ -1,0 +1,40 @@
+object FormulaFieldsConfFrame: TFormulaFieldsConfFrame
+  Left = 0
+  Height = 292
+  Top = 0
+  Width = 532
+  ClientHeight = 292
+  ClientWidth = 532
+  TabOrder = 0
+  DesignLeft = 437
+  DesignTop = 158
+  object TopPanel: TPanel
+    Left = 0
+    Height = 34
+    Top = 0
+    Width = 532
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 34
+    ClientWidth = 532
+    TabOrder = 0
+    object AddButton: TButton
+      Left = 10
+      Height = 25
+      Top = 8
+      Width = 75
+      Caption = 'Add'
+      OnClick = AddButtonClick
+      TabOrder = 0
+    end
+    object RemoveButton: TButton
+      Left = 96
+      Height = 25
+      Top = 8
+      Width = 75
+      Caption = 'Remove'
+      OnClick = RemoveButtonClick
+      TabOrder = 1
+    end
+  end
+end

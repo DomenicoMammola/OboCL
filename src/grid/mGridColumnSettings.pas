@@ -19,7 +19,7 @@ interface
 uses
   Contnrs, Grids, DBGrids,
   {$IFDEF DEBUG_COL_SET}LazLogger,{$ENDIF}
-  mMaps, mXML, mNullables;
+  mMaps, mNullables;
 
 const
   MINIMUM_GRID_COLUMN_WIDTH = 10;
@@ -42,9 +42,6 @@ type
 
     procedure Clear;
 
-    procedure SaveToXmlElement (aElement : TmXmlElement);
-    procedure LoadFromXmlElement(aElement : TmXmlElement);
-
     property FieldName : String read FFieldName;
     property DisplayLabel : TNullableString read FDisplayLabel;
     property Visible : TNullableBoolean read FVisible;
@@ -66,9 +63,6 @@ type
     function GetSettingsForField (aFieldName : String) : TmGridColumnSettings;
     function Count : integer;
     function Get (aIndex : integer): TmGridColumnSettings;
-
-    procedure SaveToXmlElement (aElement : TmXmlElement);
-    procedure LoadFromXmlElement (aElement : TmXmlElement);
 
     procedure Clear;
   end;
@@ -125,38 +119,6 @@ begin
   Result := FList.Items[aIndex] as TmGridColumnSettings;
 end;
 
-procedure TmGridColumnsSettings.SaveToXmlElement(aElement: TmXmlElement);
-var
-  i : integer;
-  op : TmGridColumnSettings;
-begin
-  for i := 0 to FList.Count - 1 do
-  begin
-    op := FList.Items[i] as TmGridColumnSettings;
-    op.SaveToXmlElement(aelement.AddElement('column'));
-  end;
-end;
-
-procedure TmGridColumnsSettings.LoadFromXmlElement(aElement: TmXmlElement);
-var
-  tmpCursor : TmXmlElementCursor;
-  i : integer;
-  op : TmGridColumnSettings;
-begin
-  Self.Clear;
-  tmpCursor := TmXmlElementCursor.Create(aElement, 'column');
-  try
-    for i := 0 to tmpCursor.Count - 1 do
-    begin
-      op := Self.AddSettingsForField(tmpCursor.Elements[i].GetAttribute('fieldName'));
-      op.LoadFromXmlElement(tmpCursor.Elements[i]);
-    end;
-  finally
-    tmpCursor.Free;
-  end;
-
-end;
-
 
 procedure TmGridColumnsSettings.Clear;
 begin
@@ -195,41 +157,5 @@ begin
   FDisplayLabel.IsNull := true;
   FDisplayFormat.IsNull:= true;
 end;
-
-
-procedure TmGridColumnSettings.SaveToXmlElement(aElement: TmXmlElement);
-begin
-  if FVisible.NotNull then
-    aElement.SetAttribute('visible', BoolToStr(FVisible.Value, true));
-  if FDisplayFormat.NotNull then
-    aElement.SetAttribute('displayFormat', FDisplayFormat.Value);
-  if FDisplayLabel.NotNull then
-    aElement.SetAttribute('displayLabel', FDisplayLabel.Value);
-  if FWidth.NotNull then
-    aElement.SetIntegerAttribute('width', FWidth.Value);
-  if FSortOrder.NotNull then
-    aElement.SetIntegerAttribute('sortOrder', FSortOrder.Value);
-  aElement.SetAttribute('fieldName', FFieldName);
-end;
-
-procedure TmGridColumnSettings.LoadFromXmlElement(aElement: TmXmlElement);
-begin
-  Self.Clear;
-  if aElement.HasAttribute('visible') then
-    FVisible.Value := StrToBool(aElement.GetAttribute('visible'));
-  if aElement.HasAttribute('displayFormat') then
-    FDisplayFormat.Value := aElement.GetAttribute('displayFormat');
-  if aElement.HasAttribute('displayLabel') then
-  begin
-    FDisplayLabel.Value := aElement.GetAttribute('displayLabel');
-    {$IFDEF DEBUG_COL_SET}DebugLn('[TmGridColumnSettings.LoadFromXmlElement] ' + FieldName + ' displayLabel:' + FDisplayLabel.Value);{$ENDIF}
-  end;
-
-  if aElement.HasAttribute('width') then
-    FWidth.Value := aElement.GetIntegerAttribute('width');
-  if aElement.HasAttribute('sortOrder') then
-    FSortOrder.Value := aElement.GetIntegerAttribute('sortOrder');
-end;
-
 
 end.

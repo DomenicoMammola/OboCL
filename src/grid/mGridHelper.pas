@@ -22,7 +22,10 @@ uses
   {$IFDEF FPC}
   fpstypes, fpspreadsheet, (*fpsallformats,*)
   {$ENDIF}
-  mGridColumnSettings, mXML, mGridSettingsForm, mDBGrid;
+  mGridColumnSettings, mXML,
+  mGridSettingsForm, mFormulaFieldsConfigurationForm,
+  mDBGrid,
+  mVirtualDatasetFormulas;
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
@@ -33,7 +36,9 @@ resourcestring
   SWantToOpenFileMessage = 'Do you want to open the file?';
   SConfigureCommandHint = 'Configure..';
   SConfigureGridCommandHint = 'Configure grid..';
+  SConfigureFormulaFieldsCommandHint = 'Configure formula fields..';
   SConfigureGridCommandCaption = 'Configure grid';
+  SConfigureFormulaFieldsCommandCaption = 'Configure formula fields';
   SExportGridAsCsvCommandHint = 'Export grid data to csv file';
   SExportGridAsCsvCommandCaption = 'Export to csv file..';
   SExportGridAsXlsCommandHint = 'Export grid data to Excel file (.xls)';
@@ -47,11 +52,12 @@ type
   strict private
     FSettings : TmGridColumnsSettings;
     FDBGrid : TmDBGrid;
+    FFormulaFields : TmFormulaFields;
     FSaveDialog: TSaveDialog;
     function ConfirmFileOverwrite : boolean;
     procedure ExportGridToFile(aFileType : String);
   public
-    constructor Create(aGrid : TmDBGrid);
+    constructor Create(aGrid : TmDBGrid;aFormulaFields : TmFormulaFields);
     destructor Destroy; override;
 
     procedure SetupGrid;
@@ -59,6 +65,7 @@ type
 
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
+    procedure OnEditFormulaFields(Sender : TObject);
 
     procedure LoadSettings (aStream : TStream);
     procedure SaveSettings (aStream : TStream);
@@ -78,7 +85,8 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils,
+  mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml;
 
 { TmDBGridHelper }
 
@@ -140,10 +148,11 @@ begin
 
 end;
 
-constructor TmDBGridHelper.Create(aGrid : TmDBGrid);
+constructor TmDBGridHelper.Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields);
 begin
   FSettings := TmGridColumnsSettings.Create;
   FDBGrid := aGrid;
+  FFormulaFields:= aFormulaFields;
   FSaveDialog := TSaveDialog.Create(nil);
 end;
 
@@ -183,7 +192,14 @@ begin
   itm.OnClick:= Self.OnEditSettings;
   itm.Hint:= SConfigureGridCommandHint;
   itm.Caption:= SConfigureGridCommandCaption;
-  //itm.ImageIndex:= ICON_GRID;
+  if Assigned(FFormulaFields) then
+  begin
+    itm := TMenuItem.Create(tmpConfigurePopupMenu);
+    tmpConfigurePopupMenu.Items.Add(itm);
+    itm.OnClick:= Self.OnEditFormulaFields;
+    itm.Hint:= SConfigureFormulaFieldsCommandHint;
+    itm.Caption:= SConfigureFormulaFieldsCommandCaption;
+  end;
 
   itm := TMenuItem.Create(tmpConfigurePopupMenu);
   itm.Caption:= '-';
@@ -230,6 +246,25 @@ begin
   Self.EditSettings;
 end;
 
+procedure TmDBGridHelper.OnEditFormulaFields(Sender: TObject);
+var
+  frm : TFormulaFieldsConfigurationForm;
+begin
+  frm := TFormulaFieldsConfigurationForm.Create(nil);
+  try
+    frm.Init(FFormulaFields);
+    if frm.ShowModal = mrOk then
+    begin
+      FDBGrid.ReadSettings(FSettings);
+      FDBGrid.DataSource.DataSet.Close;
+      FDBGrid.DataSource.DataSet.Open;
+      FDBGrid.ApplySettings(FSettings);
+    end;
+  finally
+    frm.Free;
+  end;
+end;
+
 procedure TmDBGridHelper.LoadSettings(aStream: TStream);
 var
   doc : TmXmlDocument;
@@ -264,7 +299,21 @@ var
 begin
   cursor := TmXmlElementCursor.Create(aXMLElement, 'columns');
   try
-    FSettings.LoadFromXmlElement(cursor.Elements[0]);
+    LoadGridColumnsSettingFromXmlElement(FSettings, cursor.Elements[0]);
+  finally
+    cursor.Free;
+  end;
+  cursor := TmXmlElementCursor.Create(aXMLElement, 'formulaFields');
+  try
+    if cursor.Count > 0 then
+    begin
+      LoadFormulaFieldsFromXmlElement(FFormulaFields, cursor.Elements[0]);
+      if FFormulaFields.Count > 0 then
+      begin
+        FDBGrid.DataSource.DataSet.Close;
+        FDBGrid.DataSource.DataSet.Open;
+      end;
+    end;
   finally
     cursor.Free;
   end;
@@ -275,7 +324,9 @@ procedure TmDBGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
 begin
   FDBGrid.ReadSettings(FSettings);
   aXMLElement.SetAttribute('version', '1');
-  FSettings.SaveToXmlElement(aXMLElement.AddElement('columns'));
+  SaveGridColumnsSettingToXmlElement(FSettings, aXMLElement.AddElement('columns'));
+  if Assigned(FFormulaFields) then
+    SaveFormulaFieldsToXmlElement(FFormulaFields, aXMLElement.AddElement('formulaFields'));
 end;
 
 procedure TmDBGridHelper.ExportGridAsCsv(aStream: TStream);

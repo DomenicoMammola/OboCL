@@ -219,13 +219,14 @@ begin
   FDatasource:= TDataSource.Create(Self);
   FGrid.DataSource := FDataSource;
 
-  FGridHelper:= TmDBGridHelper.Create(FGrid);
-  FGridHelper.SetupGrid;
 
   FDataset := TVirtualDataset.Create(nil);
   FProvider := TReadOnlyVirtualDatasetProvider.Create;
   FDataset.DatasetDataProvider := FProvider;
   FDatasource.DataSet := FDataset;
+
+  FGridHelper:= TmDBGridHelper.Create(FGrid, FProvider.FormulaFields);
+  FGridHelper.SetupGrid;
   FGrid.SortManager := Self.FDataset.SortManager;
   FGrid.FilterManager := Self.FDataset.FilterManager;
   FGrid.ColumnsHeaderMenuVisible:= true;

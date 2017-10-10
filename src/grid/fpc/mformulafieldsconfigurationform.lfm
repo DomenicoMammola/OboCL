@@ -1,9 +1,9 @@
-object GridSettingsForm: TGridSettingsForm
+object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
   Left = 1679
   Height = 389
   Top = 321
   Width = 959
-  Caption = 'Grid settings'
+  Caption = 'Formula fields'
   ClientHeight = 389
   ClientWidth = 959
   OnCreate = FormCreate
@@ -41,19 +41,6 @@ object GridSettingsForm: TGridSettingsForm
       Kind = bkCancel
       ModalResult = 2
       TabOrder = 1
-    end
-  end
-  object PCSettings: TPageControl
-    Left = 0
-    Height = 339
-    Top = 0
-    Width = 959
-    ActivePage = TSColumns
-    Align = alClient
-    TabIndex = 0
-    TabOrder = 1
-    object TSColumns: TTabSheet
-      Caption = 'Columns'
     end
   end
 end

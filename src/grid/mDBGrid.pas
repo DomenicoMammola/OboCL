@@ -17,9 +17,10 @@ unit mDBGrid;
 interface
 
 uses
-  Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants,
+  db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants, Grids,
   mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
-  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg, mFilter;
+  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg, mFilter, mCellDecorations,
+  KAParser;
 
 resourcestring
   SFilterValuesMenuCaption = 'Filter by value..';
@@ -39,12 +40,14 @@ type
     // bridges for overrided events
     FOnExtTitleClick: TDBGridClickEvent;
     FOnExtMouseDown: TMouseEvent;
+    FOnExtPrepareCanvas : TPrepareDbGridCanvasEvent;
     //
     FAllowSort : boolean;
     FAllowFilter : boolean;
     FColumnsHeaderMenuVisible : boolean;
     FCurrentGridCol : longint;
     FGridIcons: TmGridIconsDataModule;
+    FCellDecorations : TmCellDecorations;
     FColumnsHeaderPopupMenu : TPopupMenu;
     FOriginalPopupMenu : TPopupMenu;
     FSortManager : ISortableDatasetManager;
@@ -52,9 +55,12 @@ type
     // menu
     FMI_RemoveAllFilters : TMenuItem;
   strict private
+    FParser : TKAParser;
+    FOnExpPrepareCanvas: TPrepareDbGridCanvasEvent;
     procedure BuildHeaderPopupMenu;
     procedure InternalOnTitleClick(Column: TColumn); // inspired by http://forum.lazarus.freepascal.org/index.php?topic=24510.0
     procedure InternalOnMouseDown (Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer); // https://www.codeproject.com/Articles/199506/Improving-Delphi-TDBGrid
+    procedure InternalOnPrepareCanvas (sender: TObject; DataCol: Integer; Column: TColumn; AState: TGridDrawState);
     procedure SetColumnsHeaderMenuVisible(AValue: boolean);
     procedure ApplySettingsToField(aColumn: TColumn; aSettings : TmGridColumnSettings);
     procedure ExtractSettingsFromField(aColumn: TColumn; aSettings : TmGridColumnSettings);
@@ -63,6 +69,8 @@ type
     procedure OnColumnsHeaderMenuPopup (Sender : TObject);
     procedure OnFilterValues(Sender : TObject);
     procedure OnRemoveAllFilters (Sender : TObject);
+    procedure OnParserGetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
+    procedure OnParserGetStrValue (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
   protected
     function GetImageForCheckBox(const aCol,aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap; override;
   protected
@@ -77,17 +85,19 @@ type
     // alias for original events
     property OnExtTitleClick: TDBGridClickEvent read FOnExtTitleClick write FOnExtTitleClick;
     property OnExtMouseDown: TMouseEvent read FOnExtMouseDown write FOnExtMouseDown;
+    property OnExpPrepareCanvas : TPrepareDbGridCanvasEvent read FOnExpPrepareCanvas write FOnExpPrepareCanvas;
     //
     property ColumnsHeaderMenuVisible : boolean read FColumnsHeaderMenuVisible write SetColumnsHeaderMenuVisible;
     property SortManager : ISortableDatasetManager read FSortManager write SetSortManager;
     property FilterManager : IFilterDatasetManager read FFilterManager write SetFilterManager;
     property Row;
+    property CellDecorations : TmCellDecorations read FCellDecorations;
   end;
 
 implementation
 
 uses
-  LResources;
+  LResources, sysutils;
 
 { TmDBGrid }
 
@@ -220,6 +230,53 @@ begin
 
   if Assigned(FOnExtMouseDown) then
     FOnExtMouseDown(Sender, Button, Shift, X, Y);
+end;
+
+procedure TmDBGrid.InternalOnPrepareCanvas(sender: TObject; DataCol: Integer; Column: TColumn; AState: TGridDrawState);
+var
+  tmpCellDecoration : TmCellDecoration;
+  PerformCustomizedDraw : boolean;
+  tmpGrid : TDBGrid;
+  tmpValue : double;
+begin
+  tmpCellDecoration := FCellDecorations.FindByFieldName(Column.FieldName);
+  if Assigned(tmpCellDecoration) then
+  begin
+    PerformCustomizedDraw := true;
+    if tmpCellDecoration.Condition.NotNull then
+    begin
+      if not Assigned(FParser) then
+      begin
+        FParser := TKAParser.Create;
+        FParser.OnGetValue:= Self.OnParserGetValue;
+        FParser.OnGetStrValue:= OnParserGetStrValue;
+      end;
+      try
+        if FParser.Calculate(tmpCellDecoration.Condition.Value, tmpValue) then
+          PerformCustomizedDraw:= round(tmpValue) = 1;
+      except
+        on e:Exception do
+        begin
+          PerformCustomizedDraw:= false;
+        end;
+      end;
+    end;
+    if PerformCustomizedDraw then
+    begin
+      tmpGrid := (Sender as TDBGrid);
+      if tmpCellDecoration.BackgroundColor.NotNull then
+        Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
+      if tmpCellDecoration.TextColor.NotNull then
+        Canvas.Font.Color:= tmpCellDecoration.TextColor.Value;
+      if tmpCellDecoration.TextBold.NotNull and tmpCellDecoration.TextBold.Value then
+        Canvas.Font.Style:= Canvas.Font.Style + [fsBold];
+      if tmpCellDecoration.TextItalic.NotNull and tmpCellDecoration.TextItalic.Value then
+        Canvas.Font.Style:= Canvas.Font.Style + [fsItalic];
+    end;
+  end;
+
+  if Assigned(FOnExpPrepareCanvas) then
+    FOnExpPrepareCanvas(sender, DataCol, Column, AState);
 end;
 
 
@@ -375,6 +432,52 @@ begin
   end;
 end;
 
+procedure TmDBGrid.OnParserGetValue(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
+var
+  tmpField : TField;
+begin
+  Successfull:= false;
+  if Assigned(Self.DataSource) and Assigned(Self.DataSource.DataSet) then
+  begin
+    Value := 0;
+    if DataSource.DataSet.IsEmpty then
+      Successfull:= true
+    else
+    begin
+      tmpField := DataSource.DataSet.FieldByName(valueName);
+      if Assigned(tmpField) then
+      begin
+        if not tmpField.IsNull then
+          Value := tmpField.AsFloat;
+        Successfull:= true;
+      end;
+    end;
+  end;
+end;
+
+procedure TmDBGrid.OnParserGetStrValue(Sender: TObject; const valueName: string; var StrValue: string; out Successfull: boolean);
+var
+  tmpField: TField;
+begin
+  Successfull:= false;
+  if Assigned(Self.DataSource) and Assigned(Self.DataSource.DataSet) then
+  begin
+    StrValue := '';
+    if DataSource.DataSet.IsEmpty then
+      Successfull:= true
+    else
+    begin
+      tmpField := DataSource.DataSet.FieldByName(valueName);
+      if Assigned(tmpField) then
+      begin
+        if not tmpField.IsNull then
+          StrValue := tmpField.AsString;
+        Successfull:= true;
+      end;
+    end;
+  end;
+end;
+
 function TmDBGrid.GetImageForCheckBox(const aCol, aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap;
 begin
   if CheckboxView=cbUnchecked then
@@ -394,16 +497,20 @@ begin
   FCustomCheckedBitmap.LoadFromLazarusResource('dbgridcustomcheckedcb');
   FCustomGrayedBitmap := TBitmap.Create;
   FCustomGrayedBitmap.LoadFromLazarusResource('dbgridcustomgrayedcb');
+  FCellDecorations := TmCellDecorations.Create;
   Self.FAllowSort := false;
   Self.OnTitleClick:= InternalOnTitleClick;
   Self.OnMouseDown:= InternalOnMouseDown;
+  Self.OnPrepareCanvas:= InternalOnPrepareCanvas;
 end;
 
 destructor TmDBGrid.Destroy;
 begin
+  FCellDecorations.Free;
   FCustomUncheckedBitmap.Free;
   FCustomCheckedBitmap.Free;
   FCustomGrayedBitmap.Free;
+  FreeAndNil(FParser);
   inherited Destroy;
 end;
 

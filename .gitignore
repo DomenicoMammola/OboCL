@@ -95,3 +95,6 @@ lib/
 
 # Application bundle for Mac OS
 *.app/
+
+# External libraries that must be checked out from a svn repo
+thirdparties/fpspreadsheet

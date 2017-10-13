@@ -100,7 +100,7 @@ begin
     tmpLivingPlate.Transformations.Add.Transformer := FEngine.FindTransformer(tmpMenuInfo.TransformerId);
   tmpLivingPlate.Publication.Publisher := FEngine.FindPublisher(tmpMenuInfo.PublisherId);
   item.TabData.TabCaption:= tmpLivingPlate.Publication.Publisher.GetDescription;
-  item.TabData.TabColor:= clGray;
+  item.TabData.TabColor:= DEFAULT_TAB_COLOR;
 
   BuildAndFeedPlate(tmpLivingPlate, item);
 end;

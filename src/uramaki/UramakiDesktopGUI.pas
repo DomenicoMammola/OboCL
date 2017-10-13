@@ -22,6 +22,9 @@ uses
   ATTabs,
   UramakiDesktopLayout, UramakiDesktopPanelConfigForm, PilePanel;
 
+resourcestring
+  SMenuItemConfigureHeader = 'Configure header';
+
 type
 
   { TUramakiDesktopPanel }
@@ -114,7 +117,7 @@ procedure TUramakiDesktopPanel.CreatePopupMenu;
 begin
   FPopupMenu := TPopupMenu.Create(Self);
   FConfigureMenuItem := TMenuItem.Create(FPopupMenu);
-  FConfigureMenuItem.Caption := 'Configure header';
+  FConfigureMenuItem.Caption := SMenuItemConfigureHeader;
   FConfigureMenuItem.OnClick:= Self.OnConfigurePanel;
   FPopupMenu.Items.Add(FConfigureMenuItem);
   if Assigned(FTabData) then
@@ -184,8 +187,8 @@ begin
     if Dlg.ShowModal = mrOk then
     begin
       Dlg.GetValues(Ref.TabCaption, Ref.TabColor);
-      //if Assigned(FTabs) then
-      //  FTabs.Invalidate;
+      if Assigned(FTabs) then
+        FTabs.Invalidate;
     end;
   finally
     Dlg.Free;
@@ -447,7 +450,7 @@ end;
 procedure TUramakiDesktopSimplePanel.CreateCaptionPanel;
 begin
   CreateTabs;
-  FTabs.AddTab(-1, 'report');
+  FTabs.AddTab(-1, 'report', nil, false, DEFAULT_TAB_COLOR);
   FTabs.OptTabWidthMinimal:= 3000;
   FTabs.OptShowDropMark := false;
   FTabs.OptShowArrowsNear:= false;
@@ -457,7 +460,8 @@ begin
   FTabs.OptTabAngle:= 0;
   FTabs.Height:= FTabs.OptTabHeight;
   FTabs.OptSpaceOnTop:= 0;
-  FTabs.OptSpaceBeforeText:= 0;
+  FTabs.OptSpaceInitial:= 0;
+  FTabs.OptSpaceBeforeText:= 3;
   Self.TabData := FTabs.GetTabData(0);
   FTabs.TabIndex:= FTabs.TabCount - 1;
 end;

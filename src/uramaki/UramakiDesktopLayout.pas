@@ -19,6 +19,9 @@ uses
   contnrs, ExtCtrls, Graphics,
   mXML;
 
+const
+  DEFAULT_TAB_COLOR : TColor = $76B4FE;
+
 type
 
   TContainerType = (ctVertical, ctHorizontal, ctTabbed);
@@ -124,7 +127,7 @@ constructor TUramakiDesktopLayoutConfItem.Create;
 begin
   FPosition := -1;
   FCaption:= 'report';
-  FColor := $808080;
+  FColor := DEFAULT_TAB_COLOR; //$808080;
 end;
 
 procedure TUramakiDesktopLayoutConfItem.SaveToXMLElement(aElement: TmXmlElement);

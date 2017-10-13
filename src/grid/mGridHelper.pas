@@ -20,7 +20,8 @@ uses
   Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
   DBGrids, Controls, Menus, LCLIntf,
   {$IFDEF FPC}
-  fpstypes, fpspreadsheet, (*fpsallformats,*)
+  fpstypes, fpspreadsheet,
+  fpsallformats, // necessary to register all the input/output formats that fpspreadsheet can handle
   {$ENDIF}
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
@@ -30,7 +31,7 @@ uses
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
   SExcelFileDescription = 'Excel 97-2003 files';
-  SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again.';
+  SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again. Detail:';
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
   SWantToOpenFileMessage = 'Do you want to open the file?';
@@ -141,7 +142,7 @@ begin
     except
       on E:Exception do
       begin
-        MessageDlg(SUnableToWriteFileMessage, mtInformation, [mbOk], 0);
+        MessageDlg(SUnableToWriteFileMessage + sLineBreak + e.Message, mtInformation, [mbOk], 0);
       end;
     end;
   end;

@@ -31,7 +31,7 @@ resourcestring
   SValueColumnTitle = 'Value';
 
 type
-  TmEditingFrameEditorKind = (ekInteger, ekFloat, ekDate, ekLookup, ekText);
+  TmEditingFrameEditorKind = (ekInteger, ekFloat, ekDate, ekLookup, ekText, ekReadOnly);
 
   { TmEditingFrame }
 
@@ -248,7 +248,9 @@ begin
   tmp.Index:= FValueListEditor.InsertRow(aCaption, aDefaultValue, true);
   FLinesByIndex.Add(tmp.Index + 1, tmp);
   if (aEditorKind = ekDate) or (aEditorKind = ekLookup) then
-    FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
+    FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis
+  else if (aEditorKind= ekReadOnly) then
+    FValueListEditor.ItemProps[tmp.Index].ReadOnly:= true;
 end;
 
 procedure TmEditingFrame.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string; const aMemoHeightPercent : double);

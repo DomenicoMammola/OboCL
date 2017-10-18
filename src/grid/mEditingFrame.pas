@@ -24,13 +24,14 @@ uses
   SysUtils, variants, StdCtrls,
   oMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
-  mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mVirtualFieldDefs;
+  mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mVirtualFieldDefs, mNullables;
 
 resourcestring
   SPropertyColumnTitle = 'Property';
   SValueColumnTitle = 'Value';
 
 type
+
   TmEditingFrameEditorKind = (ekInteger, ekFloat, ekDate, ekLookup, ekText, ekReadOnly);
 
   { TmEditingFrame }
@@ -58,7 +59,7 @@ type
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
     procedure ExtractFields (aVirtualFields : TVirtualFieldDefs; aList : TStringList);
     function GetValue (const aName : string) : string;
-    function GetValueFromMemo (const aName : string) : string;
+    function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
     // override these:
     procedure OnEditValue(const aName : string; const aNewValue : variant); virtual;
     procedure OnValidateValue(const aName : string; const aOldValue : String; var aNewValue : String); virtual;
@@ -311,7 +312,7 @@ begin
   Result := FValueListEditor.Rows[curLine.Index + 1].Strings[1];
 end;
 
-function TmEditingFrame.GetValueFromMemo(const aName: string): string;
+function TmEditingFrame.GetValueFromMemo(const aName: string; const aTrimValue : boolean): string;
 var
   i : integer;
   sep : string;
@@ -325,7 +326,8 @@ begin
     Result := Result + sep + tmpMemo.Lines[i];
     sep := Chr(13);
   end;
-  Result := Trim(Result);
+  if aTrimValue then
+    Result := Trim(Result);
 end;
 
 procedure TmEditingFrame.OnEditValue(const aName: string; const aNewValue: variant);

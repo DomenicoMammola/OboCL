@@ -35,7 +35,7 @@ type
   TBaseGridPlate = class abstract (TUramakiPlate)
   protected
     FGrid: TmDBGrid;
-    FDataset: TVirtualDataset;
+    FDataset: TmVirtualDataset;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TmDBGridHelper;
     FDatasource : TDatasource;
@@ -220,7 +220,7 @@ begin
   FGrid.DataSource := FDataSource;
 
 
-  FDataset := TVirtualDataset.Create(nil);
+  FDataset := TmVirtualDataset.Create(nil);
   FProvider := TReadOnlyVirtualDatasetProvider.Create;
   FDataset.DatasetDataProvider := FProvider;
   FDatasource.DataSet := FDataset;

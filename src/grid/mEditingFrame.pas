@@ -57,7 +57,7 @@ type
   protected
     procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind);
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
-    procedure ExtractFields (aVirtualFields : TVirtualFieldDefs; aList : TStringList);
+    procedure ExtractFields (aVirtualFields : TmVirtualFieldDefs; aList : TStringList);
     function GetValue (const aName : string) : string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
     // override these:
@@ -169,7 +169,7 @@ var
   curLine : TEditorLine;
   lookupFrm : TmLookupWindow;
   tmpDatasetProvider : TReadOnlyVirtualDatasetProvider;
-  tmpDataset : TVirtualDataset;
+  tmpDataset : TmVirtualDataset;
   tmpFieldsList : TStringList;
 begin
   curLine := FLinesByIndex.Find(aRow) as TEditorLine;
@@ -206,7 +206,7 @@ begin
       lookupFrm := TmLookupWindow.Create(Self);
       try
         tmpDatasetProvider := TReadOnlyVirtualDatasetProvider.Create;
-        tmpDataset := TVirtualDataset.Create(Self);
+        tmpDataset := TmVirtualDataset.Create(Self);
         try
           tmpDataset.DatasetDataProvider := tmpDatasetProvider;
 
@@ -295,7 +295,7 @@ begin
   end;
 end;
 
-procedure TmEditingFrame.ExtractFields(aVirtualFields: TVirtualFieldDefs; aList: TStringList);
+procedure TmEditingFrame.ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
 var
   i : integer;
 begin

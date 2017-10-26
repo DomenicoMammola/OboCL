@@ -18,15 +18,14 @@ interface
 
 uses
   Controls, Classes, StdCtrls, StrUtils, Contnrs, Variants,
-  ExtCtrls, EditBtn, Menus, Spin,
-  mFilter, mBaseClassesAsObjects, mMathUtility;
+  ExtCtrls, EditBtn, Menus,
+  mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility;
 
 type
   { TmFilterConditionPanel }
 
   TmFilterConditionPanel = class (TCustomPanel)
   private
-    procedure SetFilterOperator(AValue: TmFilterOperator);
     procedure SetFlex(AValue: integer);
   protected
     FFlex : integer;
@@ -40,11 +39,12 @@ type
     procedure UpdateCurrentOperatorCheck;
     procedure OperatorMenuItemClick (Sender : TObject);
     procedure OperatorMenuPopup (Sender : TObject);
+    procedure SetFilterOperator(AValue: TmFilterOperator); virtual;
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); virtual; abstract;
 
-    function GetFilterValue : Variant; virtual; abstract;
+    procedure ExportToFilter (aFilter : TmFilter); virtual;
 
     function IsEmpty : boolean; virtual; abstract;
     procedure Clear; virtual; abstract;
@@ -60,11 +60,15 @@ type
   TmDateFilterConditionPanel = class (TmFilterConditionPanel)
   private
     FLabel : TLabel;
-    FDateEdit : TDateEdit;
+    FBottomPanel : TPanel;
+    FDateEditMin : TDateEdit;
+    FDateEditMax : TDateEdit;
+  protected
+    procedure SetFilterOperator(AValue: TmFilterOperator); override;
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
-    function GetFilterValue : Variant; override;
+    procedure ExportToFilter (aFilter : TmFilter); override;
     function IsEmpty : boolean; override;
     procedure Clear; override;
   end;
@@ -82,7 +86,7 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
-    function GetFilterValue : Variant; override;
+    procedure ExportToFilter (aFilter : TmFilter); override;
     procedure SetFilterValue (aValue : Variant);
     function IsEmpty : boolean; override;
     procedure Clear; override;
@@ -102,7 +106,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     procedure SetFilterCaption (aValue : String); override;
-    function GetFilterValue : Variant; override;
+    procedure ExportToFilter (aFilter : TmFilter); override;
     procedure AddItem (aValue : String); overload;
     procedure AddItem (aLabel : String; aValue : Variant); overload;
     procedure ClearItems;
@@ -126,7 +130,7 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
-    function GetFilterValue : Variant; override;
+    procedure ExportToFilter (aFilter : TmFilter); override;
     procedure Clear; override;
     function IsEmpty : boolean; override;
 
@@ -199,9 +203,10 @@ begin
   // do nothing
 end;
 
-function TmExecuteFilterPanel.GetFilterValue: Variant;
+procedure TmExecuteFilterPanel.ExportToFilter (aFilter : TmFilter);
 begin
-  Result := null;
+  inherited ExportToFilter(aFilter);
+  // do nothing
 end;
 
 procedure TmExecuteFilterPanel.Clear;
@@ -259,12 +264,7 @@ begin
     tmp := TmFilterConditionPanel(FFilterConditionPanels.Items[i]);
     if not tmp.IsEmpty then
     begin
-      with aFilters.Add do
-      begin
-        FieldName:= tmp.FieldName;
-        FilterOperator:= tmp.FilterOperator;
-        Value:= tmp.GetFilterValue;
-      end;
+      tmp.ExportToFilter(aFilters.Add);
     end;
   end;
 end;
@@ -314,24 +314,27 @@ begin
   FLabel.Caption := Self.FormatFilterCaption(aValue);
 end;
 
-function TmEditFilterConditionPanel.GetFilterValue: Variant;
+procedure TmEditFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
 var
   tmp : Double;
 begin
+  inherited ExportToFilter(aFilter);
+  aFilter.DataType:= fdtString;
   if FEdit.Text = '' then
-    Result := null
+    aFilter.Value := null
   else
   if FValueType = efUppercaseString then
   begin
-    Result := Uppercase(FEdit.Text)
+    aFilter.Value := Uppercase(FEdit.Text)
   end
   else
   if FValueType = efInteger then
   begin
     if IsNumeric(FEdit.Text, false) then
-      Result := StrToInt(FEdit.Text)
+      aFilter.Value := StrToInt(FEdit.Text)
     else
-      Result := null;
+      aFilter.Value := null;
+    aFilter.DataType:= fdtInteger;
   end
   else
   if FValueType = efFloat then
@@ -339,15 +342,16 @@ begin
     if IsNumeric(FEdit.Text, true) then
     begin
       if TryToConvertToDouble(FEdit.Text, tmp) then
-        Result := tmp
+        aFilter.Value := tmp
       else
-        Result := null;
+        aFilter.Value := null;
     end
     else
-      Result := null;
+      aFilter.Value := null;
+    aFilter.DataType:= fdtFloat;
   end
   else
-    Result := FEdit.Text;
+    aFilter.Value := FEdit.Text;
 end;
 
 procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant);
@@ -393,12 +397,14 @@ begin
   FLabel.Caption := Self.FormatFilterCaption(aValue);
 end;
 
-function TmComboFilterConditionPanel.GetFilterValue: Variant;
+procedure TmComboFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
 begin
+  inherited ExportToFilter(aFilter);
   if FComboBox.ItemIndex < 0 then
-    Result := Null
+    aFilter.Value := Null
   else
-    Result := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
+    aFilter.Value := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
+  aFilter.DataType:= fdtString;
 end;
 
 (*
@@ -485,12 +491,42 @@ end;
 
 { TmDateFilterConditionPanel }
 
+procedure TmDateFilterConditionPanel.SetFilterOperator(AValue: TmFilterOperator);
+begin
+  inherited SetFilterOperator(AValue);
+
+  if aValue = foBetween then
+  begin
+    FDateEditMax.Text:= FDateEditMin.Text;
+    FDateEditMax.Visible:= true;
+    FDateEditMax.Width:= FBottomPanel.Width div 2;
+  end
+  else
+  begin
+    FDateEditMax.Text:= '';
+    FDateEditMax.Visible:= false;
+  end;
+end;
+
 constructor TmDateFilterConditionPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FDateEdit := TDateEdit.Create(Self);
-  FDateEdit.Parent := Self;
-  FDateEdit.Align:= alBottom;
+  FBottomPanel := TPanel.Create(Self);
+  FBottomPanel.BorderStyle:= bsNone;
+  FBottomPanel.BevelInner:= bvNone;
+  FBottomPanel.BevelOuter:= bvNone;
+  FBottomPanel.Parent := Self;
+  FBottomPanel.Align := alBottom;
+
+  FDateEditMax := TDateEdit.Create(Self);
+  FDateEditMax.Parent := FBottomPanel;
+  FDateEditMax.Align:= alRight;
+  FDateEditMax.Width:= FBottomPanel.Width div 2;
+  FDateEditMax.Visible:= false;
+  FDateEditMin := TDateEdit.Create(Self);
+  FDateEditMin.Parent := FBottomPanel;
+  FBottomPanel.Height:= FDateEditMin.Height;
+  FDateEditMin.Align:= alClient;
   FLabel := Self.CreateStandardLabel;
   CreateStandardOperatorMenu(FLabel);
 end;
@@ -500,22 +536,39 @@ begin
   FLabel.Caption := Self.FormatFilterCaption(aValue);
 end;
 
-function TmDateFilterConditionPanel.GetFilterValue: Variant;
+procedure TmDateFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
+var
+  tmpVariant : variant;
 begin
-  if FDateEdit.Text = '' then
-    Result := Null
+  inherited ExportToFilter(aFilter);
+  if FDateEditMin.Text = '' then
+    aFilter.Value := Null
   else
-    Result := FDateEdit.Date;
+  begin
+    if FilterOperator = foBetween then
+    begin
+      tmpVariant := variants.VarArrayCreate([0, 1], vardate);
+      VarArrayPut(tmpVariant, FDateEditMin.Date, [0]);
+      VarArrayPut(tmpVariant, FDateEditMax.Date, [1]);
+      aFilter.Value := tmpVariant;
+    end
+    else
+      aFilter.Value := FDateEditMin.Date;
+  end;
+  aFilter.DataType:= fdtDate;
 end;
 
 function TmDateFilterConditionPanel.IsEmpty: boolean;
 begin
-  Result := (trim(FDateEdit.Text) = '');
+  Result := (trim(FDateEditMin.Text) = '');
+  if FilterOperator = foBetween then
+    Result := Result or (trim(FDateEditMax.Text) = '');
 end;
 
 procedure TmDateFilterConditionPanel.Clear;
 begin
-  FDateEdit.Text:= '';
+  FDateEditMin.Text:= '';
+  FDateEditMax.Text:= '';
 end;
 
 { TmFilterConditionPanel }
@@ -554,37 +607,42 @@ begin
     aLabel.PopupMenu := FOperatorsMenu;
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:= '=';
-    mi.Tag:= integer(foEq);
+    mi.Tag:= PtrInt(foEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:='contains';
-    mi.Tag := integer(foLike);
+    mi.Tag := PtrInt(foLike);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:= '<>';
-    mi.Tag:= integer(foNotEq);
+    mi.Tag:= PtrInt(foNotEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:= '>=';
-    mi.Tag:= integer(foGtOrEq);
+    mi.Tag:= PtrInt(foGtOrEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:= '<=';
-    mi.Tag:= integer(foLtOrEq);
+    mi.Tag:= PtrInt(foLtOrEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:= 'starts';
-    mi.Tag:= integer(foStartWith);
+    mi.Tag:= PtrInt(foStartWith);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
     mi.Caption:= 'ends';
-    mi.Tag:= integer(foEndWith);
+    mi.Tag:= PtrInt(foEndWith);
+    mi.OnClick:= OperatorMenuItemClick;
+    FOperatorsMenu.Items.Add(mi);
+    mi := TMenuItem.Create(FOperatorsMenu);
+    mi.Caption:= 'between';
+    mi.Tag:= PtrInt(foBetween);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
 
@@ -610,7 +668,7 @@ begin
   if Assigned(FOperatorsMenu) then
   begin
     for i := 0 to FOperatorsMenu.Items.Count - 1 do
-      FOperatorsMenu.Items[i].Checked:= FOperatorsMenu.Items[i].Tag = integer(FFilterOperator);
+      FOperatorsMenu.Items[i].Checked:= FOperatorsMenu.Items[i].Tag = PtrInt(FFilterOperator);
   end;
 end;
 
@@ -642,6 +700,12 @@ begin
   Self.Height := 40;
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
+end;
+
+procedure TmFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
+begin
+  aFilter.FieldName := Self.FieldName;
+  aFilter.FilterOperator := Self.FilterOperator;
 end;
 
 

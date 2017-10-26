@@ -19,7 +19,7 @@ interface
 uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants, Grids,
   mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
-  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg, mFilter, mCellDecorations,
+  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg, mFilter, mFilterOperators, mCellDecorations,
   KAParser;
 
 resourcestring

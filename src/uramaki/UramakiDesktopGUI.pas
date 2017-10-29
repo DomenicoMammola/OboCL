@@ -133,7 +133,7 @@ begin
   //FTabs.Height:= 56;
   FTabs.OptMouseDoubleClickClose:= false;
   FTabs.OptShowPlusTab:= false;
-  FTabs.OptShowXButtons:= tbShowNone;
+  FTabs.OptShowXButtons:= atbxShowNone;
   FTabs.OptMouseDoubleClickClose:= false;
   FTabs.OptShowEntireColor:= true;
   FTabs.Height:= 24;
@@ -144,7 +144,7 @@ begin
   FTabs.OptMouseDragOutEnabled:= false; //also enable drag-drop to another controls
   FTabs.OptShowArrowsNear:= false;
   FTabs.OptShowDropMark:= false;
-  FTabs.OptShowAtBottom:= false;
+//  FTabs.OptShowAtBottom:= false;
   FTabs.OptShowScrollMark:= false;
   FTabs.OptButtonLayout:= '';
 end;
@@ -454,12 +454,12 @@ begin
   FTabs.OptTabWidthMinimal:= 3000;
   FTabs.OptShowDropMark := false;
   FTabs.OptShowArrowsNear:= false;
-  FTabs.OptShowAtBottom:= false;
+//  FTabs.OptShowAtBottom:= false;
   FTabs.OptShowScrollMark:= false;
   FTabs.OptButtonLayout:= '';
-  FTabs.OptTabAngle:= 0;
+  FTabs.OptShowAngleTangent:= 0;
   FTabs.Height:= FTabs.OptTabHeight;
-  FTabs.OptSpaceOnTop:= 0;
+  FTabs.OptSpacer:= 0;
   FTabs.OptSpaceInitial:= 0;
   FTabs.OptSpaceBeforeText:= 3;
   Self.TabData := FTabs.GetTabData(0);

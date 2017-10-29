@@ -16,8 +16,16 @@ unit UramakiBaseGridPlate;
 interface
 
 uses
-  Classes, Controls, ExtCtrls, DB, ComCtrls, Windows, DBGrids,
+  Classes, Controls, ExtCtrls, DB, ComCtrls, {$IFDEF WINDOWS}Windows,{$ENDIF} DBGrids,
   Forms,
+  {$IFDEF FPC}
+  InterfaceBase,
+  LCLIntf,
+  LclType,
+  LclProc,
+  LResources,
+  LMessages,
+  {$ENDIF}
 
   UramakiBase,
   mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid,
@@ -49,7 +57,7 @@ type
 
     procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex : integer);
     procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);
-    procedure ProcessRefreshChilds(var Message: TMessage); message WM_USER_REFRESHCHILDS;
+    procedure ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_REFRESHCHILDS;
     procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
     procedure OnDblClick(Sender : TObject);
     procedure InvokeChildsRefresh;
@@ -116,7 +124,7 @@ begin
   end;
 end;
 
-procedure TBaseGridPlate.ProcessRefreshChilds(var Message: TMessage);
+procedure TBaseGridPlate.ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   FGrid.OnSelectEditor:= nil;
 //  FGrid.OnDblClick:= nil;

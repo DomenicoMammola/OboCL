@@ -1,0 +1,1 @@
+lazres ../lcl_dbgrid_customimages.lrs dbgridcustomgrayedcb.bmp dbgridcustomcheckedcb.bmp dbgridcustomuncheckedcb.bmp

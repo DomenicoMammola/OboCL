@@ -147,6 +147,9 @@ begin
 //  FTabs.OptShowAtBottom:= false;
   FTabs.OptShowScrollMark:= false;
   FTabs.OptButtonLayout:= '';
+  FTabs.OptShowFlat:= false;
+  FTabs.OptShowAngled:= true;
+  FTabs.OptSpaceBetweenTabs:= 5;
 end;
 
 (*
@@ -457,7 +460,8 @@ begin
 //  FTabs.OptShowAtBottom:= false;
   FTabs.OptShowScrollMark:= false;
   FTabs.OptButtonLayout:= '';
-  FTabs.OptShowAngleTangent:= 0;
+  FTabs.OptShowFlat:= false;
+  //FTabs.OptShowAngleTangent:= 1;
   FTabs.Height:= FTabs.OptTabHeight;
   FTabs.OptSpacer:= 0;
   FTabs.OptSpaceInitial:= 0;

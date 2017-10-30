@@ -16,7 +16,6 @@ and put it in folder omultipanel
 
 Clone
 https://github.com/DomenicoMammola/ATTabs.git
-branch restore_tab_popup_menu
 in folder ATTabs
 
 

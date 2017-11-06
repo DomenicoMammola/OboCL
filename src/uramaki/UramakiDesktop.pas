@@ -22,7 +22,7 @@ uses
   mXML,
 
   UramakiBase, UramakiEngine, UramakiEngineClasses,
-  UramakiDesktopBase, UramakiDesktopGUI, UramakiDesktopLayout,
+  UramakiDesktopGUI, UramakiDesktopLayout,
   UramakiDesktopLayoutLCLConfigForm, UramakiDesktopLCLIcons;
 
 type

@@ -388,6 +388,7 @@ var
   MyWorksheet : TsWorksheet;
   tmpFields : TFields;
   i, rn, row, col : integer;
+  tmpField : TField;
 begin
   MyWorkbook := TsWorkbook.Create;
   try
@@ -397,7 +398,16 @@ begin
     try
       tmpFields := FDBGrid.DataSource.DataSet.Fields;
       col := 0;
-      for i := 0 to tmpFields.Count - 1 do
+      for i := 0 to FDBGrid.Columns.Count - 1 do
+      begin
+        if FDBGrid.Columns.Items[i].Visible then
+        begin
+          MyWorksheet.WriteText(0, col, FDBGrid.Columns.Items[i].Title.Caption);
+          MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
+          inc (col);
+        end;
+      end;
+(*      for i := 0 to tmpFields.Count - 1 do
       begin
         if tmpFields[i].Visible then
         begin
@@ -405,7 +415,7 @@ begin
           MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
           inc (col);
         end;
-      end;
+      end;*)
 
       rn := FDBGrid.DataSource.DataSet.RecNo;
       row := 1;
@@ -414,7 +424,32 @@ begin
       while not FDBGrid.DataSource.DataSet.EOF do
       begin
         col := 0;
-        for i := 0 to tmpFields.Count - 1 do
+
+        for i := 0 to FDBGrid.Columns.Count - 1 do
+        begin
+          if FDBGrid.Columns.Items[i].Visible then
+          begin
+            tmpField := FDBGrid.Columns.Items[i].Field;
+            if not tmpField.IsNull then
+            begin
+              if (tmpField.DataType = ftSmallint) or (tmpField.DataType = ftInteger) or (tmpField.DataType = ftLargeint) then
+                MyWorksheet.WriteNumber(row, col, tmpField.AsFloat, nfGeneral, 0)
+              else
+              if (tmpField.DataType = ftFloat) then
+                MyWorksheet.WriteNumber(row, col, tmpField.AsFloat)
+              else
+              if (tmpField.DataType = ftDate) or (tmpField.DataType = ftDateTime) or (tmpField.DataType = ftTime) or (tmpField.DataType = ftTimeStamp) then
+                MyWorksheet.WriteDateTime(row, col, tmpField.AsDateTime)
+              else
+              if (tmpField.DataType = ftBoolean) then
+                MyWorksheet.WriteBoolValue(row, col, tmpField.AsBoolean)
+              else
+                MyWorksheet.WriteText(row, col, tmpField.AsString);
+            end;
+            inc(col);
+          end;
+        end;
+(*        for i := 0 to tmpFields.Count - 1 do
         begin
           if tmpFields[i].Visible then
           begin
@@ -436,7 +471,7 @@ begin
             end;
             inc(col);
           end;
-        end;
+        end;*)
 
         inc(row);
         FDBGrid.DataSource.DataSet.Next;

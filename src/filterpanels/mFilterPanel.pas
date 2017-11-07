@@ -102,6 +102,8 @@ type
     FLabel : TLabel;
     FCombobox: TComboBox;
     FGarbage : TObjectList;
+    FDefaultItemIndex : integer;
+    procedure SetDefaultItemIndex(AValue: integer);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -114,6 +116,8 @@ type
 
     procedure Clear; override;
     function IsEmpty : boolean; override;
+
+    property DefaultItemIndex : integer read FDefaultItemIndex write SetDefaultItemIndex;
   end;
 
   { TmExecuteFilterPanel }
@@ -374,6 +378,14 @@ end;
 
 { TmComboFilterConditionPanel }
 
+procedure TmComboFilterConditionPanel.SetDefaultItemIndex(AValue: integer);
+begin
+  if FDefaultItemIndex=AValue then Exit;
+  FDefaultItemIndex:=AValue;
+  if (FDefaultItemIndex >= 0) and (FCombobox.Items.Count > FDefaultItemIndex) then
+    FCombobox.ItemIndex:= FDefaultItemIndex;
+end;
+
 constructor TmComboFilterConditionPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -384,6 +396,7 @@ begin
   FComboBox.DropDownCount:= 20;
   FLabel := Self.CreateStandardLabel;
   FGarbage := TObjectList.Create(true);
+  FDefaultItemIndex:= -1;
 end;
 
 destructor TmComboFilterConditionPanel.Destroy;
@@ -436,6 +449,8 @@ begin
   sh := TVariantObject.Create(aValue);
   FGarbage.Add(sh);
   FComboBox.AddItem(aLabel, sh);
+  if (FDefaultItemIndex >= 0) and (FCombobox.Items.Count > FDefaultItemIndex) then
+    FCombobox.ItemIndex:= FDefaultItemIndex;
 end;
 
 procedure TmComboFilterConditionPanel.ClearItems;
@@ -480,8 +495,13 @@ end;
 
 procedure TmComboFilterConditionPanel.Clear;
 begin
-  FCombobox.ItemIndex:= -1;
-  FCombobox.Text:= '';
+  if (FDefaultItemIndex >= 0) and (FCombobox.Items.Count > FDefaultItemIndex) then
+    FCombobox.ItemIndex:= FDefaultItemIndex
+  else
+  begin
+    FCombobox.ItemIndex:= -1;
+    FCombobox.Text:= '';
+  end;
 end;
 
 function TmComboFilterConditionPanel.IsEmpty: boolean;

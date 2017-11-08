@@ -42,6 +42,8 @@ type
     procedure BuildAndFeedPlate(aLivingPlate: TUramakiLivingPlate; aItem: TPanel);
     procedure OnAddPlate (Sender : TObject);
     procedure DoLinkLayoutItemToPlate(aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid);
+    procedure DoStartShiningPanel(const aPlate : TUramakiLivingPlate);
+    procedure DoStopShiningPanel(const aPlate : TUramakiLivingPlate);
   public
     constructor Create;
     destructor Destroy; override;
@@ -115,6 +117,8 @@ begin
     aLivingPlate.Plate.Parent := aItem;
     aLivingPlate.Plate.Align := alClient;
     aLivingPlate.Plate.EngineMediator := FEngine.Mediator;
+    aLivingPlate.DoPlateStartShining := Self.DoStartShiningPanel;
+    aLivingPlate.DoPlateStopShining:= Self.DoStopShiningPanel;
 
     if aItem is TUramakiDesktopSimplePanel then
     begin
@@ -138,6 +142,22 @@ begin
   tmpLivingPlate := FEngine.FindLivingPlateByPlateId(aLivingPlateInstanceIdentificator);
   if Assigned(tmpLivingPlate) then
     BuildAndFeedPlate(tmpLivingPlate, aItem);
+end;
+
+procedure TUramakiDesktopManager.DoStartShiningPanel(const aPlate : TUramakiLivingPlate);
+begin
+  if (aPlate.Plate.Parent is TUramakiDesktopSimplePanel) then
+  begin
+    (aPlate.Plate.Parent as TUramakiDesktopSimplePanel).StartShining;
+  end;
+end;
+
+procedure TUramakiDesktopManager.DoStopShiningPanel(const aPlate: TUramakiLivingPlate);
+begin
+  if (aPlate.Plate.Parent is TUramakiDesktopSimplePanel) then
+  begin
+    (aPlate.Plate.Parent as TUramakiDesktopSimplePanel).StopShining;
+  end;
 end;
 
 constructor TUramakiDesktopManager.Create;

@@ -52,6 +52,7 @@ type
     FEngineMediator : TUramakiAbstractEngineMediator;
     FOnUramakiPlateDestroy : TNotifyEvent;
   public
+    constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
 
     function GetUramakiRoll(const aUramakiRollId: String) : TUramakiRoll; virtual; abstract;
@@ -190,6 +191,11 @@ begin
 end;
 
 { TUramakiPlate }
+
+constructor TUramakiPlate.Create(TheOwner: TComponent);
+begin
+  inherited Create(TheOwner);
+end;
 
 destructor TUramakiPlate.Destroy;
 begin

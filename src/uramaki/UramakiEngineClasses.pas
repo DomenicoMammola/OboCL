@@ -63,6 +63,11 @@ type
     property PublicationContext : TUramakiPublicationContext read FPublicationContext;
   end;
 
+  TUramakiLivingPlate = class;
+
+  TDoUramakiPlateStartShining = procedure (const aPlate : TUramakiLivingPlate) of object;
+  TDoUramakiPlateStopShining = procedure (const aPlate : TUramakiLivingPlate) of object;
+
 
   { TUramakiLivingPlate }
 
@@ -70,6 +75,8 @@ type
   strict private
     FParentIdentifier : TGuid;
     FInstanceIdentifier : TGuid;
+    FDoPlateStartShining : TDoUramakiPlateStartShining;
+    FDoPlateStopShining : TDoUramakiPlateStopShining;
 
     FPlate : TUramakiPlate;
     FTransformations : TUramakiActualTransformations;
@@ -81,12 +88,16 @@ type
     destructor Destroy; override;
     procedure SaveToXml (aXMLElement : TmXmlElement);
     procedure LoadFromXml (aXMLElement : TmXmlElement; aPublishers : TUramakiPublishers; aTransformers : TUramakiTransformers);
+    procedure StartShining;
+    procedure StopShining;
 
     property Plate : TUramakiPlate read FPlate write SetPlate;
     property Transformations : TUramakiActualTransformations read FTransformations;
     property Publication : TUramakiActualPublication read FPublication;
     property InstanceIdentifier : TGuid read FInstanceIdentifier;
     property ParentIdentifier : TGuid read FParentIdentifier write FParentIdentifier;
+    property DoPlateStartShining : TDoUramakiPlateStartShining read FDoPlateStartShining write FDoPlateStartShining;
+    property DoPlateStopShining : TDoUramakiPlateStopShining read FDoPlateStopShining write FDoPlateStopShining;
   end;
 
 
@@ -115,6 +126,8 @@ begin
   FParentIdentifier := GUID_NULL;
   FInstanceIdentifier := TGuid.NewGuid;
   FPlate := nil;
+  FDoPlateStartShining:= nil;
+  FDoPlateStopShining:= nil;
 
   FTransformations := TUramakiActualTransformations.Create;
   FPublication := TUramakiActualPublication.Create();
@@ -195,6 +208,18 @@ begin
   finally
     cursor.Free;
   end;
+end;
+
+procedure TUramakiLivingPlate.StartShining;
+begin
+  if Assigned(FDoPlateStartShining) then
+    FDoPlateStartShining(Self);
+end;
+
+procedure TUramakiLivingPlate.StopShining;
+begin
+  if Assigned(FDoPlateStopShining) then
+    FDoPlateStopShining(Self);
 end;
 
 

@@ -529,21 +529,26 @@ begin
 
     Garbage := TObjectList.Create(true);
     try
-      tmpParent := Self.FindLivingPlateByPlateId(aLivingPlate.ParentIdentifier);
-      if Assigned(tmpParent) and Assigned(tmpParent.Plate) then
-      begin
-        inputUramakiRoll := tmpParent.Plate.GetUramakiRoll(startUramakiId);
-        Garbage.Add(inputUramakiRoll);
-      end
-      else
-        inputUramakiRoll := nil;
-      for i := 0 to aLivingPlate.Transformations.Count -1 do
-      begin
-        inputUramakiRoll := aLivingPlate.Transformations.Items[i].Transformer.Transform(inputUramakiRoll, aLivingPlate.Transformations.Items[0].TransformationContext);
-        Garbage.Add(inputUramakiRoll);
-      end;
+      aLivingPlate.StartShining;
+      try
+        tmpParent := Self.FindLivingPlateByPlateId(aLivingPlate.ParentIdentifier);
+        if Assigned(tmpParent) and Assigned(tmpParent.Plate) then
+        begin
+          inputUramakiRoll := tmpParent.Plate.GetUramakiRoll(startUramakiId);
+          Garbage.Add(inputUramakiRoll);
+        end
+        else
+          inputUramakiRoll := nil;
+        for i := 0 to aLivingPlate.Transformations.Count -1 do
+        begin
+          inputUramakiRoll := aLivingPlate.Transformations.Items[i].Transformer.Transform(inputUramakiRoll, aLivingPlate.Transformations.Items[0].TransformationContext);
+          Garbage.Add(inputUramakiRoll);
+        end;
 
-      aLivingPlate.Publication.Publisher.Publish(inputUramakiRoll, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
+        aLivingPlate.Publication.Publisher.Publish(inputUramakiRoll, aLivingPlate.Plate, aLivingPlate.Publication.PublicationContext);
+      finally
+        aLivingPlate.StopShining;
+      end;
     finally
       Garbage.Free;
     end;

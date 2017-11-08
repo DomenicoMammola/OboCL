@@ -16,7 +16,7 @@ unit UramakiDesktopGUI;
 interface
 
 uses
-  Controls, Classes, StdCtrls, ExtCtrls, contnrs,
+  Controls, Classes, StdCtrls, ExtCtrls, contnrs, Forms,
   Graphics, Menus, Dialogs,
   oMultiPanelSetup, OMultiPanel,
   ATTabs,
@@ -33,6 +33,7 @@ type
   protected
     FTabs : TATTabs;
     FTabData : TATTabData;
+    FUpdatingLabel : TLabel;
     FPopupMenu : TPopupMenu;
     FConfigureMenuItem : TMenuItem;
 
@@ -63,6 +64,8 @@ type
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
     function HowManySubReports : integer; override;
+    procedure StartShining;
+    procedure StopShining;
 
     property LivingPlateInstanceIdentifier : TGuid read FLivingPlateInstanceIdentifier write FLivingPlateInstanceIdentifier;
     property AddMenuItem : TMenuItem read FAddMenuItem;
@@ -150,6 +153,12 @@ begin
   FTabs.OptShowFlat:= false;
   FTabs.OptShowAngled:= true;
   FTabs.OptSpaceBetweenTabs:= 5;
+  FUpdatingLabel := TLabel.Create(Self);
+  FUpdatingLabel.Parent:= Self;
+  FUpdatingLabel.Align:= alTop;
+  FUpdatingLabel.Height:= 10;
+  FUpdatingLabel.Visible:= false;
+  FUpdatingLabel.Caption:= 'Updating...';
 end;
 
 (*
@@ -430,7 +439,6 @@ begin
 //  FPopupMenu.OnPopup:= Self.OnPopupMenu;
 end;
 
-
 constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -438,7 +446,6 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.ParentColor:= true;
-
 
 (*  FTitleBar := TPanel.Create(Self);
   FTitleBar.Color:= clBlue;
@@ -495,6 +502,17 @@ end;
 function TUramakiDesktopSimplePanel.HowManySubReports: integer;
 begin
   Result := 1;
+end;
+
+procedure TUramakiDesktopSimplePanel.StartShining;
+begin
+  FUpdatingLabel.Visible:= true;
+  Application.ProcessMessages;
+end;
+
+procedure TUramakiDesktopSimplePanel.StopShining;
+begin
+  FUpdatingLabel.Visible:= false;
 end;
 
 end.

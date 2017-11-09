@@ -42,6 +42,7 @@ type
   TUramakiAbstractEngineMediator = class abstract
   public
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); virtual; abstract;
+    procedure PleaseClearMyChilds (aPlate : TUramakiPlate); virtual; abstract;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; virtual; abstract;
   end;
 
@@ -61,6 +62,7 @@ type
     procedure EndTransaction(const aTransactionId: TGuid); virtual;
     procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); virtual;
     procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); virtual;
+    procedure Clear; virtual; abstract;
 
     property EngineMediator : TUramakiAbstractEngineMediator read FEngineMediator write FEngineMediator;
     property OnDestroy : TNotifyEvent read FOnUramakiPlateDestroy write FOnUramakiPlateDestroy;

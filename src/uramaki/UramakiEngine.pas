@@ -103,6 +103,7 @@ type
   public
     constructor Create (aEngine : TUramakiEngine);
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); override;
+    procedure PleaseClearMyChilds (aPlate : TUramakiPlate); override;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; override;
   end;
 
@@ -269,6 +270,23 @@ begin
     for i := 0 to childs.Count - 1 do
     begin
       FEngine.FeedLivingPlate(childs.Items[i] as TUramakiLivingPlate);
+    end;
+  finally
+    childs.Free;
+  end;
+end;
+
+procedure TUramakiEngineMediator.PleaseClearMyChilds(aPlate: TUramakiPlate);
+var
+  childs : TObjectList;
+  i: integer;
+begin
+  childs := TObjectList.Create(false);
+  try
+    FEngine.FindLivingPlatesByParent(aPlate, childs);
+    for i := 0 to childs.Count - 1 do
+    begin
+      (childs.Items[i] as TUramakiLivingPlate).Plate.Clear;
     end;
   finally
     childs.Free;

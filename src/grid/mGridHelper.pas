@@ -26,7 +26,8 @@ uses
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
   mDBGrid,
-  mVirtualDatasetFormulas;
+  mVirtualDatasetFormulas,
+  UramakiBase;
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
@@ -50,19 +51,20 @@ type
   { TmDBGridHelper }
 
   TmDBGridHelper = class
-  strict private
+  protected
     FSettings : TmGridColumnsSettings;
     FDBGrid : TmDBGrid;
     FFormulaFields : TmFormulaFields;
     FSaveDialog: TSaveDialog;
+    FConfigurePopupMenu : TPopupMenu;
     function ConfirmFileOverwrite : boolean;
     procedure ExportGridToFile(aFileType : String);
   public
-    constructor Create(aGrid : TmDBGrid;aFormulaFields : TmFormulaFields);
+    constructor Create(aGrid : TmDBGrid;aFormulaFields : TmFormulaFields); virtual;
     destructor Destroy; override;
 
     procedure SetupGrid;
-    procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer);
+    procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); virtual;
 
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
@@ -82,6 +84,7 @@ type
 
     property Grid : TmDBGrid read FDBGrid;
   end;
+
 
 implementation
 
@@ -175,45 +178,44 @@ end;
 
 procedure TmDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex : integer);
 var
-  tmpConfigurePopupMenu : TPopupMenu;
   tmp : TToolButton;
   itm : TMenuItem;
 begin
-  tmpConfigurePopupMenu := TPopupMenu.Create(aToolbar);
+  FConfigurePopupMenu := TPopupMenu.Create(aToolbar);
 //  tmpConfigurePopupMenu.Images := aToolbar.Images;
 
   tmp := TToolButton.Create(aToolbar);
   tmp.Style:= tbsDropDown;
-  tmp.DropdownMenu := tmpConfigurePopupMenu;
+  tmp.DropdownMenu := FConfigurePopupMenu;
   tmp.ImageIndex := aConfigureImageIndex;
   tmp.Parent := aToolbar;
   tmp.Hint := SConfigureCommandHint;
-  itm := TMenuItem.Create(tmpConfigurePopupMenu);
-  tmpConfigurePopupMenu.Items.Add(itm);
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
   itm.OnClick:= Self.OnEditSettings;
   itm.Hint:= SConfigureGridCommandHint;
   itm.Caption:= SConfigureGridCommandCaption;
   if Assigned(FFormulaFields) then
   begin
-    itm := TMenuItem.Create(tmpConfigurePopupMenu);
-    tmpConfigurePopupMenu.Items.Add(itm);
+    itm := TMenuItem.Create(FConfigurePopupMenu);
+    FConfigurePopupMenu.Items.Add(itm);
     itm.OnClick:= Self.OnEditFormulaFields;
     itm.Hint:= SConfigureFormulaFieldsCommandHint;
     itm.Caption:= SConfigureFormulaFieldsCommandCaption;
   end;
 
-  itm := TMenuItem.Create(tmpConfigurePopupMenu);
+  itm := TMenuItem.Create(FConfigurePopupMenu);
   itm.Caption:= '-';
-  tmpConfigurePopupMenu.Items.Add(itm);
+  FConfigurePopupMenu.Items.Add(itm);
 
-  itm := TMenuItem.Create(tmpConfigurePopupMenu);
-  tmpConfigurePopupMenu.Items.Add(itm);
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
   itm.OnClick:= Self.OnExportGridAsCsv;
   itm.Hint:= SExportGridAsCsvCommandHint;
   itm.Caption:= SExportGridAsCsvCommandCaption;
 
-  itm := TMenuItem.Create(tmpConfigurePopupMenu);
-  tmpConfigurePopupMenu.Items.Add(itm);
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
   itm.OnClick:= Self.OnExportGridAsXls;
   itm.Hint:= SExportGridAsXlsCommandHint;
   itm.Caption:= SExportGridAsXlsCommandCaption;

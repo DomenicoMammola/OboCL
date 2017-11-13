@@ -1,17 +1,17 @@
 object FilterValuesDlg: TFilterValuesDlg
-  Left = 661
+  Left = 459
   Height = 240
-  Top = 291
-  Width = 320
+  Top = 216
+  Width = 477
   Caption = 'Filter values'
   ClientHeight = 240
-  ClientWidth = 320
+  ClientWidth = 477
   LCLVersion = '1.6.4.0'
   object ButtonPanel1: TButtonPanel
     Left = 6
     Height = 34
     Top = 200
-    Width = 308
+    Width = 465
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
     HelpButton.Name = 'HelpButton'
@@ -20,28 +20,141 @@ object FilterValuesDlg: TFilterValuesDlg
     CloseButton.DefaultCaption = True
     CancelButton.Name = 'CancelButton'
     CancelButton.DefaultCaption = True
-    TabOrder = 2
+    TabOrder = 0
     ShowButtons = [pbOK, pbCancel]
   end
-  object ListFilterEdit: TListFilterEdit
+  object PageControlFilter: TPageControl
     Left = 0
-    Height = 23
+    Height = 194
     Top = 0
-    Width = 320
-    UseFormActivate = True
-    ButtonWidth = 23
-    NumGlyphs = 1
-    Align = alTop
-    MaxLength = 0
-    TabOrder = 0
-  end
-  object ValuesListBox: TCheckListBox
-    Left = 0
-    Height = 171
-    Top = 23
-    Width = 320
+    Width = 477
+    ActivePage = TSSimple
     Align = alClient
-    ItemHeight = 0
+    TabIndex = 0
     TabOrder = 1
+    object TSSimple: TTabSheet
+      Caption = 'Simple'
+      ClientHeight = 166
+      ClientWidth = 469
+      object ListFilterEdit: TListFilterEdit
+        Left = 0
+        Height = 23
+        Top = 0
+        Width = 469
+        UseFormActivate = True
+        ButtonWidth = 23
+        NumGlyphs = 1
+        Align = alTop
+        MaxLength = 0
+        TabOrder = 0
+      end
+      object ValuesListBox: TCheckListBox
+        Left = 0
+        Height = 143
+        Top = 23
+        Width = 469
+        Align = alClient
+        BorderStyle = bsNone
+        ItemHeight = 0
+        TabOrder = 1
+      end
+    end
+    object TSAdvanced: TTabSheet
+      Caption = 'Advanced'
+      ClientHeight = 166
+      ClientWidth = 469
+      object PanelLeft: TPanel
+        Left = 0
+        Height = 166
+        Top = 0
+        Width = 240
+        Align = alLeft
+        BevelOuter = bvNone
+        ClientHeight = 166
+        ClientWidth = 240
+        TabOrder = 0
+        object ListFilterEditAdvanced: TListFilterEdit
+          Left = 0
+          Height = 23
+          Top = 0
+          Width = 240
+          ButtonWidth = 23
+          NumGlyphs = 1
+          Align = alTop
+          MaxLength = 0
+          TabOrder = 0
+        end
+        object ListBoxToBeFiltered: TListBox
+          Left = 0
+          Height = 143
+          Top = 23
+          Width = 240
+          Align = alClient
+          BorderStyle = bsNone
+          ItemHeight = 0
+          OnClick = ListBoxToBeFilteredClick
+          TabOrder = 1
+        end
+      end
+      object Splitter1: TSplitter
+        Left = 240
+        Height = 166
+        Top = 0
+        Width = 5
+      end
+      object PanelRight: TPanel
+        Left = 245
+        Height = 166
+        Top = 0
+        Width = 224
+        Align = alClient
+        BevelOuter = bvNone
+        ClientHeight = 166
+        ClientWidth = 224
+        TabOrder = 2
+        object PanelTop: TPanel
+          Left = 0
+          Height = 23
+          Top = 0
+          Width = 224
+          Align = alTop
+          BevelOuter = bvNone
+          ClientHeight = 23
+          ClientWidth = 224
+          TabOrder = 0
+          object BtnAddAll: TButton
+            Left = 0
+            Height = 23
+            Top = 0
+            Width = 75
+            Align = alLeft
+            Caption = 'Add all'
+            OnClick = BtnAddAllClick
+            TabOrder = 0
+          end
+          object BtnClear: TButton
+            Left = 75
+            Height = 23
+            Top = 0
+            Width = 75
+            Align = alLeft
+            Caption = 'Clear'
+            OnClick = BtnClearClick
+            TabOrder = 1
+          end
+        end
+        object ListBoxFilter: TListBox
+          Left = 0
+          Height = 143
+          Top = 23
+          Width = 224
+          Align = alClient
+          BorderStyle = bsNone
+          ItemHeight = 0
+          OnClick = ListBoxFilterClick
+          TabOrder = 1
+        end
+      end
+    end
   end
 end

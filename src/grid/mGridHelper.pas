@@ -36,15 +36,15 @@ resourcestring
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
   SWantToOpenFileMessage = 'Do you want to open the file?';
-  SConfigureCommandHint = 'Configure..';
-  SConfigureGridCommandHint = 'Configure grid..';
+  SConfigureCommandHint = 'Configure...';
+  SConfigureGridCommandHint = 'Configure grid...';
   SConfigureFormulaFieldsCommandHint = 'Configure formula fields..';
   SConfigureGridCommandCaption = 'Configure grid';
   SConfigureFormulaFieldsCommandCaption = 'Configure formula fields';
   SExportGridAsCsvCommandHint = 'Export grid data to csv file';
-  SExportGridAsCsvCommandCaption = 'Export to csv file..';
+  SExportGridAsCsvCommandCaption = 'Export to csv file...';
   SExportGridAsXlsCommandHint = 'Export grid data to Excel file (.xls)';
-  SExportGridAsXlsCommandCaption = 'Export to Excel file (.xls)..';
+  SExportGridAsXlsCommandCaption = 'Export to Excel file (.xls)...';
 
 type
 
@@ -440,8 +440,16 @@ begin
               if (tmpField.DataType = ftFloat) then
                 MyWorksheet.WriteNumber(row, col, tmpField.AsFloat)
               else
-              if (tmpField.DataType = ftDate) or (tmpField.DataType = ftDateTime) or (tmpField.DataType = ftTime) or (tmpField.DataType = ftTimeStamp) then
-                MyWorksheet.WriteDateTime(row, col, tmpField.AsDateTime)
+              if (tmpField.DataType = ftDate) then
+                MyWorksheet.WriteDateTime(row, col, round(tmpField.AsDateTime), nfShortDate)
+              else
+              if (tmpField.DataType = ftDateTime) or (tmpField.DataType = ftTime) or (tmpField.DataType = ftTimeStamp) then
+              begin
+                if tmpField.AsDateTime = round(tmpField.AsDateTime) then
+                  MyWorksheet.WriteDateTime(row, col, tmpField.AsDateTime, nfShortDate)
+                else
+                  MyWorksheet.WriteDateTime(row, col, tmpField.AsDateTime, nfShortDateTime);
+              end
               else
               if (tmpField.DataType = ftBoolean) then
                 MyWorksheet.WriteBoolValue(row, col, tmpField.AsBoolean)

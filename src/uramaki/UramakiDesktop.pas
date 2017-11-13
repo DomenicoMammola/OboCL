@@ -78,9 +78,9 @@ type
 procedure TUramakiDesktopManager.CreateToolbar;
 begin
 //  FToolbar.AddButton(ICON_ADD, nil, '', '', '', false);
-  FToolbar.AddDropdown(FRootPopupMenu, nil, 'Add..');
+  FToolbar.AddDropdown(FRootPopupMenu, nil, 'Add...');
   FToolbar.AddButton(ICON_OPEN, OnLoadFromFile, '', 'Open a report file..', '', false);
-  FToolbar.AddButton(ICON_SAVE, OnSaveToFile, '', 'Save to a report file..', '', false);
+  FToolbar.AddButton(ICON_SAVE, OnSaveToFile, '', 'Save to a report file...', '', false);
   FToolbar.AddButton(ICON_CONFIGURE, OnConfigureLayout, '', 'Configure layout of report', '', false);
   FToolbar.UpdateControls;
 

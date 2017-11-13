@@ -23,9 +23,9 @@ uses
   KAParser;
 
 resourcestring
-  SFilterValuesMenuCaption = 'Filter by value..';
+  SFilterValuesMenuCaption = 'Filter by value...';
   SRemoveFiltersMenuCaption = 'Remove all filters';
-  SAddSummaryMenuCaption = 'Add summary..';
+  SAddSummaryMenuCaption = 'Add summary...';
 
 
 type

@@ -24,6 +24,8 @@ uses
 
 resourcestring
   SMenuItemConfigureHeader = 'Configure header';
+  SMenuItemAddChild = 'Add a child widget...';
+  SLabelUpdatingCaption = 'Updating...';
 
 type
 
@@ -158,7 +160,7 @@ begin
   FUpdatingLabel.Align:= alTop;
   FUpdatingLabel.Height:= 10;
   FUpdatingLabel.Visible:= false;
-  FUpdatingLabel.Caption:= 'Updating...';
+  FUpdatingLabel.Caption:= SLabelUpdatingCaption;
 end;
 
 (*
@@ -433,7 +435,7 @@ procedure TUramakiDesktopSimplePanel.CreatePopupMenu;
 begin
   inherited;
   FAddMenuItem := TMenuItem.Create(FPopupMenu);
-  FAddMenuItem.Caption:= 'Add a new child to report..';
+  FAddMenuItem.Caption:= SMenuItemAddChild;
   FPopupMenu.Items.Add(FAddMenuItem);
 
 //  FPopupMenu.OnPopup:= Self.OnPopupMenu;

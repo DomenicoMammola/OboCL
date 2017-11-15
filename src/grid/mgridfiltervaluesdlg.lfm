@@ -9,8 +9,8 @@ object FilterValuesDlg: TFilterValuesDlg
   LCLVersion = '1.6.4.0'
   object ButtonPanel1: TButtonPanel
     Left = 6
-    Height = 34
-    Top = 200
+    Height = 26
+    Top = 208
     Width = 465
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -22,10 +22,11 @@ object FilterValuesDlg: TFilterValuesDlg
     CancelButton.DefaultCaption = True
     TabOrder = 0
     ShowButtons = [pbOK, pbCancel]
+    ShowBevel = False
   end
   object PageControlFilter: TPageControl
     Left = 0
-    Height = 194
+    Height = 202
     Top = 0
     Width = 477
     ActivePage = TSSimple
@@ -34,7 +35,7 @@ object FilterValuesDlg: TFilterValuesDlg
     TabOrder = 1
     object TSSimple: TTabSheet
       Caption = 'Simple'
-      ClientHeight = 166
+      ClientHeight = 174
       ClientWidth = 469
       object ListFilterEdit: TListFilterEdit
         Left = 0
@@ -50,27 +51,26 @@ object FilterValuesDlg: TFilterValuesDlg
       end
       object ValuesListBox: TCheckListBox
         Left = 0
-        Height = 143
+        Height = 151
         Top = 23
         Width = 469
         Align = alClient
-        BorderStyle = bsNone
         ItemHeight = 0
         TabOrder = 1
       end
     end
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
-      ClientHeight = 166
+      ClientHeight = 174
       ClientWidth = 469
       object PanelLeft: TPanel
         Left = 0
-        Height = 166
+        Height = 174
         Top = 0
         Width = 240
         Align = alLeft
         BevelOuter = bvNone
-        ClientHeight = 166
+        ClientHeight = 174
         ClientWidth = 240
         TabOrder = 0
         object ListFilterEditAdvanced: TListFilterEdit
@@ -86,11 +86,10 @@ object FilterValuesDlg: TFilterValuesDlg
         end
         object ListBoxToBeFiltered: TListBox
           Left = 0
-          Height = 143
+          Height = 151
           Top = 23
           Width = 240
           Align = alClient
-          BorderStyle = bsNone
           ItemHeight = 0
           OnClick = ListBoxToBeFilteredClick
           TabOrder = 1
@@ -98,18 +97,18 @@ object FilterValuesDlg: TFilterValuesDlg
       end
       object Splitter1: TSplitter
         Left = 240
-        Height = 166
+        Height = 174
         Top = 0
         Width = 5
       end
       object PanelRight: TPanel
         Left = 245
-        Height = 166
+        Height = 174
         Top = 0
         Width = 224
         Align = alClient
         BevelOuter = bvNone
-        ClientHeight = 166
+        ClientHeight = 174
         ClientWidth = 224
         TabOrder = 2
         object PanelTop: TPanel
@@ -145,11 +144,10 @@ object FilterValuesDlg: TFilterValuesDlg
         end
         object ListBoxFilter: TListBox
           Left = 0
-          Height = 143
+          Height = 151
           Top = 23
           Width = 224
           Align = alClient
-          BorderStyle = bsNone
           ItemHeight = 0
           OnClick = ListBoxFilterClick
           TabOrder = 1

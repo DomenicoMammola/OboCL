@@ -101,15 +101,10 @@ begin
     ListFilterEdit.ForceFilter('#');
     ListFilterEdit.ResetFilter;
 
-    //ListFilterEditAdvanced.FilteredListbox := ListBoxToBeFiltered;
-    ListBoxToBeFiltered.Items.BeginUpdate;
-    try
-      ListBoxToBeFiltered.Items.AddStrings(aList);
-    finally
-      ListBoxToBeFiltered.Items.EndUpdate;
-    end;
-    //ListFilterEditAdvanced.ForceFilter('#');
-    //ListFilterEditAdvanced.ResetFilter;
+    ListFilterEditAdvanced.FilteredListbox := ListBoxToBeFiltered;
+    ListFilterEditAdvanced.Items.AddStrings(aList);
+    ListFilterEditAdvanced.ForceFilter('#');
+    ListFilterEditAdvanced.ResetFilter;
   finally
     Screen.Cursor := OldCursor;
   end;

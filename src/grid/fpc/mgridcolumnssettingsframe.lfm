@@ -17,23 +17,23 @@ object GridColumnsSettingsFrame: TGridColumnsSettingsFrame
       item
         Name = 'CSDFFieldName'
         DataType = ftString
-        Size = 50
+        Size = 300
       end    
       item
         Name = 'CSDFDisplayLabel'
         DataType = ftString
-        Size = 50
+        Size = 300
       end    
       item
         Name = 'CSDFDisplayFormat'
         DataType = ftString
-        Size = 15
+        Size = 50
       end    
       item
         Name = 'CSDFVisible'
         DataType = ftBoolean
       end>
-    left = 431
+    left = 432
     top = 133
   end
 end

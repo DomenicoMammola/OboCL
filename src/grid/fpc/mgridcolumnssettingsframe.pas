@@ -19,6 +19,12 @@ uses
 
   mGridColumnSettings;
 
+resourcestring
+  SNameFieldLabel = 'Name';
+  SVisibleFieldLabel = 'Visible';
+  SLabelFieldLabel = 'Label';
+  SFormatFieldLabel = 'Format';
+
 type
 
   { TGridColumnsSettingsFrame }
@@ -26,6 +32,11 @@ type
   TGridColumnsSettingsFrame = class(TFrame)
     DataSourceColSettings: TDataSource;
     ColSettingsDataset: TMemDataset;
+  private
+    const FLD_FIELDNAME = 'CSDFFieldName';
+    const FLD_VISIBLE = 'CSDFVisible';
+    const FLD_LABEL = 'CSDFDisplayLabel';
+    const FLD_FORMAT = 'CSDFDisplayFormat';
   private
     FSettings : TmGridColumnsSettings;
     FColSettingsGrid: TDBGrid;
@@ -59,25 +70,25 @@ begin
   with FColSettingsGrid.Columns.Add do
   begin
     ReadOnly := True;
-    Title.Caption := 'Name';
+    Title.Caption := SNameFieldLabel;
     Width := 250;
-    FieldName := 'CSDFFieldName';
+    FieldName := FLD_FIELDNAME;
   end;
   with FColSettingsGrid.Columns.Add do
   begin
-    Title.Caption := 'Visible';
-    FieldName := 'CSDFVisible';
+    Title.Caption := SVisibleFieldLabel;
+    FieldName := FLD_VISIBLE;
   end;
   with FColSettingsGrid.Columns.Add do
   begin
-    Title.Caption := 'Label';
+    Title.Caption := SLabelFieldLabel;
     Width := 250;
-    FieldName := 'CSDFDisplayLabel';
+    FieldName := FLD_LABEL;
   end;
   with FColSettingsGrid.Columns.Add do
   begin
-    Title.Caption := 'Format';
-    FieldName := 'CSDFDisplayFormat';
+    Title.Caption := SFormatFieldLabel;
+    FieldName := FLD_FORMAT;
   end;
   FColSettingsGrid.DataSource := DataSourceColSettings;
 end;
@@ -91,6 +102,7 @@ procedure TGridColumnsSettingsFrame.Init(aSettings: TmGridColumnsSettings);
 var
   i : integer;
   op : TmGridColumnSettings;
+  tmp : string;
 begin
   FSettings := aSettings;
   ColSettingsDataset.DisableControls;
@@ -99,13 +111,14 @@ begin
     begin
       op := aSettings.Get(i);
       ColSettingsDataset.Append;
-      ColSettingsDataset.FieldByName('CSDFFieldName').AsString := op.FieldName;
+      tmp := op.FieldName;
+      ColSettingsDataset.FieldByName(FLD_FIELDNAME).AsString := tmp;
       if op.DisplayLabel.NotNull then
-        ColSettingsDataset.FieldByName('CSDFDisplayLabel').AsString := op.DisplayLabel.Value;
+        ColSettingsDataset.FieldByName(FLD_LABEL).AsString := op.DisplayLabel.Value;
       if op.DisplayFormat.NotNull then
-        ColSettingsDataset.FieldByName('CSDFDisplayFormat').AsString:= op.DisplayFormat.Value;
+        ColSettingsDataset.FieldByName(FLD_FORMAT).AsString:= op.DisplayFormat.Value;
       if op.Visible.NotNull then
-        ColSettingsDataset.FieldByName('CSDFVisible').AsBoolean:= op.Visible.Value;
+        ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean:= op.Visible.Value;
       ColSettingsDataset.Post;
     end;
   finally
@@ -125,21 +138,27 @@ begin
       ColSettingsDataset.First;
       while not ColSettingsDataset.EOF do
       begin
-        op := FSettings.GetSettingsForField(ColSettingsDataset.FieldByName('CSDFFieldName').AsString);
-        if (ColSettingsDataset.FieldByName('CSDFDisplayLabel').IsNull) then
+        op := FSettings.GetSettingsForField(ColSettingsDataset.FieldByName(FLD_FIELDNAME).AsString);
+
+        if (ColSettingsDataset.FieldByName(FLD_LABEL).IsNull) then
           op.DisplayLabel.IsNull:= true
         else
-          op.DisplayLabel.Value:= ColSettingsDataset.FieldByName('CSDFDisplayLabel').AsString;
+          op.DisplayLabel.Value:= ColSettingsDataset.FieldByName(FLD_LABEL).AsString;
 
-        if (ColSettingsDataset.FieldByName('CSDFDisplayFormat').IsNull) then
+        if (ColSettingsDataset.FieldByName(FLD_FORMAT).IsNull) then
           op.DisplayFormat.IsNull:= true
         else
-          op.DisplayFormat.Value := ColSettingsDataset.FieldByName('CSDFDisplayFormat').AsString;
+          op.DisplayFormat.Value := ColSettingsDataset.FieldByName(FLD_FORMAT).AsString;
 
-        if (ColSettingsDataset.FieldByName('CSDFVisible').IsNull) then
+        if (ColSettingsDataset.FieldByName(FLD_VISIBLE).IsNull) then
           op.Visible.IsNull:= true
         else
-          op.Visible.Value:= ColSettingsDataset.FieldByName('CSDFVisible').AsBoolean;
+        begin
+          if (op.Visible.IsNull or (not op.Visible.Value)) and ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean then
+            op.Width.Value := 100;
+          op.Visible.Value:= ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean;
+        end;
+
 
         ColSettingsDataset.Next;
       end;

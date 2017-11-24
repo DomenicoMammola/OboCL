@@ -18,6 +18,7 @@ interface
 uses
   Classes, Controls, ExtCtrls, DB, ComCtrls, {$IFDEF WINDOWS}Windows,{$ENDIF} DBGrids,
   Forms, Menus,
+  ATButtons, ATButtonsToolbar,
   {$IFDEF FPC}
   InterfaceBase,
   LCLIntf,
@@ -36,6 +37,8 @@ resourcestring
   SEnableAutomaticChildsUpdateCaption = 'Refresh them automatically';
   SDisableAutomaticChildsUpdateCaption = 'Do not refresh them automatically';
   SUpdateChildWidgetsBtnHint = 'Click to update child widgets';
+  SSelectAllMenuCaption = 'Select all rows';
+  SGridActionsHint = 'Grid actions';
 
 const
   WM_USER_REFRESHCHILDS = WM_USER + 1;
@@ -56,21 +59,24 @@ type
     FAutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode;
     procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
     procedure DoUpdateChilds (Sender : TObject);
+    procedure DoSelectAll (Sender : TObject);
   protected
     FGrid: TmDBGrid;
     FDataset: TmVirtualDataset;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TUramakiDBGridHelper;
     FDatasource : TDatasource;
-    FToolbar : TToolBar;
+    //FToolbar : TToolBar;
+    FToolbar : TATButtonsToolbar;
     FLastSelectedRow : integer;
     FFilterPanel : TmFilterPanel;
+    FGridCommandsPopupMenu : TPopupMenu;
 
     // override these:
     function GetDataProvider : IVDListDataProvider; virtual; abstract;
     procedure ReloadData (aFilters : TmFilters); virtual; abstract;
 
-    procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex : integer);
+    procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
     procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);
     procedure ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_REFRESHCHILDS;
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
@@ -108,7 +114,8 @@ type
   public
     constructor Create(aPlate : TUramakiBaseGridPlate); reintroduce;
 
-    procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); override;
+    //procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); override;
+    procedure CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer); override;
   end;
 
 implementation
@@ -121,7 +128,9 @@ begin
   inherited Create(FGridPlate.FGrid, FGridPlate.FProvider.FormulaFields);
 end;
 
-procedure TUramakiDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex: integer);
+
+//procedure TUramakiDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex: integer);
+procedure TUramakiDBGridHelper.CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer);
 var
   itm : TMenuItem;
 begin
@@ -193,9 +202,50 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex : integer);
+procedure TUramakiBaseGridPlate.DoSelectAll(Sender: TObject);
+begin
+  FGridHelper.SelectAllRows;
+end;
+
+procedure TUramakiBaseGridPlate.CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
 var
   tmp : TToolButton;
+  mItm : TMenuItem;
+  tmpPanel : TPanel;
+begin
+  tmpPanel := TPanel.Create(Self);
+  tmpPanel.Parent := Self;
+  tmpPanel.Align:= alTop;
+  tmpPanel.AutoSize:= true;
+
+  FToolbar := TATButtonsToolbar.Create(Self);
+  FToolbar.Parent := tmpPanel;
+  FToolbar.Align:= alTop;
+  FToolbar.Images := aImageList;
+  FToolbar.ShowHint:= true;
+  FGridHelper.CreateStandardConfigureMenu(FToolbar, aConfigureImageIndex);
+
+  FGridCommandsPopupMenu := TPopupMenu.Create(FToolbar);
+
+  FToolbar.AddButton(aRefreshChildsImageIndex, DoUpdateChilds, '',SUpdateChildWidgetsBtnHint, '', false);
+  FToolbar.AddSep;
+  FToolbar.AddDropdown(FGridCommandsPopupMenu, nil, '', SGridActionsHint, '', aGridCommandsImageIndex);
+  FToolbar.AddSep;
+  FToolbar.UpdateControls;
+
+  mItm := TMenuItem.Create(FGridCommandsPopupMenu);
+  mItm.OnClick:=Self.DoSelectAll;;
+  mItm.Caption:= SSelectAllMenuCaption;
+  FGridCommandsPopupMenu.Items.Add(mItm);
+end;
+
+
+
+(*
+procedure TUramakiBaseGridPlate.CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
+var
+  tmp : TToolButton;
+  mItm : TMenuItem;
 begin
   FToolbar := TToolBar.Create(Self);
   FToolbar.Parent := Self;
@@ -215,7 +265,25 @@ begin
   tmp := TToolButton.Create(FToolbar);
   tmp.Style := tbsSeparator;
   tmp.Parent := FToolbar;
-end;
+
+  FGridCommandsPopupMenu := TPopupMenu.Create(FToolbar);
+
+  tmp := TToolButton.Create(FToolbar);
+  tmp.Style:= tbsDropDown;
+  tmp.DropdownMenu := FGridCommandsPopupMenu;
+  tmp.ImageIndex := aGridCommandsImageIndex;
+  tmp.Parent := FToolbar;
+  tmp.Hint := SGridActionsHint;
+
+  mItm := TMenuItem.Create(FGridCommandsPopupMenu);
+  mItm.OnClick:=Self.DoSelectAll;;
+  mItm.Caption:= SSelectAllMenuCaption;
+  FGridCommandsPopupMenu.Items.Add(mItm);
+
+  tmp := TToolButton.Create(FToolbar);
+  tmp.Style := tbsSeparator;
+  tmp.Parent := FToolbar;
+end;*)
 
 procedure TUramakiBaseGridPlate.ConvertSelectionToUramakiRoll(aUramakiRoll: TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);
 var

@@ -19,6 +19,7 @@ interface
 uses
   Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
   DBGrids, Controls, Menus, LCLIntf,
+  ATButtons, ATButtonsToolbar,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet,
   fpsallformats, // necessary to register all the input/output formats that fpspreadsheet can handle
@@ -64,7 +65,8 @@ type
     destructor Destroy; override;
 
     procedure SetupGrid;
-    procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); virtual;
+    //procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); virtual;
+    procedure CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer); virtual;
 
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
@@ -176,13 +178,55 @@ begin
   FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
 end;
 
+procedure TmDBGridHelper.CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer);
+var
+  itm : TMenuItem;
+begin
+  FConfigurePopupMenu := TPopupMenu.Create(aToolbar);
+
+  aToolbar.AddDropdown(FConfigurePopupMenu, nil, '', SConfigureCommandHint, '', aConfigureImageIndex);
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnEditSettings;
+  itm.Hint:= SConfigureGridCommandHint;
+  itm.Caption:= SConfigureGridCommandCaption;
+  if Assigned(FFormulaFields) then
+  begin
+    itm := TMenuItem.Create(FConfigurePopupMenu);
+    FConfigurePopupMenu.Items.Add(itm);
+    itm.OnClick:= Self.OnEditFormulaFields;
+    itm.Hint:= SConfigureFormulaFieldsCommandHint;
+    itm.Caption:= SConfigureFormulaFieldsCommandCaption;
+  end;
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  itm.Caption:= '-';
+  FConfigurePopupMenu.Items.Add(itm);
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsCsv;
+  itm.Hint:= SExportGridAsCsvCommandHint;
+  itm.Caption:= SExportGridAsCsvCommandCaption;
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsXls;
+  itm.Hint:= SExportGridAsXlsCommandHint;
+  itm.Caption:= SExportGridAsXlsCommandCaption;
+
+  aToolbar.AddSep;
+  aToolbar.UpdateControls;
+end;
+
+
+(*
 procedure TmDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex : integer);
 var
   tmp : TToolButton;
   itm : TMenuItem;
 begin
   FConfigurePopupMenu := TPopupMenu.Create(aToolbar);
-//  tmpConfigurePopupMenu.Images := aToolbar.Images;
 
   tmp := TToolButton.Create(aToolbar);
   tmp.Style:= tbsDropDown;
@@ -224,6 +268,7 @@ begin
   tmp.Style:= tbsDivider;
   tmp.Parent := aToolbar;
 end;
+*)
 
 function TmDBGridHelper.EditSettings : boolean;
 var

@@ -18,4 +18,8 @@ Clone
 https://github.com/DomenicoMammola/ATTabs.git
 in folder ATTabs
 
+Clone
+https://github.com/DomenicoMammola/ATFlatControls.git
+branch dropdown_button_with_icon
+in folder ATFlatControls
 

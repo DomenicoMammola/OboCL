@@ -17,8 +17,8 @@ interface
 
 uses
   Classes, Controls, ExtCtrls, DB, ComCtrls, {$IFDEF WINDOWS}Windows,{$ENDIF} DBGrids,
-  Forms, Menus,
-  ATButtons, ATButtonsToolbar,
+  Forms, Menus, SysUtils,
+  UramakiToolbar,
   {$IFDEF FPC}
   InterfaceBase,
   LCLIntf,
@@ -38,7 +38,7 @@ resourcestring
   SDisableAutomaticChildsUpdateCaption = 'Do not refresh them automatically';
   SUpdateChildWidgetsBtnHint = 'Click to update child widgets';
   SSelectAllMenuCaption = 'Select all rows';
-  SGridActionsHint = 'Grid actions';
+  SGridActionsHint = 'Grid actions...';
 
 const
   WM_USER_REFRESHCHILDS = WM_USER + 1;
@@ -67,7 +67,7 @@ type
     FGridHelper : TUramakiDBGridHelper;
     FDatasource : TDatasource;
     //FToolbar : TToolBar;
-    FToolbar : TATButtonsToolbar;
+    FToolbar : TUramakiToolbar;
     FLastSelectedRow : integer;
     FFilterPanel : TmFilterPanel;
     FGridCommandsPopupMenu : TPopupMenu;
@@ -107,6 +107,7 @@ type
   strict private
     FEnableAutomaticChildsUpdateMI : TMenuItem;
     FDisableAutomaticChildsUpdateMI : TMenuItem;
+    FConfigurePopupMenu : TPopupMenu;
 
     FGridPlate : TUramakiBaseGridPlate;
     procedure OnEnableAutomaticChildsUpdate(Sender : TObject);
@@ -115,7 +116,7 @@ type
     constructor Create(aPlate : TUramakiBaseGridPlate); reintroduce;
 
     //procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); override;
-    procedure CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer); override;
+    procedure CreateConfigureMenu(aToolbar : TUramakiToolbar; const aConfigureImageIndex : integer);
   end;
 
 implementation
@@ -130,11 +131,51 @@ end;
 
 
 //procedure TUramakiDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex: integer);
-procedure TUramakiDBGridHelper.CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer);
+procedure TUramakiDBGridHelper.CreateConfigureMenu(aToolbar : TUramakiToolbar; const aConfigureImageIndex : integer);
 var
   itm : TMenuItem;
 begin
-  inherited CreateStandardConfigureMenu(aToolbar, aConfigureImageIndex);
+  FConfigurePopupMenu := TPopupMenu.Create(aToolbar);
+
+  with aToolbar.AddDropDownButton(FConfigurePopupMenu) do
+  begin
+    Hint := SConfigureCommandHint;
+    ImageIndex:= aConfigureImageIndex;
+    Kind := bkIcon;
+  end;
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnEditSettings;
+  itm.Hint:= SConfigureGridCommandHint;
+  itm.Caption:= SConfigureGridCommandCaption;
+  if Assigned(FFormulaFields) then
+  begin
+    itm := TMenuItem.Create(FConfigurePopupMenu);
+    FConfigurePopupMenu.Items.Add(itm);
+    itm.OnClick:= Self.OnEditFormulaFields;
+    itm.Hint:= SConfigureFormulaFieldsCommandHint;
+    itm.Caption:= SConfigureFormulaFieldsCommandCaption;
+  end;
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  itm.Caption:= '-';
+  FConfigurePopupMenu.Items.Add(itm);
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsCsv;
+  itm.Hint:= SExportGridAsCsvCommandHint;
+  itm.Caption:= SExportGridAsCsvCommandCaption;
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsXls;
+  itm.Hint:= SExportGridAsXlsCommandHint;
+  itm.Caption:= SExportGridAsXlsCommandCaption;
+
+  aToolbar.AddSeparator;
+  aToolbar.Update;
+
   itm := TMenuItem.Create(FConfigurePopupMenu);
   itm.Caption:= '-';
   FConfigurePopupMenu.Items.Add(itm);
@@ -209,29 +250,31 @@ end;
 
 procedure TUramakiBaseGridPlate.CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
 var
-  tmp : TToolButton;
   mItm : TMenuItem;
-  tmpPanel : TPanel;
 begin
-  tmpPanel := TPanel.Create(Self);
-  tmpPanel.Parent := Self;
-  tmpPanel.Align:= alTop;
-  tmpPanel.AutoSize:= true;
-
-  FToolbar := TATButtonsToolbar.Create(Self);
-  FToolbar.Parent := tmpPanel;
-  FToolbar.Align:= alTop;
+  FToolbar := TUramakiToolbar.Create(Self);
   FToolbar.Images := aImageList;
-  FToolbar.ShowHint:= true;
-  FGridHelper.CreateStandardConfigureMenu(FToolbar, aConfigureImageIndex);
+  FToolbar.Parent := Self;
+  FGridHelper.CreateConfigureMenu(FToolbar, aConfigureImageIndex);
 
   FGridCommandsPopupMenu := TPopupMenu.Create(FToolbar);
 
-  FToolbar.AddButton(aRefreshChildsImageIndex, DoUpdateChilds, '',SUpdateChildWidgetsBtnHint, '', false);
-  FToolbar.AddSep;
-  FToolbar.AddDropdown(FGridCommandsPopupMenu, nil, '', SGridActionsHint, '', aGridCommandsImageIndex);
-  FToolbar.AddSep;
-  FToolbar.UpdateControls;
+  with FToolbar.AddButton do
+  begin
+    ImageIndex:= aRefreshChildsImageIndex;
+    OnClick:= DoUpdateChilds;
+    Hint:= SUpdateChildWidgetsBtnHint;
+    Kind := bkIcon;
+  end;
+  FToolbar.AddSeparator;
+  with FToolbar.AddDropDownButton(FGridCommandsPopupMenu) do
+  begin
+    Hint:= SGridActionsHint;
+    ImageIndex:=aGridCommandsImageIndex;
+    Kind := bkIcon;
+  end;
+  FToolbar.AddSeparator;
+  FToolbar.Update;
 
   mItm := TMenuItem.Create(FGridCommandsPopupMenu);
   mItm.OnClick:=Self.DoSelectAll;;
@@ -434,6 +477,8 @@ end;
 
 destructor TUramakiBaseGridPlate.Destroy;
 begin
+  FreeAndNil(FToolbar);
+
   FGridHelper.Free;
   FProvider.Free;
   FDataset.Free;

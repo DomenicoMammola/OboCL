@@ -19,7 +19,8 @@ interface
 uses
   Controls, Classes, StdCtrls, StrUtils, Contnrs, Variants,
   ExtCtrls, EditBtn, Menus,
-  mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility;
+  mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
+  mUtility, mDateEdit;
 
 type
   { TmFilterConditionPanel }
@@ -61,8 +62,8 @@ type
   private
     FLabel : TLabel;
     FBottomPanel : TPanel;
-    FDateEditMin : TDateEdit;
-    FDateEditMax : TDateEdit;
+    FDateEditMin : TmDateEdit;
+    FDateEditMax : TmDateEdit;
   protected
     procedure SetFilterOperator(AValue: TmFilterOperator); override;
   public
@@ -511,6 +512,7 @@ end;
 
 { TmDateFilterConditionPanel }
 
+
 procedure TmDateFilterConditionPanel.SetFilterOperator(AValue: TmFilterOperator);
 begin
   inherited SetFilterOperator(AValue);
@@ -538,15 +540,15 @@ begin
   FBottomPanel.Parent := Self;
   FBottomPanel.Align := alBottom;
 
-  FDateEditMax := TDateEdit.Create(Self);
+  FDateEditMin := TmDateEdit.Create(Self);
+  FDateEditMin.Parent := FBottomPanel;
+  FBottomPanel.Height:= FDateEditMin.Height;
+  FDateEditMin.Align:= alClient;
+  FDateEditMax := TmDateEdit.Create(Self);
   FDateEditMax.Parent := FBottomPanel;
   FDateEditMax.Align:= alRight;
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
-  FDateEditMin := TDateEdit.Create(Self);
-  FDateEditMin.Parent := FBottomPanel;
-  FBottomPanel.Height:= FDateEditMin.Height;
-  FDateEditMin.Align:= alClient;
   FLabel := Self.CreateStandardLabel;
   CreateStandardOperatorMenu(FLabel);
 end;

@@ -62,6 +62,7 @@ type
     procedure DoSelectAll (Sender : TObject);
   protected
     FGrid: TmDBGrid;
+    FSummaryPanel : TPanel;
     FDataset: TmVirtualDataset;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TUramakiDBGridHelper;
@@ -453,11 +454,18 @@ end;
 constructor TUramakiBaseGridPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+
+  FSummaryPanel := TPanel.Create(Self);
+  FSummaryPanel.Parent := Self;
+  FSummaryPanel.Align:= alBottom;
+  FSummaryPanel.Height:= 50;
+
   FGrid := TmDBGrid.Create(Self);
   FGrid.Parent := Self;
   FGrid.Align:= alClient;
   FDatasource:= TDataSource.Create(Self);
   FGrid.DataSource := FDataSource;
+  FGrid.SummaryPanel := FSummaryPanel;
 
 
   FDataset := TmVirtualDataset.Create(nil);
@@ -469,6 +477,7 @@ begin
   FGridHelper.SetupGrid;
   FGrid.SortManager := Self.FDataset.SortManager;
   FGrid.FilterManager := Self.FDataset.FilterManager;
+  FGrid.SummaryManager := Self.FDataset.SummaryManager;
   FGrid.ColumnsHeaderMenuVisible:= true;
 
   FLastSelectedRow:=-1;

@@ -56,7 +56,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\src\filterpanels;..\..\..\thirdparties\Mommon\src"/>
+      <OtherUnitFiles Value="..\..\..\src\filterpanels;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\thirdparties\StrHashMap"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

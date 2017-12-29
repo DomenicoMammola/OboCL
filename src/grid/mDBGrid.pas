@@ -77,7 +77,7 @@ type
     procedure OnRemoveAllFilters (Sender : TObject);
     procedure OnParserGetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
     procedure OnParserGetStrValue (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
-    procedure RefreshSummaryPanel;
+    procedure RefreshSummaryPanel (Sender : TObject);
     procedure SetSummaryPanel(AValue: TPanel);
   protected
     function GetImageForCheckBox(const aCol,aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap; override;
@@ -448,7 +448,8 @@ begin
           finally
             checkedValues.Free;
           end;
-          Self.RefreshSummaryPanel;
+
+          Self.FSummaryManager.Refresh;
         end;
       finally
         dlg.Free;
@@ -495,8 +496,6 @@ begin
       *)
 
       FSummaryManager.Refresh;
-
-      Self.RefreshSummaryPanel;
     end;
   end;
 end;
@@ -515,6 +514,7 @@ begin
     else
       Columns[i].Title.ImageIndex := -1;
   end;
+  Self.FSummaryManager.Refresh;
 end;
 
 procedure TmDBGrid.OnParserGetValue(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
@@ -563,7 +563,7 @@ begin
   end;
 end;
 
-procedure TmDBGrid.RefreshSummaryPanel;
+procedure TmDBGrid.RefreshSummaryPanel(Sender : TObject);
 var
   i : integer;
   str, separator : String;
@@ -602,13 +602,14 @@ procedure TmDBGrid.SetSummaryPanel(AValue: TPanel);
 begin
   if FSummaryPanel=AValue then Exit;
   FSummaryPanel:=AValue;
-  Self.RefreshSummaryPanel;
+  Self.RefreshSummaryPanel(nil);
 end;
 
 procedure TmDBGrid.SetSummaryManager(AValue: ISummaryDatasetManager);
 begin
   if FSummaryManager=AValue then Exit;
   FSummaryManager:=AValue;
+  FSummaryManager.RegisterListener(Self.RefreshSummaryPanel);
 end;
 
 function TmDBGrid.GetImageForCheckBox(const aCol, aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap;

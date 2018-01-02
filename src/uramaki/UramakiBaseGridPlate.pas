@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, Controls, ExtCtrls, DB, ComCtrls, {$IFDEF WINDOWS}Windows,{$ENDIF} DBGrids,
-  Forms, Menus, SysUtils,
+  Forms, Menus, SysUtils, StdCtrls,
   UramakiToolbar,
   {$IFDEF FPC}
   InterfaceBase,
@@ -30,7 +30,7 @@ uses
 
   UramakiBase,
   mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid,
-  mQuickReadOnlyVirtualDataSet, mXML, mVirtualDataSetInterfaces;
+  mQuickReadOnlyVirtualDataSet, mXML, mVirtualDataSetInterfaces, mSummary;
 
 resourcestring
   SConfigureChildsUpdateModeCaption = 'Update of child widgets';
@@ -52,6 +52,24 @@ type
 
   TUramakiGridChildsAutomaticUpdateMode = (cuOnChangeSelection, cuDisabled);
 
+  { TUramakiGridSummaryPanel }
+
+  TUramakiGridSummaryPanel = class (ISummaryPanel)
+  strict private
+    FPanel : TFlowPanel;
+    FSubPanels : TList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure LinkToPlate (aPlate : TUramakiPlate);
+
+    procedure Hide;
+    procedure Show;
+    procedure SetSummaryValues (aList : TStringList);
+  end;
+
+
   { TUramakiBaseGridPlate }
 
   TUramakiBaseGridPlate = class abstract (TUramakiPlate)
@@ -62,7 +80,7 @@ type
     procedure DoSelectAll (Sender : TObject);
   protected
     FGrid: TmDBGrid;
-    FSummaryPanel : TPanel;
+    FSummaryPanel : TUramakiGridSummaryPanel;
     FDataset: TmVirtualDataset;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TUramakiDBGridHelper;
@@ -121,6 +139,78 @@ type
   end;
 
 implementation
+
+{ TUramakiGridSummaryPanel }
+
+constructor TUramakiGridSummaryPanel.Create;
+begin
+  FSubPanels := TList.Create;
+end;
+
+destructor TUramakiGridSummaryPanel.Destroy;
+begin
+  FSubPanels.Free;
+end;
+
+procedure TUramakiGridSummaryPanel.LinkToPlate(aPlate: TUramakiPlate);
+begin
+  if not Assigned(FPanel) then
+  begin
+    FPanel := TFlowPanel.Create(aPlate);
+    FPanel.Parent := aPlate;
+    FPanel.AutoWrap:= true;
+    FPanel.AutoSize:= true;
+    FPanel.Align:= alBottom;
+  end;
+end;
+
+procedure TUramakiGridSummaryPanel.Hide;
+begin
+  if Assigned(FPanel) then
+    FPanel.Visible:= false;
+end;
+
+procedure TUramakiGridSummaryPanel.Show;
+begin
+  if Assigned(FPanel) then
+    FPanel.Visible:= true;
+end;
+
+procedure TUramakiGridSummaryPanel.SetSummaryValues(aList: TStringList);
+var
+  i : integer;
+  tmpPanel : TPanel;
+  tmpLabel : TLabel;
+begin
+  for i := 0 to FSubPanels.Count - 1 do
+  begin
+    //FPanel.RemoveControl(TControl(FSubPanels.Items[i]));
+    TPanel(FSubPanels.Items[i]).Parent := nil;
+  end;
+  for i := 0 to FSubPanels.Count - 1 do
+  begin
+    TPanel(FSubPanels.Items[i]).Free;
+  end;
+  FSubPanels.Clear;
+  FPanel.ControlList.Clear;
+  for i := 0 to aList.Count - 1 do
+  begin
+    tmpPanel := TPanel.Create(FPanel);
+    tmpPanel.Parent := FPanel;
+    tmpPanel.Align:= alLeft;
+    tmpPanel.Height:= 25;
+    tmpPanel.BevelWidth:= 2;
+    tmpPanel.BevelInner:= bvLowered;
+    tmpPanel.BevelOuter:= bvNone;
+    tmpLabel := TLabel.Create(tmpPanel);
+    tmpLabel.Parent := tmpPanel;
+    tmpLabel.Align:= alClient;
+    tmpLabel.Caption:= aList.Strings[i];
+    tmpLabel.AutoSize:= true;
+    tmpPanel.AutoSize:= true;
+    FSubPanels.Add(tmpPanel);
+  end;
+end;
 
 { TUramakiDBGridHelper }
 
@@ -455,10 +545,8 @@ constructor TUramakiBaseGridPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
 
-  FSummaryPanel := TPanel.Create(Self);
-  FSummaryPanel.Parent := Self;
-  FSummaryPanel.Align:= alBottom;
-  FSummaryPanel.Height:= 50;
+  FSummaryPanel := TUramakiGridSummaryPanel.Create;
+  FSummaryPanel.LinkToPlate(Self);
 
   FGrid := TmDBGrid.Create(Self);
   FGrid.Parent := Self;
@@ -466,7 +554,6 @@ begin
   FDatasource:= TDataSource.Create(Self);
   FGrid.DataSource := FDataSource;
   FGrid.SummaryPanel := FSummaryPanel;
-
 
   FDataset := TmVirtualDataset.Create(nil);
   FProvider := TReadOnlyVirtualDatasetProvider.Create;
@@ -487,6 +574,7 @@ end;
 destructor TUramakiBaseGridPlate.Destroy;
 begin
   FreeAndNil(FToolbar);
+  FreeAndNil(FSummaryPanel);
 
   FGridHelper.Free;
   FProvider.Free;

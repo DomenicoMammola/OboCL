@@ -26,6 +26,7 @@ resourcestring
   SFilterValuesMenuCaption = 'Filter by value...';
   SRemoveFiltersMenuCaption = 'Remove all filters';
   SAddSummaryMenuCaption = 'Add summary...';
+  SRemoveSummariesMenuCaption = 'Remove all summaries';
 
 
 type
@@ -43,7 +44,6 @@ type
     FOnExtPrepareCanvas : TPrepareDbGridCanvasEvent;
     //
     FAllowSort : boolean;
-//    FAllowFilter : boolean;
     FColumnsHeaderMenuVisible : boolean;
     FCurrentGridCol : longint;
     FGridIcons: TmGridIconsDataModule;
@@ -56,7 +56,7 @@ type
     FMI_RemoveAllFilters : TMenuItem;
     FMI_Summaries : TMenuItem;
     // Summary panel
-    FSummaryPanel : TPanel;
+    FSummaryPanel : ISummaryPanel;
   strict private
     FParser : TKAParser;
     FOnExpPrepareCanvas: TPrepareDbGridCanvasEvent;
@@ -74,11 +74,12 @@ type
     procedure OnColumnsHeaderMenuPopup (Sender : TObject);
     procedure OnFilterValues(Sender : TObject);
     procedure OnEditSummaries(Sender : TObject);
+    procedure OnRemoveSummaries(Sender : TObject);
     procedure OnRemoveAllFilters (Sender : TObject);
     procedure OnParserGetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
     procedure OnParserGetStrValue (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
     procedure RefreshSummaryPanel (Sender : TObject);
-    procedure SetSummaryPanel(AValue: TPanel);
+    procedure SetSummaryPanel(AValue: ISummaryPanel);
   protected
     function GetImageForCheckBox(const aCol,aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap; override;
   protected
@@ -101,7 +102,7 @@ type
     property SummaryManager : ISummaryDatasetManager read FSummaryManager write SetSummaryManager;
     property Row;
     property CellDecorations : TmCellDecorations read FCellDecorations;
-    property SummaryPanel : TPanel read FSummaryPanel write SetSummaryPanel;
+    property SummaryPanel : ISummaryPanel read FSummaryPanel write SetSummaryPanel;
   end;
 
 implementation
@@ -140,6 +141,11 @@ begin
       tmpMenuItem.Tag:= ptrInt(i);
       FMI_Summaries.Add(tmpMenuItem);
     end;
+
+    tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    tmpMenuItem.Caption:= SRemoveSummariesMenuCaption;
+    tmpMenuItem.OnClick:=Self.OnRemoveSummaries;
+    FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
 
     FColumnsHeaderPopupMenu.OnPopup := Self.OnColumnsHeaderMenuPopup;
   end;
@@ -372,7 +378,7 @@ begin
   end;
   if Assigned(FSummaryManager) then
   begin
-    if FCurrentGridCol >= -1 then
+    if (FCurrentGridCol > 0) and (FCurrentGridCol <= Columns.Count) then
     begin
       currentColumn := Columns[FCurrentGridCol-1];
 
@@ -399,7 +405,7 @@ var
 begin
   if Assigned(FFilterManager) then
   begin
-    if FCurrentGridCol >= -1 then
+    if FCurrentGridCol > 0 then
     begin
       currentColumn := Columns[FCurrentGridCol-1];
       values := TStringList.Create;
@@ -448,8 +454,6 @@ begin
           finally
             checkedValues.Free;
           end;
-
-          Self.FSummaryManager.Refresh;
         end;
       finally
         dlg.Free;
@@ -467,7 +471,7 @@ var
 begin
   if Assigned(FSummaryManager) then
   begin
-    if FCurrentGridCol >= -1 then
+    if FCurrentGridCol > 0 then
     begin
       currentColumn := Columns[FCurrentGridCol-1];
       currentOperator := TmSummaryOperator((Sender as TMenuItem).Tag);
@@ -481,23 +485,19 @@ begin
       begin
         tmpDef := FSummaryManager.GetSummaryDefinitions.Add;
         tmpDef.FieldName:= currentColumn.FieldName;
+        tmpDef.FieldType:= currentColumn.Field.DataType;
         tmpDef.Caption := currentColumn.Title.Caption;
         tmpDef.SummaryOperator:= currentOperator;
       end;
-
-(*
-      tmpDef := FSummaryManager.GetSummaryDefinitions.FindByFieldName(currentColumn.FieldName);
-      if not Assigned(tmpDef) then
-      begin
-        tmpDef := FSummaryManager.GetSummaryDefinitions.Add;
-        tmpDef.FieldName:= currentColumn.FieldName;
-      end;
-      tmpDef.Caption := currentColumn.Title.Caption;
-      *)
-
-      FSummaryManager.Refresh;
+      FSummaryManager.RefreshSummaries;
     end;
   end;
+end;
+
+procedure TmDBGrid.OnRemoveSummaries(Sender: TObject);
+begin
+  FSummaryManager.GetSummaryDefinitions.Clear;
+  FSummaryManager.RefreshSummaries;
 end;
 
 procedure TmDBGrid.OnRemoveAllFilters(Sender: TObject);
@@ -514,7 +514,6 @@ begin
     else
       Columns[i].Title.ImageIndex := -1;
   end;
-  Self.FSummaryManager.Refresh;
 end;
 
 procedure TmDBGrid.OnParserGetValue(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
@@ -566,7 +565,8 @@ end;
 procedure TmDBGrid.RefreshSummaryPanel(Sender : TObject);
 var
   i : integer;
-  str, separator : String;
+  str : String;
+  tempList : TStringList;
 begin
   if Assigned(FSummaryManager) then
   begin
@@ -574,31 +574,34 @@ begin
     begin
       if FSummaryManager.GetSummaryValues.Count > 0 then
       begin
-        str := '';
-        separator := '';
-        for i := 0 to FSummaryManager.GetSummaryValues.Count - 1 do
-        begin
-          str := str + separator + TmSummaryOperatorToString(FSummaryManager.GetSummaryValues.Get(i).Definition.SummaryOperator);
-          str := str + '(';
-          str := str + FSummaryManager.GetSummaryValues.Get(i).Definition.Caption + ')=';
-          str := str + VarToStr(FSummaryManager.GetSummaryValues.Get(i).Value);
-          separator := ', ';
+        tempList := TStringList.Create;
+        try
+          for i := 0 to FSummaryManager.GetSummaryValues.Count - 1 do
+          begin
+            str := TmSummaryOperatorToString(FSummaryManager.GetSummaryValues.Get(i).Definition.SummaryOperator);
+            str := str + '(';
+            str := str + FSummaryManager.GetSummaryValues.Get(i).Definition.Caption + ')= ';
+            str := str + FSummaryManager.GetSummaryValues.Get(i).ValueAsString;
+            tempList.Add(str);
+          end;
+          FSummaryPanel.SetSummaryValues(tempList);
+          FSummaryPanel.Show;
+        finally
+          tempList.Free;
         end;
-        FSummaryPanel.Caption:= str;
-        FSummaryPanel.Visible:= true;
       end
       else
       begin
-        FSummaryPanel.Visible:= false;
+        FSummaryPanel.Hide;
       end;
     end;
   end
   else
     if Assigned(FSummaryPanel) then
-      FSummaryPanel.Visible:= false;
+      FSummaryPanel.Hide;
 end;
 
-procedure TmDBGrid.SetSummaryPanel(AValue: TPanel);
+procedure TmDBGrid.SetSummaryPanel(AValue: ISummaryPanel);
 begin
   if FSummaryPanel=AValue then Exit;
   FSummaryPanel:=AValue;

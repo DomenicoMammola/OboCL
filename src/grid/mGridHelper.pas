@@ -93,7 +93,7 @@ implementation
 
 uses
   SysUtils,
-  mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml;
+  mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml;
 
 { TmDBGridHelper }
 
@@ -323,7 +323,17 @@ begin
   finally
     cursor.Free;
   end;
+  cursor := TmXmlElementCursor.Create(aXMLElement, 'summaries');
+  try
+    if cursor.Count > 0 then
+    begin
+      LoadSummaryDefinitionsFromXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, cursor.Elements[0]);
+    end;
+  finally
+    cursor.Free;
+  end;
   FDBGrid.ApplySettings(FSettings);
+  FDBGrid.SummaryManager.RefreshSummaries;
 end;
 
 procedure TmDBGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
@@ -333,6 +343,7 @@ begin
   SaveGridColumnsSettingToXmlElement(FSettings, aXMLElement.AddElement('columns'));
   if Assigned(FFormulaFields) then
     SaveFormulaFieldsToXmlElement(FFormulaFields, aXMLElement.AddElement('formulaFields'));
+  SaveSummaryDefinitionsToXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, aXMLElement.AddElement('summaries'));
 end;
 
 procedure TmDBGridHelper.ExportGridAsCsv(aStream: TStream);

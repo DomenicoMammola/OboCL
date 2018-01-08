@@ -17,8 +17,8 @@ unit mFilterPanel;
 interface
 
 uses
-  Controls, Classes, StdCtrls, StrUtils, Contnrs, Variants,
-  ExtCtrls, EditBtn, Menus,
+  Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants,
+  ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit;
 
@@ -41,8 +41,10 @@ type
     procedure OperatorMenuItemClick (Sender : TObject);
     procedure OperatorMenuPopup (Sender : TObject);
     procedure SetFilterOperator(AValue: TmFilterOperator); virtual;
+
   public
     constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
     procedure SetFilterCaption (aValue : String); virtual; abstract;
 
     procedure ExportToFilter (aFilter : TmFilter); virtual;
@@ -161,9 +163,7 @@ type
 implementation
 
 uses
-  SysUtils
-  {$IFNDEF LINUX},Windows{$ENDIF}
-  ;
+  SysUtils;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
@@ -602,6 +602,7 @@ begin
   UpdateCurrentOperatorCheck;
 end;
 
+
 procedure TmFilterConditionPanel.SetFlex(AValue: integer);
 begin
   if FFlex=AValue then Exit;
@@ -707,7 +708,7 @@ begin
   if Assigned(FOperatorsMenu) then
   begin
     for i := 0 to FOperatorsMenu.Items.Count - 1 do
-      FOperatorsMenu.Items[i].Enabled:= (TmFilterOperator(FOperatorsMenu.Items[i].Tag) in FAllowedOperators);
+      FOperatorsMenu.Items[i].Visible:= (TmFilterOperator(FOperatorsMenu.Items[i].Tag) in FAllowedOperators);
   end;
 end;
 
@@ -722,6 +723,11 @@ begin
   Self.Height := 40;
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
+end;
+
+destructor TmFilterConditionPanel.Destroy;
+begin
+  inherited Destroy;
 end;
 
 procedure TmFilterConditionPanel.ExportToFilter(aFilter: TmFilter);

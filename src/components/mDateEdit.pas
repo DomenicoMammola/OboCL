@@ -16,7 +16,7 @@ unit mDateEdit;
 interface
 
 uses
-  Classes, EditBtn,
+  Classes, EditBtn, Graphics,
   mUtility;
 
 type
@@ -26,18 +26,23 @@ type
   TmDateEdit = class (TDateEdit)
   strict private
     FOnExtCustomDate: TCustomDateEvent;
+    FCustomGlyph : TBitmap;
     procedure OnInternalCustomDate (Sender : TObject; var ADate : string);
   protected
     property OnCustomDate; // hide the original event
   public
     constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     property OnExtCustomDate: TCustomDateEvent read FOnExtCustomDate write FOnExtCustomDate;
   end;
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils, LResources;
+
+var
+  DateGlyph: TBitmap;
 
 { TmDateEdit }
 
@@ -55,6 +60,18 @@ constructor TmDateEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   Self.OnCustomDate:= OnInternalCustomDate;
+  FCustomGlyph:= TBitmap.Create;
+  FCustomGlyph.LoadFromLazarusResource('mDateEdit');
+  Self.Glyph := FCustomGlyph;
 end;
+
+destructor TmDateEdit.Destroy;
+begin
+  FCustomGlyph.Free;
+  inherited Destroy;
+end;
+
+initialization
+  {$I mDateEdit_gliph.lrs}
 
 end.

@@ -1,0 +1,1 @@
+c:\lazarus\tools\lazres ..\mDateEdit_gliph.lrs mDateEdit.bmp

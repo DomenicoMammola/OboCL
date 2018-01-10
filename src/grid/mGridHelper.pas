@@ -323,17 +323,21 @@ begin
   finally
     cursor.Free;
   end;
-  cursor := TmXmlElementCursor.Create(aXMLElement, 'summaries');
-  try
-    if cursor.Count > 0 then
-    begin
-      LoadSummaryDefinitionsFromXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, cursor.Elements[0]);
+  if Assigned(FDBGrid.SummaryManager) then
+  begin
+    cursor := TmXmlElementCursor.Create(aXMLElement, 'summaries');
+    try
+      if cursor.Count > 0 then
+      begin
+        LoadSummaryDefinitionsFromXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, cursor.Elements[0]);
+      end;
+    finally
+      cursor.Free;
     end;
-  finally
-    cursor.Free;
   end;
   FDBGrid.ApplySettings(FSettings);
-  FDBGrid.SummaryManager.RefreshSummaries;
+  if Assigned(FDBGrid.SummaryManager) then
+    FDBGrid.SummaryManager.RefreshSummaries;
 end;
 
 procedure TmDBGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
@@ -343,7 +347,8 @@ begin
   SaveGridColumnsSettingToXmlElement(FSettings, aXMLElement.AddElement('columns'));
   if Assigned(FFormulaFields) then
     SaveFormulaFieldsToXmlElement(FFormulaFields, aXMLElement.AddElement('formulaFields'));
-  SaveSummaryDefinitionsToXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, aXMLElement.AddElement('summaries'));
+  if Assigned(FDBGrid.SummaryManager) then
+    SaveSummaryDefinitionsToXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, aXMLElement.AddElement('summaries'));
 end;
 
 procedure TmDBGridHelper.ExportGridAsCsv(aStream: TStream);

@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, Controls, ExtCtrls, DB, ComCtrls, {$IFDEF WINDOWS}Windows,{$ENDIF} DBGrids,
-  Forms, Menus, SysUtils, StdCtrls,
+  Forms, Menus, SysUtils, StdCtrls, contnrs,
   UramakiToolbar,
   {$IFDEF FPC}
   InterfaceBase,
@@ -102,6 +102,7 @@ type
     procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
     procedure InvokeChildsRefresh;
     procedure InvokeChildsClear;
+    procedure GetSelectedItems (const aKeyFieldName : string; aList : TObjectList);
 
     procedure OnClearFilter (Sender : TObject);
     procedure OnExecuteFilter (Sender : TObject);
@@ -480,6 +481,41 @@ end;
 procedure TUramakiBaseGridPlate.InvokeChildsClear;
 begin
   PostMessage(Self.Handle, WM_USER_CLEARCHILDS, 0, 0);
+end;
+
+procedure TUramakiBaseGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TObjectList);
+var
+  tmpBookmark : TBookmark;
+  i : integer;
+  tmpDatum : IVDDatum;
+begin
+  FGrid.BeginUpdate;
+  try
+    if FGrid.SelectedRows.Count = 1 then
+    begin
+      tmpDatum := GetDataProvider.FindDatumByStringKey(FDataset.FieldByName(aKeyFieldName).AsString);
+      if Assigned(tmpDatum) then
+        aList.Add(tmpDatum.AsObject);
+    end
+    else
+    begin
+      tmpBookmark := FDataset.Bookmark;
+      try
+        for i := 0 to FGrid.SelectedRows.Count - 1 do
+        begin
+          FDataset.GotoBookmark(FGrid.SelectedRows[i]);
+          tmpDatum := GetDataProvider.FindDatumByStringKey(FDataset.FieldByName(aKeyFieldName).AsString);
+          if Assigned(tmpDatum) then
+            aList.Add(tmpDatum.AsObject);
+        end;
+      finally
+        FDataset.GotoBookmark(tmpBookmark);
+      end;
+    end;
+  finally
+    FGrid.EndUpdate(true);
+  end;
+
 end;
 
 procedure TUramakiBaseGridPlate.OnClearFilter(Sender: TObject);

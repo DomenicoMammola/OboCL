@@ -185,19 +185,22 @@ var
 begin
   while not Terminated do
   begin
-    tmpMessage := FQueue.Pick;
-    while (tmpMessage <> nil) and (not Self.Terminated) do
+    if Assigned(FQueue) then
     begin
-      FCurrentMessage := tmpMessage;
-      try
-        Synchronize(FProcessMessage);
-      except
-        on e:Exception do
-        begin
-          Application.ShowException(e);
-        end;
-      end;
       tmpMessage := FQueue.Pick;
+      while (tmpMessage <> nil) and (not Self.Terminated) do
+      begin
+        FCurrentMessage := tmpMessage;
+        try
+          Synchronize(FProcessMessage);
+        except
+          on e:Exception do
+          begin
+            Application.ShowException(e);
+          end;
+        end;
+        tmpMessage := FQueue.Pick;
+      end;
     end;
 
     if not Terminated then
@@ -220,8 +223,8 @@ end;
 
 destructor TUramakiEngineMessageQueue.Destroy;
 begin
-  FCriticalSection.Free;
-  FMessages.Free;
+  FreeAndNil(FCriticalSection);
+  FreeAndNil(FMessages);
   inherited Destroy;
 end;
 
@@ -423,6 +426,7 @@ end;
 destructor TUramakiEngine.Destroy;
 begin
   FMessagesThread.Terminate;
+  FMessagesThread.MessagesQueue := nil;
   FMessagesThread.LetsGoEvent.SetEvent;
   FWaitForCloseThreadEvent.WaitFor(3000);
   FreeAndNil(FWaitForCloseThreadEvent);

@@ -110,6 +110,7 @@ end;
 procedure TUramakiDesktopManager.BuildAndFeedPlate(aLivingPlate : TUramakiLivingPlate; aItem: TPanel);
 var
   parentRolls : TStringList;
+  i : integer;
 begin
   if Assigned(aLivingPlate.Publication) and Assigned(aLivingPlate.Publication.Publisher) then
   begin
@@ -126,7 +127,12 @@ begin
       try
         aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
         if parentRolls.Count > 0 then
-          Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[0], aLivingPlate.InstanceIdentifier);
+        begin
+          for i := 0 to parentRolls.Count - 1 do
+          begin
+            Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[i], aLivingPlate.InstanceIdentifier);
+          end;
+        end;
       finally
         parentRolls.Free;
       end;

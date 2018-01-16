@@ -123,6 +123,7 @@ begin
 
     if aItem is TUramakiDesktopSimplePanel then
     begin
+      (aItem as TUramakiDesktopSimplePanel).AddMenuItem.Clear;
       parentRolls := TStringList.Create;
       try
         aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
@@ -323,7 +324,7 @@ begin
   if not Assigned(aMenuItem) then
     exit;
 
-  aMenuItem.Clear;
+  //aMenuItem.Clear;
 
   tempListOfTransformers := TUramakiTransformers.Create;
   tempListOfPublishers := TUramakiPublishers.Create;

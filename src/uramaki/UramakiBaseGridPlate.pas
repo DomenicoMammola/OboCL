@@ -69,7 +69,6 @@ type
     procedure SetSummaryValues (aList : TStringList);
   end;
 
-
   { TUramakiBaseGridPlate }
 
   TUramakiBaseGridPlate = class abstract (TUramakiPlate)
@@ -499,23 +498,28 @@ begin
     end
     else
     begin
-      tmpBookmark := FDataset.Bookmark;
+      FGrid.OnSelectEditor:= nil;
       try
-        for i := 0 to FGrid.SelectedRows.Count - 1 do
-        begin
-          FDataset.GotoBookmark(FGrid.SelectedRows[i]);
-          tmpDatum := GetDataProvider.FindDatumByStringKey(FDataset.FieldByName(aKeyFieldName).AsString);
-          if Assigned(tmpDatum) then
-            aList.Add(tmpDatum.AsObject);
+        tmpBookmark := FDataset.Bookmark;
+        try
+          for i := 0 to FGrid.SelectedRows.Count - 1 do
+          begin
+            FDataset.GotoBookmark(FGrid.SelectedRows[i]);
+            tmpDatum := GetDataProvider.FindDatumByStringKey(FDataset.FieldByName(aKeyFieldName).AsString);
+            if Assigned(tmpDatum) then
+              aList.Add(tmpDatum.AsObject);
+          end;
+        finally
+          FDataset.GotoBookmark(tmpBookmark);
         end;
       finally
-        FDataset.GotoBookmark(tmpBookmark);
+        if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+          FGrid.OnSelectEditor:= Self.OnSelectEditor;
       end;
     end;
   finally
     FGrid.EndUpdate(true);
   end;
-
 end;
 
 procedure TUramakiBaseGridPlate.OnClearFilter(Sender: TObject);

@@ -1370,14 +1370,14 @@ end;
 procedure TOMultiPanelCollection.InsertAfter(AAnchor, AControl: TControl);
 var
   CurIdx, i, AIndex : integer;
-  TempControl : TControl;
+//  TempControl : TControl;
 begin
   CurIdx := Self.IndexOf(AControl);
   AIndex := Self.IndexOf(AAnchor);
   if CurIdx >= 1 then
   begin
     assert (CurIdx = (Count -1));
-    TempControl := Self.GetItem(CurIdx).Control;
+    //TempControl := Self.GetItem(CurIdx).Control;
     for i := CurIdx downto AIndex + 1 do
     begin
       InternalSwitch(i, i-1);
@@ -1398,14 +1398,14 @@ end;
 procedure TOMultiPanelCollection.InsertBefore(AAnchor, AControl: TControl);
 var
   CurIdx, i, AIndex : integer;
-  TempControl : TControl;
+//  TempControl : TControl;
 begin
   CurIdx := Self.IndexOf(AControl);
   AIndex := Self.IndexOf(AAnchor);
   if CurIdx >= 1 then
   begin
     assert (CurIdx = (Count -1));
-    TempControl := Self.GetItem(CurIdx).Control;
+    //TempControl := Self.GetItem(CurIdx).Control;
     for i := CurIdx downto AIndex + 1 do
     begin
       InternalSwitch(i, i-1);

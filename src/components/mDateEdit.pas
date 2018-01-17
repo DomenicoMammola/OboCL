@@ -41,9 +41,6 @@ implementation
 uses
   SysUtils, LResources;
 
-var
-  DateGlyph: TBitmap;
-
 { TmDateEdit }
 
 procedure TmDateEdit.OnInternalCustomDate(Sender: TObject; var ADate: string);

@@ -41,7 +41,6 @@ type
     // bridges for overrided events
     FOnExtTitleClick: TDBGridClickEvent;
     FOnExtMouseDown: TMouseEvent;
-    FOnExtPrepareCanvas : TPrepareDbGridCanvasEvent;
     //
     FAllowSort : boolean;
     FColumnsHeaderMenuVisible : boolean;
@@ -260,7 +259,6 @@ procedure TmDBGrid.InternalOnPrepareCanvas(sender: TObject; DataCol: Integer; Co
 var
   tmpCellDecoration : TmCellDecoration;
   PerformCustomizedDraw : boolean;
-  tmpGrid : TDBGrid;
   tmpValue : double;
 begin
   tmpCellDecoration := FCellDecorations.FindByFieldName(Column.FieldName);
@@ -287,7 +285,6 @@ begin
     end;
     if PerformCustomizedDraw then
     begin
-      tmpGrid := (Sender as TDBGrid);
       if tmpCellDecoration.BackgroundColor.NotNull then
         Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
       if tmpCellDecoration.TextColor.NotNull then

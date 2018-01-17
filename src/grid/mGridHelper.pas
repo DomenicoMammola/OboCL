@@ -407,7 +407,6 @@ procedure TmDBGridHelper.ExportGridAsXls(aStream: TStream);
 var
   MyWorkbook: TsWorkbook;
   MyWorksheet : TsWorksheet;
-  tmpFields : TFields;
   i, rn, row, col : integer;
   tmpField : TField;
 begin
@@ -417,7 +416,7 @@ begin
 
     FDBGrid.DataSource.DataSet.DisableControls;
     try
-      tmpFields := FDBGrid.DataSource.DataSet.Fields;
+      //tmpFields := FDBGrid.DataSource.DataSet.Fields;
       col := 0;
       for i := 0 to FDBGrid.Columns.Count - 1 do
       begin

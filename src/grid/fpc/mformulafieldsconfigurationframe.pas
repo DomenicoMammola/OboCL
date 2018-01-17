@@ -195,7 +195,6 @@ end;
 
 function TFormulaFieldsConfFrame.Check: boolean;
 var
-  i : integer;
   tmpString, tmpType : String;
   tmpNames : TStringList;
 begin

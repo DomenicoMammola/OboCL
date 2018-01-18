@@ -46,6 +46,7 @@ type
     FLinesByIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
     FLines : TObjectList;
+    FMemos : TObjectList;
 
     function GetAlternateColor: TColor;
     procedure SetAlternateColor(AValue: TColor);
@@ -59,6 +60,8 @@ type
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
     procedure ExtractFields (aVirtualFields : TmVirtualFieldDefs; aList : TStringList);
     function GetValue (const aName : string) : string;
+    procedure SetReadOnly (const aName : string; const aValue : boolean); overload;
+    procedure SetReadOnly (const aValue : boolean); overload;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
     // override these:
     procedure OnEditValue(const aName : string; const aNewValue : variant); virtual;
@@ -81,6 +84,7 @@ type
     Name : String;
     EditorKind : TmEditingFrameEditorKind;
     Index : integer;
+    ReadOnly : boolean;
   end;
 
 { TmEditingFrame }
@@ -109,7 +113,7 @@ begin
     exit;
 
   curLine := FLinesByIndex.Find(aRow) as TEditorLine;
-  if not Assigned(curLine) then
+  if (not Assigned(curLine)) or curLine.ReadOnly then
     exit;
 
   if (curLine.EditorKind = ekDate) then
@@ -134,6 +138,12 @@ begin
   tmp := trim(NewValue);
 
   curLine := FLinesByIndex.Find(aRow) as TEditorLine;
+
+  if curLine.ReadOnly then
+  begin
+    NewValue := OldValue;
+    exit;
+  end;
 
   if curLine.EditorKind = ekDate then
   begin
@@ -173,6 +183,9 @@ var
   tmpFieldsList : TStringList;
 begin
   curLine := FLinesByIndex.Find(aRow) as TEditorLine;
+
+  if curLine.ReadOnly then
+    exit;
 
   if curLine.EditorKind = ekDate then
   begin
@@ -247,11 +260,11 @@ begin
   tmp.EditorKind:= aEditorKind;
   tmp.Name := aName;
   tmp.Index:= FValueListEditor.InsertRow(aCaption, aDefaultValue, true);
+  tmp.ReadOnly:= (aEditorKind = ekReadOnly);
   FLinesByIndex.Add(tmp.Index + 1, tmp);
-  if (aEditorKind = ekDate) or (aEditorKind = ekLookup) then
-    FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis
-  else if (aEditorKind= ekReadOnly) then
-    FValueListEditor.ItemProps[tmp.Index].ReadOnly:= true;
+  FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.ReadOnly;
+  if (not tmp.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookup)) then
+    FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
 end;
 
 procedure TmEditingFrame.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string; const aMemoHeightPercent : double);
@@ -284,14 +297,15 @@ begin
   tmpMemo.WantReturns:= true;
   tmpMemo.Text:= aDefaultValue;
 
+  FMemos.Add(tmpMemo);
   FMemosByName.Add(aName, tmpMemo);
 
   FRootPanel.PanelCollection.Items[FRootPanel.PanelCollection.Count - 1].Position:= 1;
   position := 1 - aMemoHeightPercent;
   for i := FRootPanel.PanelCollection.Count -2 downto 0 do
   begin
-   FRootPanel.PanelCollection.Items[i].Position := position;
-   position := position - aMemoHeightPercent;
+    FRootPanel.PanelCollection.Items[i].Position := position;
+    position := position - aMemoHeightPercent;
   end;
 end;
 
@@ -310,6 +324,36 @@ var
 begin
   curLine := FLinesByName.Find(aName) as TEditorLine;
   Result := FValueListEditor.Rows[curLine.Index + 1].Strings[1];
+end;
+
+procedure TmEditingFrame.SetReadOnly(const aName: string; const aValue : boolean);
+var
+  tmpObj : TObject;
+begin
+  (FLinesByName.Find(aName) as TEditorLine).ReadOnly:= aValue;
+
+  tmpObj := FMemosByName.Find(aName);
+  if Assigned(tmpObj) then
+    (tmpObj as TMemo).ReadOnly:= aValue
+  else
+    FValueListEditor.ItemProps[aName].ReadOnly := aValue;
+end;
+
+procedure TmEditingFrame.SetReadOnly(const aValue: boolean);
+var
+  i : integer;
+  tmp : TItemProp;
+begin
+  for i := 0 to FLines.Count - 1 do
+    (FLines.Items[i] as TEditorLine).ReadOnly:= aValue;
+  for i := 0 to FMemos.Count - 1 do
+    (FMemos.Items[i] as TMemo).ReadOnly:= aValue;
+  for i := 0 to FValueListEditor.Strings.Count -1 do
+  begin
+    tmp := (FValueListEditor.ItemProps[i]);
+    if Assigned(tmp) then
+      tmp.ReadOnly := aValue;
+  end;
 end;
 
 function TmEditingFrame.GetValueFromMemo(const aName: string; const aTrimValue : boolean): string;
@@ -397,6 +441,7 @@ begin
   FLinesByName := TmStringDictionary.Create();
   FLinesByIndex := TmIntegerDictionary.Create();
   FLines := TObjectList.Create(true);
+  FMemos := TObjectList.Create(false);
   FMemosByName := TmStringDictionary.Create();
 end;
 
@@ -405,6 +450,7 @@ begin
   FLinesByName.Free;
   FLinesByIndex.Free;
   FLines.Free;
+  FMemos.Free;
   FMemosByName.Free;
   inherited Destroy;
 end;

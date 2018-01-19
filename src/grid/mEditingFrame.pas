@@ -32,7 +32,7 @@ resourcestring
 
 type
 
-  TmEditingFrameEditorKind = (ekInteger, ekFloat, ekDate, ekLookup, ekText, ekReadOnly);
+  TmEditingFrameEditorKind = (ekInteger, ekFloat, ekDate, ekLookupText, ekLookupInteger, ekLookupFloat, ekText);
 
   { TmEditingFrame }
 
@@ -56,10 +56,10 @@ type
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
     function OnValueListEditorEditValue  (const aCol, aRow : integer; var aNewValue : string): boolean;
   protected
-    procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind);
+    procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false);
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
     procedure ExtractFields (aVirtualFields : TmVirtualFieldDefs; aList : TStringList);
-    function GetValue (const aName : string) : string;
+    function GetValue (const aName : string) : Variant;
     procedure SetReadOnly (const aName : string; const aValue : boolean); overload;
     procedure SetReadOnly (const aValue : boolean); overload;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
@@ -121,7 +121,7 @@ begin
     FCustomDateEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FCustomDateEditor;
   end
-  else if (curLine.EditorKind = ekLookup) then
+  else if (curLine.EditorKind = ekLookupText) or (curLine.EditorKind = ekLookupFloat) or (curLine.EditorKind = ekLookupInteger) then
   begin
     FCustomEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FCustomEditor;
@@ -212,7 +212,7 @@ begin
       calendarFrm.Free;
     end;
   end
-  else if curLine.EditorKind = ekLookup then
+  else if (curLine.EditorKind = ekLookupText) or (curLine.EditorKind = ekLookupInteger) or (curLine.EditorKind = ekLookupFloat) then
   begin
     tmpFieldsList := TStringList.Create;
     try
@@ -250,7 +250,7 @@ begin
   end;
 end;
 
-procedure TmEditingFrame.AddLine(const aName: string; const aCaption: string; const aDefaultValue: string; const aEditorKind : TmEditingFrameEditorKind);
+procedure TmEditingFrame.AddLine(const aName: string; const aCaption: string; const aDefaultValue: string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false);
 var
   tmp : TEditorLine;
 begin
@@ -260,10 +260,10 @@ begin
   tmp.EditorKind:= aEditorKind;
   tmp.Name := aName;
   tmp.Index:= FValueListEditor.InsertRow(aCaption, aDefaultValue, true);
-  tmp.ReadOnly:= (aEditorKind = ekReadOnly);
+  tmp.ReadOnly:= aReadOnly;
   FLinesByIndex.Add(tmp.Index + 1, tmp);
   FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.ReadOnly;
-  if (not tmp.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookup)) then
+  if (not tmp.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookupFloat) or (aEditorKind = ekLookupInteger) or (aEditorKind = ekLookupText)) then
     FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
 end;
 
@@ -318,12 +318,24 @@ begin
     aList.Add(aVirtualFields.VirtualFieldDefs[i].Name);
 end;
 
-function TmEditingFrame.GetValue(const aName: string): string;
+function TmEditingFrame.GetValue(const aName: string): Variant;
 var
   curLine : TEditorLine;
+  tmp : string;
 begin
+  Result := Null;
+
   curLine := FLinesByName.Find(aName) as TEditorLine;
-  Result := FValueListEditor.Rows[curLine.Index + 1].Strings[1];
+  tmp := Trim(FValueListEditor.Rows[curLine.Index + 1].Strings[1]);
+  case curLine.EditorKind of
+    ekInteger: Result := TNullableInteger.StringToVariant(tmp);
+    ekFloat: Result := TNullableDouble.StringToVariant(tmp);
+    ekDate: Result := TNullableDateTime.StringToVariant(tmp);
+    ekLookupText: Result := TNullableString.StringToVariant(tmp);
+    ekLookupFloat: Result := TNullableDouble.StringToVariant(tmp);
+    ekLookupInteger: Result := TNullableInteger.StringToVariant(tmp);
+    ekText: Result := TNullableString.StringToVariant(tmp);
+  end;
 end;
 
 procedure TmEditingFrame.SetReadOnly(const aName: string; const aValue : boolean);

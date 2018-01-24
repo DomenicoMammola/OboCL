@@ -59,7 +59,8 @@ type
     procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false);
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
     procedure ExtractFields (aVirtualFields : TmVirtualFieldDefs; aList : TStringList);
-    function GetValue (const aName : string) : Variant;
+    function GetValue(const aName : string) : Variant;
+    procedure SetValue(const aName : string; const aValue: String);
     procedure SetReadOnly (const aName : string; const aValue : boolean); overload;
     procedure SetReadOnly (const aValue : boolean); overload;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
@@ -337,6 +338,16 @@ begin
     ekText: Result := TNullableString.StringToVariant(tmp);
   end;
 end;
+
+procedure TmEditingFrame.SetValue(const aName: string; const aValue: String);
+var
+  curLine: TEditorLine;
+begin
+  curLine := FLinesByName.Find(aName) as TEditorLine;
+  if Assigned(curLine) then
+    FValueListEditor.Rows[curLine.Index + 1].Strings[1] := aValue;
+end;
+
 
 procedure TmEditingFrame.SetReadOnly(const aName: string; const aValue : boolean);
 var

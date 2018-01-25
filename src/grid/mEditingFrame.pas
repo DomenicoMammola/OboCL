@@ -55,8 +55,9 @@ type
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
     function OnValueListEditorEditValue  (const aCol, aRow : integer; var aNewValue : string): boolean;
+    function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
   protected
-    procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false);
+    procedure AddLine (const aName : string; const aCaption : string; const aDefaultValue : string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false; const aMandatory: boolean = false);
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
     procedure ExtractFields (aVirtualFields : TmVirtualFieldDefs; aList : TStringList);
     function GetValue(const aName : string) : Variant;
@@ -73,6 +74,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     procedure SetFocusInEditor;
+    function CheckMandatoryLines(var aMissingValues: string): boolean;
 
     property AlternateColor : TColor read GetAlternateColor write SetAlternateColor;
   end;
@@ -82,10 +84,12 @@ implementation
 type
   TEditorLine = class
   public
-    Name : String;
-    EditorKind : TmEditingFrameEditorKind;
-    Index : integer;
-    ReadOnly : boolean;
+    Name: String;
+    Caption: String;
+    EditorKind: TmEditingFrameEditorKind;
+    Index: integer;
+    ReadOnly: boolean;
+    Mandatory: boolean;
   end;
 
 { TmEditingFrame }
@@ -251,7 +255,16 @@ begin
   end;
 end;
 
-procedure TmEditingFrame.AddLine(const aName: string; const aCaption: string; const aDefaultValue: string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false);
+function TmEditingFrame.ComposeCaption(const aCaption: string;
+  const aMandatory: boolean): string;
+begin
+  if aMandatory then
+    Result := aCaption + ' *'
+  else
+    Result := aCaption;
+end;
+
+procedure TmEditingFrame.AddLine(const aName: string; const aCaption: string; const aDefaultValue: string; const aEditorKind : TmEditingFrameEditorKind; const aReadOnly : boolean = false; const aMandatory: boolean = false);
 var
   tmp : TEditorLine;
 begin
@@ -260,8 +273,10 @@ begin
   FLinesByName.Add(aName, tmp);
   tmp.EditorKind:= aEditorKind;
   tmp.Name := aName;
-  tmp.Index:= FValueListEditor.InsertRow(aCaption, aDefaultValue, true);
+  tmp.Caption := aCaption;
+  tmp.Index:= FValueListEditor.InsertRow(ComposeCaption(aCaption, aMandatory), aDefaultValue, true);
   tmp.ReadOnly:= aReadOnly;
+  tmp.Mandatory:= aMandatory;
   FLinesByIndex.Add(tmp.Index + 1, tmp);
   FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.ReadOnly;
   if (not tmp.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookupFloat) or (aEditorKind = ekLookupInteger) or (aEditorKind = ekLookupText)) then
@@ -484,6 +499,30 @@ begin
   FValueListEditor.Row:= 1;
   FValueListEditor.Col:= 1;
   FValueListEditor.EditorMode:= true;
+end;
+
+function TmEditingFrame.CheckMandatoryLines(var aMissingValues: string): boolean;
+var
+  i : integer;
+  tmpLine : TEditorLine;
+  comma : string;
+begin
+  Result := true;
+  aMissingValues:= '';
+  comma := '';
+  for i:= 0 to FLines.Count - 1 do
+  begin
+    tmpLine:= FLines.Items[i] as TEditorLine;
+    if tmpLine.Mandatory then
+    begin
+      if VarIsNull(GetValue(tmpLine.Name)) then
+      begin
+        aMissingValues:= aMissingValues + comma + tmpLine.Caption;
+        comma := ',' + sLineBreak;
+        Result := false;
+      end;
+    end;
+  end;
 end;
 
 end.

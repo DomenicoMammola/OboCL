@@ -31,6 +31,7 @@ type
   protected
     FFlex : integer;
     FFieldName : String;
+    FCaption: string;
     FFilterOperator : TmFilterOperator;
     FOperatorsMenu : TPopupMenu;
     FAllowedOperators : TmFilterOperatorsSet;
@@ -41,11 +42,10 @@ type
     procedure OperatorMenuItemClick (Sender : TObject);
     procedure OperatorMenuPopup (Sender : TObject);
     procedure SetFilterOperator(AValue: TmFilterOperator); virtual;
-
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
-    procedure SetFilterCaption (aValue : String); virtual; abstract;
+    procedure SetFilterCaption (aValue : String); virtual;
 
     procedure ExportToFilter (aFilter : TmFilter); virtual;
 
@@ -95,7 +95,6 @@ type
     procedure Clear; override;
 
     property ValueType : TmEditFilterValueType read FValueType write FValueType;
-
   end;
 
   { TmComboFilterConditionPanel }
@@ -136,7 +135,6 @@ type
     procedure InternalOnClickFilter (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
-    procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
     procedure Clear; override;
     function IsEmpty : boolean; override;
@@ -203,10 +201,6 @@ begin
   FFilterButton.OnClick:= Self.InternalOnClickFilter;
 end;
 
-procedure TmExecuteFilterPanel.SetFilterCaption(aValue: String);
-begin
-  // do nothing
-end;
 
 procedure TmExecuteFilterPanel.ExportToFilter (aFilter : TmFilter);
 begin
@@ -316,6 +310,7 @@ end;
 
 procedure TmEditFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
+  inherited;
   FLabel.Caption := Self.FormatFilterCaption(aValue);
 end;
 
@@ -408,6 +403,7 @@ end;
 
 procedure TmComboFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
+  inherited;
   FLabel.Caption := Self.FormatFilterCaption(aValue);
 end;
 
@@ -555,6 +551,7 @@ end;
 
 procedure TmDateFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
+  inherited;
   FLabel.Caption := Self.FormatFilterCaption(aValue);
 end;
 
@@ -600,6 +597,7 @@ begin
   if FFilterOperator=AValue then Exit;
   FFilterOperator:=AValue;
   UpdateCurrentOperatorCheck;
+  Self.SetFilterCaption(FCaption);
 end;
 
 
@@ -629,42 +627,42 @@ begin
     FOperatorsMenu := TPopupMenu.Create(Self);
     aLabel.PopupMenu := FOperatorsMenu;
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= '=';
+    mi.Caption:= TmFilterOperatorToString(foEq);
     mi.Tag:= PtrInt(foEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:='contains';
+    mi.Caption:=TmFilterOperatorToString(foLike);
     mi.Tag := PtrInt(foLike);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= '<>';
+    mi.Caption:= TmFilterOperatorToString(foNotEq);
     mi.Tag:= PtrInt(foNotEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= '>=';
+    mi.Caption:= TmFilterOperatorToString(foGtOrEq);
     mi.Tag:= PtrInt(foGtOrEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= '<=';
+    mi.Caption:= TmFilterOperatorToString(foLtOrEq);
     mi.Tag:= PtrInt(foLtOrEq);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= 'starts';
+    mi.Caption:= TmFilterOperatorToString(foStartWith);
     mi.Tag:= PtrInt(foStartWith);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= 'ends';
+    mi.Caption:= TmFilterOperatorToString(foEndWith);
     mi.Tag:= PtrInt(foEndWith);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
     mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= 'between';
+    mi.Caption:= TmFilterOperatorToString(foBetween);
     mi.Tag:= PtrInt(foBetween);
     mi.OnClick:= OperatorMenuItemClick;
     FOperatorsMenu.Items.Add(mi);
@@ -682,6 +680,8 @@ begin
     Result := aValue + ':'
   else
     Result := aValue;
+  if (FFilterOperator <> foUnknown) and (FFilterOperator <> foEq) then
+   Result := Result + ' [' + TmFilterOperatorToString(Self.FFilterOperator) + ']';
 end;
 
 procedure TmFilterConditionPanel.UpdateCurrentOperatorCheck;
@@ -728,6 +728,11 @@ end;
 destructor TmFilterConditionPanel.Destroy;
 begin
   inherited Destroy;
+end;
+
+procedure TmFilterConditionPanel.SetFilterCaption(aValue: String);
+begin
+  FCaption := aValue;
 end;
 
 procedure TmFilterConditionPanel.ExportToFilter(aFilter: TmFilter);

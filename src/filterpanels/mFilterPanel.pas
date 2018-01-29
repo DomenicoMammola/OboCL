@@ -20,7 +20,7 @@ uses
   Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants,
   ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
-  mUtility, mDateEdit;
+  mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
 type
   { TmFilterConditionPanel }
@@ -37,7 +37,7 @@ type
     FAllowedOperators : TmFilterOperatorsSet;
     function CreateStandardLabel: TLabel;
     function CreateStandardOperatorMenu (aLabel: TLabel) : TPopupMenu;
-    function FormatFilterCaption (aValue : String) : String;
+    function FormatFilterCaption (aValue : String; const aShowOperator: boolean= true) : String;
     procedure UpdateCurrentOperatorCheck;
     procedure OperatorMenuItemClick (Sender : TObject);
     procedure OperatorMenuPopup (Sender : TObject);
@@ -122,6 +122,44 @@ type
     property DefaultItemIndex : integer read FDefaultItemIndex write SetDefaultItemIndex;
   end;
 
+  TmLookupFilterCondizionOnFillVirtualFields = procedure (aFieldDefs : TmVirtualFieldDefs) of object;
+
+  { TmLookupFilterConditionPanel }
+
+  TmLookupFilterConditionPanel = class(TmFilterConditionPanel)
+  private
+    FCurrentValue : variant;
+    FLabel : TLabel;
+    FEdit : TEditButton;
+    FValueType : TmEditFilterValueType;
+    FListDataProvider: IVDListDataProvider;
+    FKeyFieldName : string;
+    FValueFieldName : string;
+    FDescriptionFieldName : string;
+    FLookupFieldNames : TStringList;
+    FOnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields;
+
+    procedure OnEditValueChanged (Sender : TObject);
+    procedure OnShowLookup (Sender: TObject);
+  public
+    constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
+
+    procedure SetFilterCaption (aValue : String); override;
+    procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure SetFilterValue (const aValue : Variant; const aDescription: String);
+    function IsEmpty : boolean; override;
+    procedure Clear; override;
+
+    property ValueType : TmEditFilterValueType read FValueType write FValueType;
+    property KeyFieldName : String read FKeyFieldName write FKeyFieldName;
+    property ValueFieldName : string read FValueFieldName write FValueFieldName;
+    property DescriptionFieldName : string read FDescriptionFieldName write FDescriptionFieldName;
+    property OnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields read FOnFillVirtualFieldDefs write FOnFillVirtualFieldDefs;
+    property LookupFieldNames : TStringList read FLookupFieldNames;
+    property ListDataProvider: IVDListDataProvider read FListDataProvider write FListDataProvider;
+  end;
+
   { TmExecuteFilterPanel }
 
   TmExecuteFilterPanel = class (TmFilterConditionPanel)
@@ -161,10 +199,161 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils,
+  mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
+
+{ TmLookupFilterConditionPanel }
+
+procedure TmLookupFilterConditionPanel.OnEditValueChanged(Sender: TObject);
+begin
+
+end;
+
+procedure TmLookupFilterConditionPanel.OnShowLookup(Sender: TObject);
+var
+  lookupFrm: TmLookupWindow;
+  tmpDataset: TmVirtualDataset;
+  tmpDatasetProvider: TReadOnlyVirtualDatasetProvider;
+  str: String;
+  tmpDatum: IVDDatum;
+begin
+  if FKeyFieldName = '' then
+    raise Exception.Create('[TmLookupFilterConditionPanel] Missing KeyFieldName.');
+  if FValueFieldName = '' then
+    raise Exception.Create('[TmLookupFilterConditionPanel] Missing ValueFieldName.');
+  if FDescriptionFieldName = '' then
+    raise Exception.Create('[TmLookupFilterConditionPanel] Missing DescriptionFieldName.');
+  if not Assigned(FOnFillVirtualFieldDefs) then
+    raise Exception.Create('[TmLookupFilterConditionPanel] Missing OnFillVirtualFieldDefs.');
+
+  if not Assigned(FListDataProvider) then
+    raise Exception.Create('[TmLookupFilterConditionPanel] Missing ListDataProvider.');
+
+  if FLookupFieldNames.Count = 0 then
+    raise Exception.Create('[TmLookupFilterConditionPanel] Missing field names.');
+
+  lookupFrm := TmLookupWindow.Create(Self);
+  try
+    tmpDatasetProvider := TReadOnlyVirtualDatasetProvider.Create;
+    tmpDataset := TmVirtualDataset.Create(Self);
+    try
+      tmpDataset.DatasetDataProvider := tmpDatasetProvider;
+
+      tmpDatasetProvider.Init(FListDataProvider);
+      FOnFillVirtualFieldDefs(tmpDatasetProvider.VirtualFieldDefs);
+
+      tmpDataset.Active:= true;
+      tmpDataset.Refresh;
+      lookupFrm.Init(tmpDataset, FLookupFieldNames, FKeyFieldName);
+      if lookupFrm.ShowModal = mrOk then
+      begin
+        tmpDatum := FListDataProvider.FindDatumByStringKey(lookupFrm.Selected);
+        if Assigned(tmpDatum) then
+        begin
+          FEdit.Text:= VarToStr(tmpDatum.GetPropertyByFieldName(FDescriptionFieldName));
+          FCurrentValue:= tmpDatum.GetPropertyByFieldName(FValueFieldName);
+        end;
+      end;
+    finally
+      tmpDataset.Free;
+      tmpDatasetProvider.Free;
+    end;
+
+  finally
+    lookupFrm.Free;
+  end;
+end;
+
+
+constructor TmLookupFilterConditionPanel.Create(TheOwner: TComponent);
+begin
+  inherited Create(TheOwner);
+  FCurrentValue:= null;
+  FEdit := TEditButton.Create(Self);
+  FEdit.Parent := Self;
+  FEdit.Align := alBottom;
+  FEdit.Text := '';
+  FEdit.DirectInput:= false;
+  FEdit.OnEditingDone:= Self.OnEditValueChanged;
+  FEdit.ButtonCaption:='...';
+  FEdit.OnButtonClick:= Self.OnShowLookup;
+  FLabel := Self.CreateStandardLabel;
+  FValueType:= efString;
+  CreateStandardOperatorMenu(FLabel);
+  FKeyFieldName:= '';
+  FValueFieldName:= '';
+  FDescriptionFieldName:= '';
+  FOnFillVirtualFieldDefs:= nil;
+  FLookupFieldNames := TStringList.Create;
+end;
+
+destructor TmLookupFilterConditionPanel.Destroy;
+begin
+  FLookupFieldNames.Free;
+  inherited Destroy;
+end;
+
+procedure TmLookupFilterConditionPanel.SetFilterCaption(aValue: String);
+begin
+  inherited SetFilterCaption(aValue);
+  FLabel.Caption := Self.FormatFilterCaption(aValue, false);
+end;
+
+procedure TmLookupFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
+begin
+  inherited ExportToFilter(aFilter);
+  aFilter.DataType:= fdtString;
+  if VarIsNull(FCurrentValue) then
+    aFilter.Value := null
+  else if FValueType = efUppercaseString then
+    aFilter.Value := Uppercase(VarToStr(FCurrentValue))
+  else
+  if FValueType = efInteger then
+  begin
+    if VarIsNumeric(FCurrentValue) then
+      aFilter.Value := FCurrentValue
+    else
+      aFilter.Value := null;
+    aFilter.DataType:= fdtInteger;
+  end
+  else
+  if FValueType = efFloat then
+  begin
+    if VarIsFloat(FCurrentValue) then
+      aFilter.Value := FCurrentValue
+    else
+      aFilter.Value := null;
+    aFilter.DataType:= fdtFloat;
+  end
+  else
+    aFilter.Value := FCurrentValue;
+end;
+
+procedure TmLookupFilterConditionPanel.SetFilterValue(const aValue : Variant; const aDescription: String);
+begin
+  if VarIsNull(aValue) then
+    Self.Clear
+  else
+  begin
+    FCurrentValue:= aValue;
+    FEdit.Text := aDescription;
+  end;
+end;
+
+function TmLookupFilterConditionPanel.IsEmpty: boolean;
+begin
+  Result := VarIsNull(FCurrentValue);
+end;
+
+procedure TmLookupFilterConditionPanel.Clear;
+begin
+  FEdit.Text:= '';
+  FCurrentValue:= null;
+end;
+
   {$IFDEF LINUX}
   CB_SETDROPPEDWIDTH = 352;
   {$ENDIF}
@@ -674,13 +863,13 @@ begin
   Result := FOperatorsMenu;
 end;
 
-function TmFilterConditionPanel.FormatFilterCaption(aValue: String) : String;
+function TmFilterConditionPanel.FormatFilterCaption(aValue: String; const aShowOperator: boolean = true) : String;
 begin
   if not AnsiEndsText(':', aValue) then
     Result := aValue + ':'
   else
     Result := aValue;
-  if (FFilterOperator <> foUnknown) and (FFilterOperator <> foEq) then
+  if aShowOperator and (FFilterOperator <> foUnknown) and (FFilterOperator <> foEq) then
    Result := Result + ' [' + TmFilterOperatorToString(Self.FFilterOperator) + ']';
 end;
 

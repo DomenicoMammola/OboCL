@@ -41,6 +41,7 @@ type
     destructor Destroy; override;
 
     procedure Clear;
+    procedure Assign(const aSource: TmGridColumnSettings);
 
     property FieldName : String read FFieldName;
     property DisplayLabel : TNullableString read FDisplayLabel;
@@ -63,6 +64,8 @@ type
     function GetSettingsForField (aFieldName : String) : TmGridColumnSettings;
     function Count : integer;
     function Get (aIndex : integer): TmGridColumnSettings;
+
+    procedure Assign(const aSource : TmGridColumnsSettings);
 
     procedure Clear;
   end;
@@ -119,6 +122,17 @@ begin
   Result := FList.Items[aIndex] as TmGridColumnSettings;
 end;
 
+procedure TmGridColumnsSettings.Assign(const aSource: TmGridColumnsSettings);
+var
+  i : integer;
+begin
+  Self.Clear;
+  for i := 0 to aSource.Count -1 do
+  begin
+    Self.AddSettingsForField(aSource.Get(i).FieldName).Assign(aSource.Get(i));
+  end;
+end;
+
 
 procedure TmGridColumnsSettings.Clear;
 begin
@@ -156,6 +170,15 @@ begin
   FSortOrder.IsNull := true;
   FDisplayLabel.IsNull := true;
   FDisplayFormat.IsNull:= true;
+end;
+
+procedure TmGridColumnSettings.Assign(const aSource: TmGridColumnSettings);
+begin
+  DisplayLabel.Assign(aSource.DisplayLabel);
+  Visible.Assign(aSource.Visible);
+  DisplayFormat.Assign(aSource.DisplayFormat);
+  Width.Assign(aSource.Width);
+  SortOrder.Assign(aSource.SortOrder);
 end;
 
 end.

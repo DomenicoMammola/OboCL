@@ -6,7 +6,7 @@ in folder Mommon
 
 Checkout
 https://svn.code.sf.net/p/lazarus-ccr/svn/components/fpspreadsheet
-13-10-2017 rev. 6035
+01-02-2018 rev. 6164
 in folder fpspreadsheet
 
 Download

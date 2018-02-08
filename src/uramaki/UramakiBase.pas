@@ -43,6 +43,7 @@ type
   public
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); virtual; abstract;
     procedure PleaseClearMyChilds (aPlate : TUramakiPlate); virtual; abstract;
+    procedure PleaseAskMyFatherToRefreshItsChilds(aPlate : TUramakiPlate); virtual; abstract;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; virtual; abstract;
   end;
 

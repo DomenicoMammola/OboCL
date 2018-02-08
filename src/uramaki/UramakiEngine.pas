@@ -102,6 +102,7 @@ type
     FEngine : TUramakiEngine;
   public
     constructor Create (aEngine : TUramakiEngine);
+    procedure PleaseAskMyFatherToRefreshItsChilds(aPlate : TUramakiPlate); override;
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); override;
     procedure PleaseClearMyChilds (aPlate : TUramakiPlate); override;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; override;
@@ -260,6 +261,21 @@ end;
 constructor TUramakiEngineMediator.Create(aEngine: TUramakiEngine);
 begin
   FEngine := aEngine;
+end;
+
+procedure TUramakiEngineMediator.PleaseAskMyFatherToRefreshItsChilds(aPlate: TUramakiPlate);
+var
+  livingPlate : TUramakiLivingPlate;
+begin
+  livingPlate:= FEngine.FindLivingPlateByPlate(aPlate);
+  if Assigned(livingPlate) then
+  begin
+    if not IsEqualGUID(livingPlate.ParentIdentifier, GUID_NULL) then
+    begin
+      livingPlate := FEngine.FindLivingPlateByPlateId(livingPlate.ParentIdentifier);
+      Self.PleaseRefreshMyChilds(livingPlate.Plate);
+    end;
+  end;
 end;
 
 procedure TUramakiEngineMediator.PleaseRefreshMyChilds(aPlate: TUramakiPlate);

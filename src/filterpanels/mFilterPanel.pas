@@ -593,7 +593,7 @@ end;
 procedure TmComboFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited;
-  FLabel.Caption := Self.FormatFilterCaption(aValue);
+  FLabel.Caption := Self.FormatFilterCaption(aValue, False);
 end;
 
 procedure TmComboFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
@@ -869,8 +869,8 @@ begin
     Result := aValue + ':'
   else
     Result := aValue;
-  if aShowOperator and (FFilterOperator <> foUnknown) and (FFilterOperator <> foEq) then
-   Result := Result + ' [' + TmFilterOperatorToString(Self.FFilterOperator) + ']';
+  if aShowOperator and (FFilterOperator <> foUnknown) and (FFilterOperator <> foEq) and (SizeOf(FAllowedOperators) > 1) then
+    Result := Result + ' [' + TmFilterOperatorToString(Self.FFilterOperator) + ']';
 end;
 
 procedure TmFilterConditionPanel.UpdateCurrentOperatorCheck;

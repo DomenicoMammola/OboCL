@@ -207,6 +207,7 @@ begin
     tmpLabel.Align:= alClient;
     tmpLabel.Caption:= aList.Strings[i];
     tmpLabel.AutoSize:= true;
+    tmpLabel.Font.Size:= 13;
     tmpPanel.AutoSize:= true;
     FSubPanels.Add(tmpPanel);
   end;

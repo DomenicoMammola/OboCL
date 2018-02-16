@@ -39,6 +39,7 @@ resourcestring
   SUpdateChildWidgetsBtnHint = 'Click to update child widgets';
   SSelectAllMenuCaption = 'Select all rows';
   SGridActionsHint = 'Grid actions...';
+  SCopySummaryToClipboard = 'Copy to clipboard';
 
 const
   WM_USER_REFRESHCHILDS = WM_USER + 1;
@@ -66,7 +67,7 @@ type
 
     procedure Hide;
     procedure Show;
-    procedure SetSummaryValues (aList : TStringList);
+    procedure SetSummaryValues (aScreenValues: TmSummaryScreenValues);
   end;
 
   { TUramakiBaseGridPlate }
@@ -140,6 +141,55 @@ type
 
 implementation
 
+uses
+  Clipbrd, variants;
+
+type
+
+  { TSummaryLabel }
+
+  TSummaryLabel = class(TLabel)
+  strict private
+    FRawValue: variant;
+    FDataType: TmSummaryValueType;
+    FPopupMenu : TPopupMenu;
+    procedure OnCopySummaryToClipboard(Sender: TObject);
+  public
+    constructor Create(TheOwner: TComponent); override;
+    property RawValue: variant read FRawValue write FRawValue;
+    property DataType: TmSummaryValueType read FDataType write FDataType;
+  end;
+
+{ TSummaryLabel }
+
+procedure TSummaryLabel.OnCopySummaryToClipboard(Sender: TObject);
+begin
+  if VarIsNull(FRawValue) then
+    Clipboard.AsText:= ''
+  else
+  begin
+    if FDataType = svtDate then
+      Clipboard.AsText:= DateToStr(FRawValue)
+    else if FDataType = svtDateTime then
+      Clipboard.AsText:= DateTimeToStr(FRawValue)
+    else
+      Clipboard.AsText:= VarToStr(FRawValue);
+  end;
+end;
+
+constructor TSummaryLabel.Create(TheOwner: TComponent);
+var
+  tmpItem: TMenuItem;
+begin
+  inherited Create(TheOwner);
+  FPopupMenu := TPopupMenu.Create(Self);
+  Self.PopupMenu:= FPopupMenu;
+  tmpItem:= TMenuItem.Create(FPopupMenu);
+  tmpItem.Caption:= SCopySummaryToClipboard;
+  tmpItem.OnClick:= Self.OnCopySummaryToClipboard;
+  FPopupMenu.Items.Add(tmpItem);
+end;
+
 { TUramakiGridSummaryPanel }
 
 constructor TUramakiGridSummaryPanel.Create;
@@ -176,11 +226,11 @@ begin
     FPanel.Visible:= true;
 end;
 
-procedure TUramakiGridSummaryPanel.SetSummaryValues(aList: TStringList);
+procedure TUramakiGridSummaryPanel.SetSummaryValues(aScreenValues: TmSummaryScreenValues);
 var
   i : integer;
   tmpPanel : TPanel;
-  tmpLabel : TLabel;
+  tmpLabel : TSummaryLabel;
 begin
   for i := 0 to FSubPanels.Count - 1 do
   begin
@@ -193,22 +243,29 @@ begin
   end;
   FSubPanels.Clear;
   FPanel.ControlList.Clear;
-  for i := 0 to aList.Count - 1 do
+  for i := 0 to aScreenValues.Count - 1 do
   begin
     tmpPanel := TPanel.Create(FPanel);
     tmpPanel.Parent := FPanel;
     tmpPanel.Align:= alLeft;
     tmpPanel.Height:= 25;
-    tmpPanel.BevelWidth:= 2;
-    tmpPanel.BevelInner:= bvLowered;
+    tmpPanel.BorderSpacing.Left:= 2;
+    tmpPanel.BorderSpacing.Right:= 2;
+    tmpPanel.BorderSpacing.Top:= 2;
+    tmpPanel.BorderSpacing.Bottom:= 2;
+    tmpPanel.BevelInner:= bvNone;
     tmpPanel.BevelOuter:= bvNone;
-    tmpLabel := TLabel.Create(tmpPanel);
+    tmpPanel.BorderStyle:= bsSingle;
+    tmpLabel := TSummaryLabel.Create(tmpPanel);
     tmpLabel.Parent := tmpPanel;
     tmpLabel.Align:= alClient;
-    tmpLabel.Caption:= aList.Strings[i];
+    tmpLabel.Caption:= aScreenValues.Get(i).FormattedValue;
+    tmpLabel.RawValue:= aScreenValues.Get(i).RawValue;
+    tmpLabel.DataType:= aScreenValues.Get(i).DataType;
     tmpLabel.AutoSize:= true;
     tmpLabel.Font.Size:= 13;
     tmpPanel.AutoSize:= true;
+
     FSubPanels.Add(tmpPanel);
   end;
 end;

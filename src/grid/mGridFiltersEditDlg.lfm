@@ -1,0 +1,60 @@
+object FiltersEditDlg: TFiltersEditDlg
+  Left = 459
+  Height = 240
+  Top = 216
+  Width = 477
+  Caption = 'Filters'
+  ClientHeight = 240
+  ClientWidth = 477
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.8.0.6'
+  object ButtonPanel1: TButtonPanel
+    Left = 6
+    Height = 26
+    Top = 208
+    Width = 465
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 0
+    ShowButtons = [pbOK, pbCancel]
+    ShowBevel = False
+  end
+  object Panel1: TPanel
+    Left = 384
+    Height = 202
+    Top = 0
+    Width = 93
+    Align = alRight
+    BevelOuter = bvNone
+    ClientHeight = 202
+    ClientWidth = 93
+    TabOrder = 1
+    object RemoveButton: TButton
+      Left = 8
+      Height = 25
+      Top = 8
+      Width = 75
+      Caption = 'Remove'
+      Enabled = False
+      OnClick = RemoveButtonClick
+      TabOrder = 0
+    end
+  end
+  object LBFilterConditions: TListBox
+    Left = 0
+    Height = 202
+    Top = 0
+    Width = 384
+    Align = alClient
+    ItemHeight = 0
+    OnClick = LBFilterConditionsClick
+    TabOrder = 2
+  end
+end

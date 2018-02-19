@@ -19,11 +19,12 @@ interface
 uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants, Grids, ExtCtrls,
   mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
-  mDatasetInterfaces, mSystemColumns, mGridFilterValuesDlg, mFilter, mFilterOperators, mCellDecorations,
+  mDatasetInterfaces, mSystemColumns, mFilter, mFilterOperators, mCellDecorations,
   mSummary, KAParser;
 
 resourcestring
   SFilterValuesMenuCaption = 'Filter by value...';
+  SEditFiltersMenuCaption = 'Edit filters...';
   SRemoveFiltersMenuCaption = 'Remove all filters';
   SAddSummaryMenuCaption = 'Add summary...';
   SRemoveSummariesMenuCaption = 'Remove all summaries';
@@ -52,6 +53,7 @@ type
     FSortManager : ISortableDatasetManager;
     FFilterManager : IFilterDatasetManager;
     // menu
+    FMI_EditFilters: TMenuItem;
     FMI_RemoveAllFilters : TMenuItem;
     FMI_Summaries : TMenuItem;
     // Summary panel
@@ -75,6 +77,7 @@ type
     procedure OnEditSummaries(Sender : TObject);
     procedure OnRemoveSummaries(Sender : TObject);
     procedure OnRemoveAllFilters (Sender : TObject);
+    procedure OnEditFilters(Sender: TObject);
     procedure OnParserGetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
     procedure OnParserGetStrValue (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
     procedure RefreshSummaryPanel (Sender : TObject);
@@ -107,7 +110,8 @@ type
 implementation
 
 uses
-  LResources, sysutils;
+  LResources, sysutils,
+  mGridFilterValuesDlg, mGridFiltersEditDlg;
 
 { TmDBGrid }
 
@@ -124,10 +128,19 @@ begin
     tmpMenuItem.OnClick:=Self.OnFilterValues;
     FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
 
+    FMI_EditFilters:= TMenuItem.Create(FColumnsHeaderPopupMenu);
+    FMI_EditFilters.Caption:= SEditFiltersMenuCaption;
+    FMI_EditFilters.OnClick:= Self.OnEditFilters;
+    FColumnsHeaderPopupMenu.Items.Add(FMI_EditFilters);
+
     FMI_RemoveAllFilters := TMenuItem.Create(FColumnsHeaderPopupMenu);
     FMI_RemoveAllFilters.Caption:= SRemoveFiltersMenuCaption;
     FMI_RemoveAllFilters.OnClick:=Self.OnRemoveAllFilters;
     FColumnsHeaderPopupMenu.Items.Add(FMI_RemoveAllFilters);
+
+    tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    tmpMenuItem.Caption:= '-';
+    FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
 
     FMI_Summaries := TMenuItem.Create(FColumnsHeaderPopupMenu);
     FMI_Summaries.Caption:= SAddSummaryMenuCaption;
@@ -369,6 +382,7 @@ var
   i : integer;
 begin
   FMI_RemoveAllFilters.Enabled := Self.FilterManager.GetFiltered;
+  FMI_EditFilters.Enabled:= FMI_RemoveAllFilters.Enabled;
   for i := 0 to FMI_Summaries.Count - 1 do
   begin
     FMI_Summaries.Items[i].Checked:= false;
@@ -434,7 +448,7 @@ begin
                 for i := 0 to checkedValues.Count -1 do
                   VarArrayPut(tmpVariant, checkedValues.Strings[i], [i]);
                 tmpFilter.Value:= tmpVariant;
-                if Self.FilterManager.Filter then
+                if Self.FilterManager.DoFilter then
                 begin
                   // update icons..
                   if currentColumn.Title.ImageIndex = GRID_ICON_UP then
@@ -501,7 +515,7 @@ procedure TmDBGrid.OnRemoveAllFilters(Sender: TObject);
 var
   i : integer;
 begin
-  Self.FilterManager.ClearFilter;
+  Self.FilterManager.RemoveFilter;
   for i := 0 to Columns.Count - 1 do
   begin
     if Columns[i].Title.ImageIndex = GRID_ICON_UP_FILTER then
@@ -510,6 +524,47 @@ begin
       Columns[i].Title.ImageIndex := GRID_ICON_DOWN
     else
       Columns[i].Title.ImageIndex := -1;
+  end;
+end;
+
+procedure TmDBGrid.OnEditFilters(Sender: TObject);
+var
+  dlg: TFiltersEditDlg;
+  removedFilters: TStringList;
+  i: integer;
+begin
+  if not Assigned(Self.FilterManager) then
+    exit;
+
+  if not Self.FilterManager.GetFiltered then
+    exit;
+  dlg := TFiltersEditDlg.Create(Self);
+  try
+    dlg.Init(FFilterManager.GetFilters, Self.DataSource.DataSet);
+    if dlg.ShowModal = mrOk then
+    begin
+      removedFilters:= TStringList.Create;
+      try
+        dlg.GetRemovedFilterConditions(removedFilters);
+        FFilterManager.RemoveFilterForFields(removedFilters);
+        for i := 0 to Columns.Count - 1 do
+        begin
+          if removedFilters.IndexOf(Columns[i].Field.FieldName) >= 0 then
+          begin
+            if Columns[i].Title.ImageIndex = GRID_ICON_UP_FILTER then
+              Columns[i].Title.ImageIndex := GRID_ICON_UP
+            else if Columns[i].Title.ImageIndex = GRID_ICON_DOWN_FILTER then
+              Columns[i].Title.ImageIndex := GRID_ICON_DOWN
+            else
+              Columns[i].Title.ImageIndex := -1;
+          end;
+        end;
+      finally
+        removedFilters.Free;
+      end;
+    end;
+  finally
+    dlg.Free;
   end;
 end;
 

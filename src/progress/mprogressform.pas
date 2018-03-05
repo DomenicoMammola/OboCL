@@ -101,14 +101,22 @@ begin
 end;
 
 constructor TProgressForm.Create(AOwner: TComponent);
+var
+  i : integer;
 begin
   inherited Create(AOwner);
   FAnimation := TBiruFreshFruit.Create(Self);
   FAnimation.Parent := Self;
   Self.Height:= FAnimation.Height;
   FAnimation.Align:= alLeft;
-  FAnimation.Shape:= bsBanana;
-  FAnimation.Animation:= tatScrolling;
+  i := Random(3);
+  case i of
+    0 : FAnimation.Shape:= bsApple;
+    1 : FAnimation.Shape:= bsBanana;
+    2 : FAnimation.Shape:= bsCherry;
+    3 : FAnimation.Shape:= bsKiwi;
+  end;
+  FAnimation.Animation:= tatBouncing;
   FListBox := TListBox.Create(Self);
   FListBox.Parent := Self;
   FListBox.Align := alClient;

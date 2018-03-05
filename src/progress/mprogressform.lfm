@@ -2,13 +2,13 @@ object ProgressForm: TProgressForm
   Left = 554
   Height = 67
   Top = 295
-  Width = 320
+  Width = 500
   BorderIcons = []
   BorderStyle = bsSingle
-  Caption = 'ProgressForm'
+  Caption = 'Progress'
   OnHide = FormHide
   OnShow = FormShow
   Position = poMainFormCenter
   ShowInTaskBar = stNever
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '1.8.2.0'
 end

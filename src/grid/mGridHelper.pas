@@ -524,9 +524,9 @@ procedure TmDBGridHelper.SelectAllRows;
 begin
   if dgMultiselect in FDBGrid.Options then
   begin
+    FDBGrid.ClearSelections;
     FDBGrid.DataSource.DataSet.DisableControls;
     try
-      FDBGrid.ClearSelections;
       FDBGrid.DataSource.DataSet.First;
       while not FDBGrid.DataSource.DataSet.EOF do
       begin

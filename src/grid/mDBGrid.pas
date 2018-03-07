@@ -173,6 +173,9 @@ begin
   try
     if FAllowSort then
     begin
+      // it is necessary to clear old selection
+      Self.SelectedRows.Clear;
+
       OldCursor := Screen.Cursor;
       try
         Screen.Cursor := crHourGlass;
@@ -438,6 +441,8 @@ begin
             Self.FilterManager.GetFilters.ClearForField(currentColumn.FieldName);
             if checkedValues.Count > 0 then
             begin
+              // it is necessary to clear old selection
+              Self.SelectedRows.Clear;
               OldCursor := Screen.Cursor;
               try
                 Screen.Cursor := crHourGlass;
@@ -546,17 +551,22 @@ begin
       removedFilters:= TStringList.Create;
       try
         dlg.GetRemovedFilterConditions(removedFilters);
-        FFilterManager.RemoveFilterForFields(removedFilters);
-        for i := 0 to Columns.Count - 1 do
+        if removedFilters.Count > 0 then
         begin
-          if removedFilters.IndexOf(Columns[i].Field.FieldName) >= 0 then
+          // it is necessary to clear old selection
+          Self.SelectedRows.Clear;
+          FFilterManager.RemoveFilterForFields(removedFilters);
+          for i := 0 to Columns.Count - 1 do
           begin
-            if Columns[i].Title.ImageIndex = GRID_ICON_UP_FILTER then
-              Columns[i].Title.ImageIndex := GRID_ICON_UP
-            else if Columns[i].Title.ImageIndex = GRID_ICON_DOWN_FILTER then
-              Columns[i].Title.ImageIndex := GRID_ICON_DOWN
-            else
-              Columns[i].Title.ImageIndex := -1;
+            if removedFilters.IndexOf(Columns[i].Field.FieldName) >= 0 then
+            begin
+              if Columns[i].Title.ImageIndex = GRID_ICON_UP_FILTER then
+                Columns[i].Title.ImageIndex := GRID_ICON_UP
+              else if Columns[i].Title.ImageIndex = GRID_ICON_DOWN_FILTER then
+                Columns[i].Title.ImageIndex := GRID_ICON_DOWN
+              else
+                Columns[i].Title.ImageIndex := -1;
+            end;
           end;
         end;
       finally

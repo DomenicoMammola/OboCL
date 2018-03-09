@@ -62,7 +62,7 @@ type
     procedure Show;
     procedure ShowAtPos(x: Integer; y: Integer);
 
-    class procedure ShowText(const aText: String; const aDuration: integer = 1500);
+    class procedure ShowText(const aText: String; const aDuration: integer = 2500);
   published
     property Color: TColor  read GetColor write SetColor;
     property Text: string read GetText write SetText;
@@ -238,7 +238,7 @@ begin
   FNotifierForm.Show;
 end;
 
-class procedure TmToast.ShowText(const aText: String; const aDuration: integer = 1500);
+class procedure TmToast.ShowText(const aText: String; const aDuration: integer = 2500);
 begin
   if not Assigned(applicationToaster) then
     applicationToaster:= TmToast.Create(nil)

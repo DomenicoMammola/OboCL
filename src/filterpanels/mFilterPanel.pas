@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants,
-  ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
+  ExtCtrls, EditBtn, Menus, ComboEx, {$IFNDEF LINUX}Windows, {$ENDIF}
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
@@ -122,6 +122,32 @@ type
     property DefaultItemIndex : integer read FDefaultItemIndex write SetDefaultItemIndex;
   end;
 
+  { TmCheckListFilterConditionPanel }
+
+  TmCheckListFilterConditionPanel = class (TmFilterConditionPanel)
+  private
+    FCurrentValue : variant;
+    FLabel : TLabel;
+    FEdit : TEditButton;
+    FValueType : TmEditFilterValueType;
+    FGarbage : TObjectList;
+    FValues : TStringList;
+    procedure OnShowValuesList (Sender: TObject);
+  public
+    constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure SetFilterCaption (aValue : String); override;
+    procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure AddItem (aValue : String); overload;
+    procedure AddItem (aLabel : String; aValue : Variant); overload;
+    procedure ClearItems;
+
+    procedure Clear; override;
+    function IsEmpty : boolean; override;
+    property ValueType : TmEditFilterValueType read FValueType write FValueType;
+  end;
+
+
   TmLookupFilterCondizionOnFillVirtualFields = procedure (aFieldDefs : TmVirtualFieldDefs) of object;
 
   { TmLookupFilterConditionPanel }
@@ -200,10 +226,112 @@ implementation
 
 uses
   SysUtils,
-  mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet;
+  mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet, mCheckListForm;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
+
+{ TmCheckListFilterConditionPanel }
+
+procedure TmCheckListFilterConditionPanel.OnShowValuesList(Sender: TObject);
+var
+  Dlg : TmCheckListWindow;
+  i : integer;
+begin
+  Dlg := TmCheckListWindow.Create(Self);
+  try
+    for i := 0 to FValues.Count - 1 do
+      Dlg.AddValue(FValues.Strings[i], (FGarbage.Items[i] as TVariantObject).Value);
+    Dlg.SetCurrentValue(FCurrentValue);
+    if Dlg.ShowModal = mrOK then
+    begin
+      FCurrentValue:= Dlg.Selected;
+      if VarIsNull(FCurrentValue) then
+        FEdit.Clear
+      else
+        FEdit.Text:= Dlg.SelectedLabels;
+    end;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+constructor TmCheckListFilterConditionPanel.Create(TheOwner: TComponent);
+begin
+   inherited Create(TheOwner);
+  FCurrentValue:= null;
+  FEdit := TEditButton.Create(Self);
+  FEdit.Parent := Self;
+  FEdit.Align := alBottom;
+  FEdit.Text := '';
+  FEdit.DirectInput:= false;
+//  FEdit.OnEditingDone:= Self.OnEditValueChanged;
+  FEdit.ButtonCaption:='...';
+  FEdit.OnButtonClick:= Self.OnShowValuesList;
+  FLabel := Self.CreateStandardLabel;
+  FValueType:= efString;
+  CreateStandardOperatorMenu(FLabel);
+  FGarbage := TObjectList.Create(true);
+  FValues := TStringList.Create;
+end;
+
+destructor TmCheckListFilterConditionPanel.Destroy;
+begin
+  FGarbage.Free;
+  FValues.Free;
+  inherited Destroy;
+end;
+
+procedure TmCheckListFilterConditionPanel.SetFilterCaption(aValue: String);
+begin
+  inherited;
+  FLabel.Caption := Self.FormatFilterCaption(aValue, False);
+end;
+
+procedure TmCheckListFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
+begin
+  inherited ExportToFilter(aFilter);
+  aFilter.Value:= FCurrentValue;
+  aFilter.DataType:= fdtString;
+
+(*
+  if FComboBox.ItemIndex < 0 then
+    aFilter.Value := Null
+  else
+    aFilter.Value := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
+  aFilter.DataType:= fdtString;*)
+end;
+
+procedure TmCheckListFilterConditionPanel.AddItem(aValue: String);
+begin
+  Self.AddItem(aValue, aValue);
+end;
+
+procedure TmCheckListFilterConditionPanel.AddItem(aLabel: String; aValue: Variant);
+var
+  sh : TVariantObject;
+begin
+  sh := TVariantObject.Create(aValue);
+  FGarbage.Add(sh);
+  FValues.Add(aLabel);
+end;
+
+procedure TmCheckListFilterConditionPanel.ClearItems;
+begin
+  FValues.Clear;
+  FGarbage.Clear;
+end;
+
+
+procedure TmCheckListFilterConditionPanel.Clear;
+begin
+  ClearItems;
+end;
+
+function TmCheckListFilterConditionPanel.IsEmpty: boolean;
+begin
+  Result := VarIsNull(FCurrentValue);
+end;
 
 { TmLookupFilterConditionPanel }
 

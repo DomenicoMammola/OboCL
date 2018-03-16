@@ -6,7 +6,7 @@ object FilterValuesDlg: TFilterValuesDlg
   Caption = 'Filter values'
   ClientHeight = 240
   ClientWidth = 477
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '1.8.2.0'
   object ButtonPanel1: TButtonPanel
     Left = 6
     Height = 26
@@ -42,7 +42,6 @@ object FilterValuesDlg: TFilterValuesDlg
         Height = 23
         Top = 0
         Width = 469
-        UseFormActivate = True
         ButtonWidth = 23
         NumGlyphs = 1
         Align = alTop

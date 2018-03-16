@@ -1,0 +1,57 @@
+object mCheckListWindow: TmCheckListWindow
+  Left = 1995
+  Height = 548
+  Top = 272
+  Width = 509
+  Caption = 'Select values'
+  ClientHeight = 548
+  ClientWidth = 509
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
+  Position = poMainFormCenter
+  LCLVersion = '1.8.2.0'
+  object BottomPanel: TPanel
+    Left = 0
+    Height = 50
+    Top = 498
+    Width = 509
+    Align = alBottom
+    ClientHeight = 50
+    ClientWidth = 509
+    TabOrder = 0
+    object OkBtn: TBitBtn
+      Left = 341
+      Height = 30
+      Top = 8
+      Width = 75
+      Anchors = [akRight, akBottom]
+      Default = True
+      DefaultCaption = True
+      Kind = bkOK
+      OnClick = OkBtnClick
+      TabOrder = 0
+    end
+    object CancelBtn: TBitBtn
+      Left = 421
+      Height = 30
+      Top = 8
+      Width = 75
+      Anchors = [akRight, akBottom]
+      Cancel = True
+      DefaultCaption = True
+      Kind = bkCancel
+      ModalResult = 2
+      TabOrder = 1
+    end
+  end
+  object CheckListBox: TCheckListBox
+    Left = 0
+    Height = 498
+    Top = 0
+    Width = 509
+    Align = alClient
+    ItemHeight = 0
+    TabOrder = 1
+  end
+end

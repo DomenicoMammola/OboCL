@@ -326,6 +326,8 @@ end;
 procedure TmCheckListFilterConditionPanel.Clear;
 begin
   ClearItems;
+  FCurrentValue:= null;
+  FEdit.Text:= '';
 end;
 
 function TmCheckListFilterConditionPanel.IsEmpty: boolean;

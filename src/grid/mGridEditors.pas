@@ -48,8 +48,8 @@ type
 
   *)
 
-  TmOnCellEditorShowEditorEvent = function (const aCol, aRow : integer; var aNewValue : string) : boolean of object;
-  TmOnCellEditorShowWizardEvent = function (const aCol, aRow : integer; var aNewValue : string) : boolean of object;
+  TmOnCellEditorShowEditorEvent = function (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant) : boolean of object;
+  TmOnCellEditorShowWizardEvent = function (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant) : boolean of object;
 
   { TmExtStringCellEditor }
 
@@ -93,15 +93,16 @@ implementation
 
 procedure TmExtStringCellEditor.KeyDown(var Key: Word; Shift: TShiftState);
 var
-  newValue : string;
+  newDisplayValue : string;
+  newActualValue : variant;
 begin
   inherited KeyDown(Key, Shift);
   if Key = FDefaultShowEditorKey then
   begin
     if Assigned(FOnShowEditorEvent) then
     begin
-      if FOnShowEditorEvent(FParentGrid.Col, FParentGrid.Row, newValue) then
-        Self.Text := newValue; //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
+      if FOnShowEditorEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+        Self.Text := newDisplayValue; //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
     end;
   end
   else
@@ -109,8 +110,8 @@ begin
   begin
     if Assigned(FOnShowWizardEvent) then
     begin
-      if FOnShowWizardEvent(FParentGrid.Col, FParentGrid.Row, newValue) then
-        Self.Text := newValue;
+      if FOnShowWizardEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+        Self.Text := newDisplayValue;
     end;
   end
   else
@@ -123,13 +124,14 @@ end;
 
 procedure TmExtStringCellEditor.DblClick;
 var
-  newValue : string;
+  newDisplayValue : string;
+  newActualValue : variant;
 begin
   inherited DblClick;
   if Assigned(FOnShowEditorEvent) then
   begin
-    if FOnShowEditorEvent(FParentGrid.Col, FParentGrid.Row, newValue) then
-      Self.Text := newValue; //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
+    if FOnShowEditorEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+      Self.Text := newDisplayValue; //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
   end;
 end;
 

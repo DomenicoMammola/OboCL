@@ -42,14 +42,14 @@ type
 
   TmOnEditValueEvent = procedure (const aName : string; const aNewDisplayValue: string; const aNewActualValue : variant) of object;
   TmOnValidateValueEvent = procedure (const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
-  TmOnInitProviderForLookupEvent = procedure (const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList; out aKey: string) of object;
-  TmOnGetValueFromLookupKeyValueEvent = procedure (const aName : string; const aLookupKeyValue : string; out aDisplayValue: string; out aActualValue: variant) of object;
+  TmOnInitProviderForLookupEvent = procedure (const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList; out aKeyFieldName, aDisplayLabelFieldName: string) of object;
+  TmOnGetValueFromLookupKeyValueEvent = procedure (const aName : string; var aLookupValue: variant; var aDisplayValue: string) of object;
 
   { TmValueListEditor }
 
   TmValueListEditor = class(TValueListEditor)
   protected
-    Function  EditingAllowed(ACol : Integer = -1) : Boolean; override;
+    Function EditingAllowed(ACol : Integer = -1) : Boolean; override;
   end;
 
   { TmEditingPanel }
@@ -61,7 +61,7 @@ type
     FCustomDateEditor : TmExtStringCellEditor;
     FCustomEditor : TmExtStringCellEditor;
     FLinesByName : TmStringDictionary;
-    FLinesByIndex : TmIntegerDictionary;
+    FLinesByRowIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
     FLines : TObjectList;
     FMemos : TObjectList;
@@ -69,6 +69,7 @@ type
     FOnValidateValueEvent: TmOnValidateValueEvent;
     FOnInitProviderForLookupEvent: TmOnInitProviderForLookupEvent;
     FOnGetValueFromLookupKeyValueEvent: TmOnGetValueFromLookupKeyValueEvent;
+    FMultiEditMode : boolean;
 
     function GetAlternateColor: TColor;
     procedure SetAlternateColor(AValue: TColor);
@@ -77,6 +78,7 @@ type
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
     function OnValueListEditorEditValue  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
   protected
     FCommitted : boolean;
@@ -89,8 +91,9 @@ type
     // override these or use events (don't mix overrides and events!):
     procedure InternalOnEditValue(const aName : string; const aNewDisplayValue : variant; const aNewActualValue: variant); virtual;
     procedure InternalOnValidateValue(const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant); virtual;
-    procedure InternalInitProviderForLookup (const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList; out aKey: string); virtual;
-    procedure InternalGetValueFromLookupKeyValue (const aName : string; const aLookupKeyValue : string; out aDisplayValue : string; out aActualValue: variant); virtual;
+    procedure InternalInitProviderForLookup (const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList;
+      out aKeyFieldName, aDisplayLabelFieldName: string); virtual;
+//    procedure InternalGetValueFromLookupKeyValue (const aName : string; const aLookupValue: variant; out aDisplayValue : string; out aActualValue: variant); virtual;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -110,6 +113,8 @@ type
     property OnValidateValue: TmOnValidateValueEvent read FOnValidateValueEvent write FOnValidateValueEvent;
     property OnInitProviderForLookup: TmOnInitProviderForLookupEvent read FOnInitProviderForLookupEvent write FOnInitProviderForLookupEvent;
     property OnGetValueFromLookupKeyValue: TmOnGetValueFromLookupKeyValueEvent read FOnGetValueFromLookupKeyValueEvent write FOnGetValueFromLookupKeyValueEvent;
+
+    property MultiEditMode : boolean read FMultiEditMode write FMultiEditMode;
   end;
 
   { TmEditingForm }
@@ -133,7 +138,7 @@ implementation
 
 uses
   Dialogs,
-  mToast, mBaseClassesAsObjects;
+  mToast;
 
 type
 
@@ -149,6 +154,7 @@ type
     Mandatory: boolean;
     ActualValue: variant;
     ChangedValueDestination: TAbstractNullable;
+    Changed: boolean;
     function RowIndex : integer;
   end;
 
@@ -265,7 +271,16 @@ end;
 procedure TmEditingPanel.OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
 begin
   if (aCol = 0) or (aRow = 0) then
+  begin
     FValueListEditor.Canvas.Font.Style := FValueListEditor.Canvas.Font.Style + [fsBold];
+    if MultiEditMode and (aRow > 0) then
+    begin
+      if not (FLinesByRowIndex.Find(aRow) as TEditorLine).Changed then
+        FValueListEditor.Canvas.Font.Color:= clGray
+      else
+        FValueListEditor.Canvas.Font.Color:= clBlack;
+    end;
+  end;
 end;
 
 procedure TmEditingPanel.OnValueListEditorSelectEditor(Sender: TObject; aCol, aRow: Integer; var Editor: TWinControl);
@@ -275,7 +290,7 @@ begin
   if aCol <> 1 then
     exit;
 
-  curLine := FLinesByIndex.Find(aRow) as TEditorLine;
+  curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
   if (not Assigned(curLine)) or curLine.ReadOnly then
     exit;
 
@@ -301,7 +316,7 @@ var
 begin
   NewValue := trim(NewValue);
 
-  curLine := FLinesByIndex.Find(aRow) as TEditorLine;
+  curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
   oldActualValue := curLine.ActualValue;
 
@@ -339,7 +354,9 @@ begin
         TmToast.ShowText(SErrorNotANumber);
       end
       else
+      begin
         curLine.ActualValue:= StrToInt(NewValue);
+      end;
     end
     else
       curLine.ActualValue:= null;
@@ -384,10 +401,14 @@ begin
         TmToast.ShowText(errorMessage);
       end
       else
+      begin
         curLine.ActualValue:= NewValue;
+      end;
     end
     else
+    begin
       curLine.ActualValue:= null;
+    end;
   end else if curLine.EditorKind = ekMRNNumber then
   begin
     if NewValue <> '' then
@@ -399,26 +420,31 @@ begin
         TmToast.ShowText(errorMessage);
       end
       else
+      begin
         curLine.ActualValue:= NewValue;
+      end;
     end;
   end;
   Self.InternalOnValidateValue(curLine.Name, OldValue, NewValue, oldActualValue, curLine.ActualValue);
 
   if NewValue <> OldValue then
+  begin
     Self.InternalOnEditValue(curLine.Name, NewValue, curLine.ActualValue);
+    curLine.Changed := curLine.Changed or (NewValue <> OldValue);
+  end;
 end;
 
 function TmEditingPanel.OnValueListEditorEditValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
-  str, tmpKey : String;
+  str, tmpKeyFieldName, tmpDisplayLabelFieldName : String;
   curLine : TEditorLine;
   lookupFrm : TmLookupWindow;
   tmpDatasetProvider : TReadOnlyVirtualDatasetProvider;
   tmpDataset : TmVirtualDataset;
   tmpFieldsList : TStringList;
 begin
-  curLine := FLinesByIndex.Find(aRow) as TEditorLine;
+  curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
   if curLine.ReadOnly then
     exit;
@@ -439,12 +465,11 @@ begin
       begin
         str := DateToStr(calendarFrm.Date);
         FValueListEditor.Cells[aCol, aRow] := str;
-        Result := true;
         aNewDisplayValue := str;
         aNewActualValue := calendarFrm.Date;
         curLine.ActualValue:= calendarFrm.Date;
-
-        Self.InternalOnEditValue(curLine.Name, str, calendarFrm.Date);
+//        Self.InternalOnEditValue(curLine.Name, str, calendarFrm.Date);
+        Result := true;
       end;
     finally
       calendarFrm.Free;
@@ -461,14 +486,17 @@ begin
         try
           tmpDataset.DatasetDataProvider := tmpDatasetProvider;
 
-          InternalInitProviderForLookup(curLine.Name, tmpDatasetProvider, tmpFieldsList, tmpKey);
+          InternalInitProviderForLookup(curLine.Name, tmpDatasetProvider, tmpFieldsList, tmpKeyFieldName, tmpDisplayLabelFieldName);
 
           tmpDataset.Active:= true;
           tmpDataset.Refresh;
-          lookupFrm.Init(tmpDataset, tmpFieldsList, tmpKey);
+          lookupFrm.Init(tmpDataset, tmpFieldsList, tmpKeyFieldName, tmpDisplayLabelFieldName);
           if lookupFrm.ShowModal = mrOk then
           begin
-            InternalGetValueFromLookupKeyValue (curLine.Name, lookupFrm.Selected, aNewDisplayValue, aNewActualValue);
+            aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
+            aNewActualValue:= lookupFrm.SelectedValue;
+            if Assigned(FOnGetValueFromLookupKeyValueEvent) then
+              FOnGetValueFromLookupKeyValueEvent(curLine.Name, aNewActualValue, aNewDisplayValue);
 
             FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
             curLine.ActualValue:= aNewActualValue;
@@ -486,6 +514,26 @@ begin
       tmpFieldsList.Free;
     end;
   end;
+end;
+
+function TmEditingPanel.OnValueListEditorClearValue(const aCol, aRow: integer): boolean;
+var
+  curLine: TEditorLine;
+begin
+  Result := false;
+  curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
+
+  if curLine.ReadOnly then
+    exit;
+
+  if MultiEditMode then
+    curLine.Changed := false
+  else
+    curLine.Changed:= curLine.Changed and (FValueListEditor.Rows[curLine.Index + 1].Strings[1] <> '');
+
+  FValueListEditor.Rows[curLine.Index + 1].Strings[1] := '';
+  curLine.ActualValue:= null;
+  Result := true;
 end;
 
 function TmEditingPanel.ComposeCaption(const aCaption: string;
@@ -512,7 +560,7 @@ begin
   tmp.ReadOnly:= aReadOnly;
   tmp.Mandatory:= aMandatory;
   tmp.ChangedValueDestination := aChangedValueDestination;
-  FLinesByIndex.Add(tmp.Index + 1, tmp);
+  FLinesByRowIndex.Add(tmp.RowIndex, tmp);
   FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.ReadOnly;
   if (not tmp.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookupFloat) or (aEditorKind = ekLookupInteger) or (aEditorKind = ekLookupText)) then
     FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
@@ -544,7 +592,7 @@ begin
   tmp.ReadOnly:= aReadOnly;
   tmp.Mandatory:= aMandatory;
   tmp.ChangedValueDestination := aValue;
-  FLinesByIndex.Add(tmp.Index + 1, tmp);
+  FLinesByRowIndex.Add(tmp.RowIndex, tmp);
   FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.ReadOnly;
   if (not tmp.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookupFloat) or (aEditorKind = ekLookupInteger) or (aEditorKind = ekLookupText)) then
     FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
@@ -643,6 +691,7 @@ begin
   curLine := FLinesByName.Find(aName) as TEditorLine;
   if Assigned(curLine) then
   begin
+    curLine.Changed := curLine.Changed or (aDisplayValue <> FValueListEditor.Rows[curLine.Index + 1].Strings[1]);
     FValueListEditor.Rows[curLine.Index + 1].Strings[1] := aDisplayValue;
     curLine.ActualValue:= aActualValue;
   end;
@@ -709,18 +758,25 @@ begin
     FOnValidateValueEvent(aName, aOldDisplayValue, aNewDisplayValue, aOldActualValue, aNewActualValue);
 end;
 
-procedure TmEditingPanel.InternalInitProviderForLookup(const aName : string; aDatasetProvider: TReadOnlyVirtualDatasetProvider; aFieldsList: TStringList; out aKey: string);
+procedure TmEditingPanel.InternalInitProviderForLookup(const aName : string; aDatasetProvider: TReadOnlyVirtualDatasetProvider; aFieldsList: TStringList; out aKeyFieldName, aDisplayLabelFieldName: string);
 begin
-  aKey := '';
+  aKeyFieldName := '';
+  aDisplayLabelFieldName := '';
   if Assigned(FOnInitProviderForLookupEvent) then
-    FOnInitProviderForLookupEvent(aName, aDatasetProvider, aFieldsList, aKey);
+    FOnInitProviderForLookupEvent(aName, aDatasetProvider, aFieldsList, aKeyFieldName, aDisplayLabelFieldName);
 end;
 
-procedure TmEditingPanel.InternalGetValueFromLookupKeyValue(const aName: string; const aLookupKeyValue: string; out aDisplayValue : string; out aActualValue: variant);
+(*
+procedure TmEditingPanel.InternalGetValueFromLookupKeyValue(const aName: string; const aLookupValue: variant; out aDisplayValue : string; out aActualValue: variant);
 begin
   if Assigned(FOnGetValueFromLookupKeyValueEvent) then
-    FOnGetValueFromLookupKeyValueEvent(aName, aLookupKeyValue, aDisplayValue, aActualValue);
-end;
+    FOnGetValueFromLookupKeyValueEvent(aName, aLookupValue, aDisplayValue, aActualValue)
+  else
+  begin
+    aDisplayValue:= aLookupValueAsString;
+    aActualValue:= aLookupValue;
+  end;
+end;*)
 
 constructor TmEditingPanel.Create(TheOwner: TComponent);
 begin
@@ -735,6 +791,7 @@ begin
   FRootPanel.Align:= alClient;
 
   FCommitted:= false;
+  FMultiEditMode:= false;
 
   FValueListEditor:= TmValueListEditor.Create(FRootPanel);
   FValueListEditor.Parent := FRootPanel;
@@ -760,16 +817,18 @@ begin
   FCustomEditor.Visible := false;
   FCustomEditor.ReadOnly := true;
   FCustomEditor.OnShowEditorEvent:= Self.OnValueListEditorEditValue;
+  FCustomEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomEditor.ParentGrid := FValueListEditor;
 
   FCustomDateEditor := TmExtStringCellEditor.Create(Self);
   FCustomDateEditor.Visible := false;
   FCustomDateEditor.ReadOnly := false;
   FCustomDateEditor.OnShowEditorEvent:= Self.OnValueListEditorEditValue;
+  FCustomDateEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomDateEditor.ParentGrid := FValueListEditor;
 
   FLinesByName := TmStringDictionary.Create();
-  FLinesByIndex := TmIntegerDictionary.Create();
+  FLinesByRowIndex := TmIntegerDictionary.Create();
   FLines := TObjectList.Create(true);
   FMemos := TObjectList.Create(false);
   FMemosByName := TmStringDictionary.Create();
@@ -783,7 +842,7 @@ end;
 destructor TmEditingPanel.Destroy;
 begin
   FLinesByName.Free;
-  FLinesByIndex.Free;
+  FLinesByRowIndex.Free;
   FLines.Free;
   FMemos.Free;
   FMemosByName.Free;
@@ -834,8 +893,10 @@ begin
     tmpLine:= FLines.Items[i] as TEditorLine;
     if Assigned(tmpLine.ChangedValueDestination) and (not tmpLine.ReadOnly) then
     begin
-      tmpLine.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
-      //then   Result := true;
+      if (not MultiEditMode) or  (MultiEditMode and tmpLine.Changed) then
+      begin
+        tmpLine.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
+      end;
     end;
   end;
   FCommitted := true;

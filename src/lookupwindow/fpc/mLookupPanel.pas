@@ -16,9 +16,9 @@ unit mLookupPanel;
 interface
 
 uses
-  Classes, Controls, ExtCtrls, ComCtrls, DB,
+  Classes, Controls, ExtCtrls, ComCtrls, DB, contnrs,
   ListViewFilterEdit,
-  mLookupWindowEvents;
+  mLookupWindowEvents, mMaps;
 
 type
 
@@ -26,11 +26,15 @@ type
 
   TmLookupPanel = class (TCustomPanel)
   private
+    const BLANK_PLACEHOLDER = '*BLANK*';
+  private
     LValues: TListView;
     LValuesFilter: TListViewFilterEdit;
     FOnSelectAValue : TOnSelectAValue;
     FFieldsList : TStringList;
     FIdxKeyFieldName : integer;
+    FValuesIndex : TmStringDictionary;
+    FGarbage: TObjectList;
 
     procedure LValuesDblClick (Sender : TObject);
     procedure LValuesKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -40,9 +44,9 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
-    procedure Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName : string);
+    procedure Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
     procedure SetFocusOnFilter;
-    function GetSelectedRowKey : String;
+    procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
 
     property OnSelectAValue : TOnSelectAValue read FOnSelectAValue write FOnSelectAValue;
   end;
@@ -52,18 +56,36 @@ implementation
 uses
   SysUtils;
 
+type
+  TResultValues = class
+    ValueAsVariant : variant;
+    DisplayLabel : string;
+  end;
+
 { TmLookupPanel }
 
 procedure TmLookupPanel.LValuesDblClick(Sender: TObject);
+var
+  tmpDisplayLabel: string;
+  tmpKeyValue: variant;
 begin
   if (LValues.SelCount = 1) and (Assigned(FOnSelectAValue)) then
-    FOnSelectAValue(Self.GetSelectedRowKey);
+  begin
+    Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel);
+    FOnSelectAValue(tmpKeyValue, tmpDisplayLabel);
+  end;
 end;
 
 procedure TmLookupPanel.LValuesKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  tmpDisplayLabel: string;
+  tmpKeyValue: variant;
 begin
   if (Key = 13) and (LValues.SelCount = 1) and (Assigned(FOnSelectAValue)) then
-    FOnSelectAValue(Self.GetSelectedRowKey);
+  begin
+    Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel);
+    FOnSelectAValue(tmpKeyValue, tmpDisplayLabel);
+  end;
 end;
 
 procedure TmLookupPanel.AdjustColumnsWidth;
@@ -90,17 +112,29 @@ begin
   AdjustColumnsWidth;
 end;
 
-function TmLookupPanel.GetSelectedRowKey: String;
+procedure TmLookupPanel.GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
+var
+  tmp : TResultValues;
+  tmpKey : string;
 begin
   if (LValues.SelCount = 1) and (FIdxKeyFieldName >= 0) then
   begin
     if FIdxKeyFieldName = 0 then
-      Result := LValues.Selected.Caption
+      tmpKey := LValues.Selected.Caption
     else
-      Result := LValues.Selected.SubItems[FIdxKeyFieldName - 1];
+      tmpKey := LValues.Selected.SubItems[FIdxKeyFieldName - 1];
+    if tmpKey = '' then
+      tmp := FValuesIndex.Find(BLANK_PLACEHOLDER) as TResultValues
+    else
+      tmp := FValuesIndex.Find(tmpKey) as TResultValues;
+    aKeyValue := tmp.ValueAsVariant;
+    aDisplayLabel:= tmp.DisplayLabel;
   end
   else
-    Result := '';
+  begin
+    aDisplayLabel:= '';
+    aKeyValue:= null;
+  end;
 end;
 
 constructor TmLookupPanel.Create(TheOwner: TComponent);
@@ -125,21 +159,26 @@ begin
   LValues.ViewStyle := vsReport;
   FFieldsList := TStringList.Create;
   FIdxKeyFieldName := -1;
+  FValuesIndex := TmStringDictionary.Create();
+  FGarbage := TObjectList.Create(true);
 end;
 
 destructor TmLookupPanel.Destroy;
 begin
+  FGarbage.Free;
+  FValuesIndex.Free;
   FFieldsList.Free;
   inherited Destroy;
 end;
 
-procedure TmLookupPanel.Init(aValues: TDataset; aFieldNames: TStringList;aKeyFieldName: string);
+procedure TmLookupPanel.Init(aValues: TDataset; aFieldNames: TStringList;aKeyFieldName, aDisplayLabelFieldName: string);
 var
   i : integer;
   col : TListColumn;
   item : TListItem;
   tmpField : TField;
   str : String;
+  valueShell : TResultValues;
 begin
   LValues.BeginUpdate;
   try
@@ -176,6 +215,17 @@ begin
           else
             item.SubItems.Add(str);
         end;
+        tmpField := aValues.FieldByName(aKeyFieldName);
+        valueShell := TResultValues.Create();
+        valueShell.ValueAsVariant:= tmpField.Value;
+        if tmpField.IsNull then
+          FValuesIndex.Add(BLANK_PLACEHOLDER, valueShell)
+        else
+          FValuesIndex.Add(tmpField.AsString, valueShell);
+        tmpField := aValues.FieldByName(aDisplayLabelFieldName);
+        valueShell.DisplayLabel:= tmpField.AsString;
+        FGarbage.Add(valueShell);
+
         aValues.Next;
       end;
     finally

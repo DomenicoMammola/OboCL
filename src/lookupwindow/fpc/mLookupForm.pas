@@ -20,6 +20,11 @@ uses
   Dialogs, ExtCtrls, Buttons, DB,
   mLookupPanel;
 
+resourcestring
+  SMissingValueCaption = 'Warning';
+  SMissingValueWarning = 'No value selected.';
+
+
 type
 
   { TmLookupWindow }
@@ -33,19 +38,23 @@ type
     procedure OkBtnClick(Sender: TObject);
   private
     FLookupPanel : TmLookupPanel;
-    function GetSelected: string;
-    procedure OnSelectValue (aKeyValue : String);
+    function GetSelectedDisplayLabel: string;
+    function GetSelectedValue: variant;
+    procedure OnSelectValue (const aKeyValue: variant; const aDisplayLabel: string);
+    procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel : string);
   public
     { public declarations }
-    procedure Init (aValues : TDataset; aFieldNames : TStringList; aKeyFieldName : string);
-    property Selected : string read GetSelected;
+    procedure Init (aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
+
+    property SelectedValue: variant read GetSelectedValue;
+    property SelectedDisplayLabel: string read GetSelectedDisplayLabel;
   end;
 
 
 implementation
 
-//uses
-//  LCLType;
+uses
+  variants;
 
 {$R *.lfm}
 
@@ -65,26 +74,48 @@ begin
 end;
 
 procedure TmLookupWindow.OkBtnClick(Sender: TObject);
+var
+  tmpDisplayLabel: string;
+  tmpValue: Variant;
 begin
-  if FLookupPanel.GetSelectedRowKey <> '' then
+  FLookupPanel.GetSelectedValues(tmpValue, tmpDisplayLabel);
+  if not VarIsNull(tmpValue) then
     ModalResult := mrOk
   else
-    MessageDlg('Warning', 'No value selected.', mtInformation, [mbOk], 0);
+    MessageDlg(SMissingValueCaption, SMissingValueWarning, mtInformation, [mbOk], 0);
 end;
 
-function TmLookupWindow.GetSelected: string;
+procedure TmLookupWindow.GetSelectedValues (out aKeyValue: variant; out aDisplayLabel : string);
 begin
-  Result := FLookupPanel.GetSelectedRowKey;
+  FLookupPanel.GetSelectedValues(aKeyValue, aDisplayLabel);
 end;
 
-procedure TmLookupWindow.OnSelectValue(aKeyValue: String);
+procedure TmLookupWindow.OnSelectValue(const aKeyValue: variant; const aDisplayLabel: string);
 begin
   ModalResult := mrOk;
 end;
 
-procedure TmLookupWindow.Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName : string);
+function TmLookupWindow.GetSelectedValue: variant;
+var
+  tmpDisplayLabel : string;
+  tmpValue : variant;
 begin
-  FLookupPanel.Init(aValues, aFieldNames, aKeyFieldName);
+  Self.GetSelectedValues(tmpValue, tmpDisplayLabel);
+  Result := tmpValue;
+end;
+
+function TmLookupWindow.GetSelectedDisplayLabel: string;
+var
+  tmpDisplayLabel : string;
+  tmpValue : variant;
+begin
+  Self.GetSelectedValues(tmpValue, tmpDisplayLabel);
+  Result := tmpDisplayLabel;
+end;
+
+procedure TmLookupWindow.Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
+begin
+  FLookupPanel.Init(aValues, aFieldNames, aKeyFieldName, aDisplayLabelFieldName);
 end;
 
 end.

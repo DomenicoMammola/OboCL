@@ -16,11 +16,10 @@ unit UramakiBaseGridPlate;
 interface
 
 uses
-  Classes, Controls, ExtCtrls, DB, ComCtrls, {$IFDEF WINDOWS}Windows,{$ENDIF} DBGrids,
+  Classes, Controls, ExtCtrls, DB, ComCtrls, DBGrids,
   Forms, Menus, SysUtils, StdCtrls, contnrs,
   UramakiToolbar,
   {$IFDEF FPC}
-  InterfaceBase,
   LCLIntf,
   LclType,
   LclProc,
@@ -102,7 +101,7 @@ type
     procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
     procedure InvokeChildsRefresh;
     procedure InvokeChildsClear;
-    procedure GetSelectedItems (const aKeyFieldName : string; aList : TObjectList);
+    procedure GetSelectedItems (const aKeyFieldName : string; aList : TList);
 
     procedure OnClearFilter (Sender : TObject);
     procedure OnExecuteFilter (Sender : TObject);
@@ -540,7 +539,7 @@ begin
   PostMessage(Self.Handle, WM_USER_CLEARCHILDS, 0, 0);
 end;
 
-procedure TUramakiBaseGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TObjectList);
+procedure TUramakiBaseGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TList);
 var
   tmpBookmark : TBookmark;
   i : integer;

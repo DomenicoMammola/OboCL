@@ -17,7 +17,7 @@ unit mLookupWindowEvents;
 interface
 
 type
-  TOnSelectAValue = procedure (aKeyValue : String) of object;
+  TOnSelectAValue = procedure (const aKeyValue: variant; const aDisplayLabel: string) of object;
 
 implementation
 

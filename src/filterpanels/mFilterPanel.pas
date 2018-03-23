@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants,
-  ExtCtrls, EditBtn, Menus, ComboEx, {$IFNDEF LINUX}Windows, {$ENDIF}
+  ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
@@ -347,7 +347,6 @@ var
   lookupFrm: TmLookupWindow;
   tmpDataset: TmVirtualDataset;
   tmpDatasetProvider: TReadOnlyVirtualDatasetProvider;
-  str: String;
   tmpDatum: IVDDatum;
 begin
   if FKeyFieldName = '' then
@@ -377,10 +376,10 @@ begin
 
       tmpDataset.Active:= true;
       tmpDataset.Refresh;
-      lookupFrm.Init(tmpDataset, FLookupFieldNames, FKeyFieldName);
+      lookupFrm.Init(tmpDataset, FLookupFieldNames, FKeyFieldName, FKeyFieldName);
       if lookupFrm.ShowModal = mrOk then
       begin
-        tmpDatum := FListDataProvider.FindDatumByStringKey(lookupFrm.Selected);
+        tmpDatum := FListDataProvider.FindDatumByStringKey(lookupFrm.SelectedDisplayLabel);
         if Assigned(tmpDatum) then
         begin
           FEdit.Text:= VarToStr(tmpDatum.GetPropertyByFieldName(FDescriptionFieldName));

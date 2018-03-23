@@ -363,9 +363,9 @@ begin
 end;
 
 procedure TUramakiEngine.ProcessMessage(aMessage: TUramakiEngineMessage);
-var
-  childs : TObjectList;
-  i: integer;
+//var
+//  childs : TObjectList;
+//  i: integer;
 begin
 (*  childs := TObjectList.Create(false);
   try

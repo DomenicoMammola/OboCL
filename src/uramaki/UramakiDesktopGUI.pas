@@ -83,7 +83,7 @@ type
     FRootPanel : TOMultiPanel;
     FPageControl : TPilePanel;
     FItems : TObjectList;
-    FPopupMenu : TPopupMenu;
+    //FPopupMenu : TPopupMenu;
 
     procedure OnTabClick (aSender : TObject);
   public

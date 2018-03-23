@@ -19,7 +19,7 @@ interface
 uses
   Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
   DBGrids, Controls, Menus, LCLIntf,
-  ATButtons, ATButtonsToolbar,
+  ATButtons,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet,
   fpsallformats, // necessary to register all the input/output formats that fpspreadsheet can handle
@@ -27,8 +27,7 @@ uses
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
   mDBGrid,
-  mVirtualDatasetFormulas,
-  UramakiBase;
+  mVirtualDatasetFormulas;
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';

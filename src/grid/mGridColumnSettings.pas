@@ -17,7 +17,7 @@ unit mGridColumnSettings;
 interface
 
 uses
-  Contnrs, Grids, DBGrids,
+  Contnrs, DBGrids,
   {$IFDEF DEBUG_COL_SET}LazLogger,{$ENDIF}
   mMaps, mNullables;
 
@@ -73,7 +73,7 @@ type
 implementation
 
 uses
-  SysUtils, Dialogs, Math;
+  SysUtils, Dialogs;
 
 { TmGridColumnsSettings }
 

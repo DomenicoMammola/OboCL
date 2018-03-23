@@ -15,7 +15,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
-  StdCtrls, LCLIntf, windows, contnrs,
+  StdCtrls, LCLIntf, contnrs,
   mProgressClasses, mBaseClassesAsObjects, mMaps,
   Biru_FreshFruit, Biru;
 
@@ -75,7 +75,6 @@ end;
 
 procedure TProgressForm.RefreshProgress(aProgress: TmAbstractProgress);
 var
-  i : integer;
   tmp : TIntegerObject;
 begin
   if not Self.Visible then

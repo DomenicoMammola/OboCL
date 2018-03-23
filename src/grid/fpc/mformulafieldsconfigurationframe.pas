@@ -47,7 +47,7 @@ type
 implementation
 
 uses
-  mDBGrid, mVirtualFieldDefs;
+  mDBGrid;
 
 {$R *.lfm}
 

@@ -127,7 +127,7 @@ constructor TUramakiDesktopLayoutConfItem.Create;
 begin
   FPosition := -1;
   FCaption:= 'report';
-  FColor := DEFAULT_TAB_COLOR; //$808080;
+  FColor := DEFAULT_TAB_COLOR;
 end;
 
 procedure TUramakiDesktopLayoutConfItem.SaveToXMLElement(aElement: TmXmlElement);
@@ -263,7 +263,6 @@ end;
 
 procedure TUramakiDesktopLayoutConfContainerItem.LoadFromXMLElement(aElement: TmXmlElement);
 var
-  tmpContainerType : TContainerType;
   cursor : TmXmlElementCursor;
   i : integer;
   tmpItem : TUramakiDesktopLayoutConfItem;

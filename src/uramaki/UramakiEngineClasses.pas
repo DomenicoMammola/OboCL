@@ -17,7 +17,7 @@ interface
 
 uses
   Classes,
-  mXML, mMaps,
+  mXML,
   UramakiBase;
 
 type

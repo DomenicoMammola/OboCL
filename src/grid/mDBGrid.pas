@@ -18,7 +18,7 @@ interface
 
 uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants, Grids, ExtCtrls,
-  mGridColumnSettings, mXML, mGridSettingsForm, mSortConditions, mGridIcons,
+  mGridColumnSettings, mXML, mSortConditions, mGridIcons,
   mDatasetInterfaces, mSystemColumns, mFilter, mFilterOperators, mCellDecorations,
   mSummary, KAParser;
 
@@ -254,6 +254,8 @@ begin
       begin
         FOriginalPopupMenu := Self.PopupMenu;
         Self.PopupMenu := FColumnsHeaderPopupMenu;
+        tmpCol := 0;
+        tmpRow := 0;
         Self.MouseToCell(X, Y, tmpCol, tmpRow);
         FCurrentGridCol := tmpCol;
       end

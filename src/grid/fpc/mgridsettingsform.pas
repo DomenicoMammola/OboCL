@@ -17,7 +17,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   Buttons, ComCtrls,
-  mGridColumnsSettingsFrame, mformulafieldsconfigurationframe, mGridColumnSettings;
+  mGridColumnsSettingsFrame, (*mformulafieldsconfigurationframe,*) mGridColumnSettings;
 
 
 resourcestring

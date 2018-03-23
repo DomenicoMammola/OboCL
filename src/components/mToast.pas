@@ -79,7 +79,6 @@ const
   INT_NOTIFIER_FORM_WIDTH  = 325;
   INT_NOTIFIER_FORM_HEIGHT = 60;
   INT_NOTIFIER_SCREEN_SPACING = 10;
-  INT_NOTIFIER_SPACING = 5;
 
 var
   applicationToaster : TmToast;
@@ -90,6 +89,7 @@ procedure TmToastForm.HideForm(Sender: TObject);
 Var
   NoValue :TCloseAction;
 begin
+  NoValue := caNone;
   if Assigned(OnClose) then
      OnClose(Self, NoValue);
     Hide;
@@ -144,7 +144,7 @@ end;
 
 function TmToast.GetColor: TColor;
 begin
-  FNotifierForm.Hide;
+  Result := FNotifierForm.Color;
 end;
 
 function TmToast.GetOnClose: TCloseEvent;

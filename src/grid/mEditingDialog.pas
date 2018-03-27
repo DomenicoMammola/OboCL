@@ -444,6 +444,8 @@ var
   tmpDataset : TmVirtualDataset;
   tmpFieldsList : TStringList;
 begin
+  Result := false;
+
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
   if curLine.ReadOnly then

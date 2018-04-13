@@ -16,6 +16,7 @@ interface
 
 uses
   Classes, SysUtils, BufDataset, db, memds, FileUtil, Forms, Controls, DBGrids,
+  Menus,
 
   mGridColumnSettings;
 
@@ -24,6 +25,7 @@ resourcestring
   SVisibleFieldLabel = 'Visible';
   SLabelFieldLabel = 'Label';
   SFormatFieldLabel = 'Format';
+  SHideAllCommand = 'Hide all';
 
 type
 
@@ -40,6 +42,8 @@ type
   private
     FSettings : TmGridColumnsSettings;
     FColSettingsGrid: TDBGrid;
+    FGridMenu: TPopupMenu;
+    procedure OnHideAllFields(Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -57,7 +61,31 @@ uses
 
 { TGridColumnsSettingsFrame }
 
+procedure TGridColumnsSettingsFrame.OnHideAllFields(Sender: TObject);
+var
+  curBookmark: TBookMark;
+begin
+  ColSettingsDataset.DisableControls;
+  try
+    curBookmark := ColSettingsDataset.Bookmark;
+
+    ColSettingsDataset.First;
+    while not ColSettingsDataset.EOF do
+    begin
+      ColSettingsDataset.Edit;
+      ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean:= false;
+      ColSettingsDataset.Post;
+      ColSettingsDataset.Next;
+    end;
+    ColSettingsDataset.GotoBookmark(curBookmark);
+  finally
+    ColSettingsDataset.EnableControls;
+  end;
+end;
+
 constructor TGridColumnsSettingsFrame.Create(TheOwner: TComponent);
+var
+  tmpMenuItem: TMenuItem;
 begin
   inherited Create(TheOwner);
   FColSettingsGrid:= TmDBGrid.Create(Self);
@@ -91,6 +119,12 @@ begin
     FieldName := FLD_FORMAT;
   end;
   FColSettingsGrid.DataSource := DataSourceColSettings;
+  FGridMenu := TPopupMenu.Create(FColSettingsGrid);
+  FColSettingsGrid.PopupMenu := FGridMenu;
+  tmpMenuItem := TMenuItem.Create(FGridMenu);
+  FGridMenu.Items.Add(tmpMenuItem);
+  tmpMenuItem.Caption:= SHideAllCommand;
+  tmpMenuItem.OnClick:= @Self.OnHideAllFields;
 end;
 
 destructor TGridColumnsSettingsFrame.Destroy;

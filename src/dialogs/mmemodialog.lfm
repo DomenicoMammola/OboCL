@@ -1,0 +1,52 @@
+object mMemoForm: TmMemoForm
+  Left = 1946
+  Height = 302
+  Top = 315
+  Width = 428
+  ClientHeight = 302
+  ClientWidth = 428
+  OnCreate = FormCreate
+  OnShow = FormShow
+  Position = poMainFormCenter
+  LCLVersion = '1.8.2.0'
+  WindowState = wsMaximized
+  object MainMemo: TMemo
+    Left = 0
+    Height = 256
+    Top = 0
+    Width = 428
+    Align = alClient
+    Font.CharSet = 4
+    Font.Height = -16
+    Font.Name = 'Courier'
+    Font.Pitch = fpFixed
+    Font.Quality = fqDraft
+    ParentFont = False
+    ReadOnly = True
+    ScrollBars = ssAutoBoth
+    TabOrder = 0
+    WordWrap = False
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 46
+    Top = 256
+    Width = 428
+    Align = alBottom
+    BevelOuter = bvNone
+    ClientHeight = 46
+    ClientWidth = 428
+    TabOrder = 1
+    object CloseBtn: TBitBtn
+      Left = 336
+      Height = 30
+      Top = 8
+      Width = 83
+      Anchors = [akRight, akBottom]
+      DefaultCaption = True
+      Kind = bkClose
+      ModalResult = 11
+      TabOrder = 0
+    end
+  end
+end

@@ -84,6 +84,7 @@ type
   public
     function GetMyId : String; virtual; abstract;
     function GetDescription : String; virtual; abstract;
+    function GetCategory : String; virtual;
     function GetHelp : String; virtual;
 
     function GetInputUramakiId : String; virtual; abstract;
@@ -171,6 +172,11 @@ end;
 function TUramakiPublisher.GenerateStandardDescription(const aDescriptionOfPlateData, aDescriptionOfRepresentation: string): string;
 begin
   Result := aDescriptionOfPlateData + ' [' + aDescriptionOfRepresentation + ']'
+end;
+
+function TUramakiPublisher.GetCategory: String;
+begin
+  Result := '';
 end;
 
 function TUramakiPublisher.GetHelp: String;

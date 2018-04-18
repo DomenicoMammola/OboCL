@@ -19,7 +19,7 @@ uses
   Classes, Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls, Forms,
 
   oMultiPanelSetup,
-  mXML,
+  mXML, mMaps,
 
   UramakiBase, UramakiEngine, UramakiEngineClasses,
   UramakiDesktopGUI, UramakiDesktopLayout,
@@ -318,14 +318,16 @@ var
   i, j : integer;
   tempListOfTransformers : TUramakiTransformers;
   tempListOfPublishers : TUramakiPublishers;
-  mt, mt2 : TMenuItem;
+  mt, mt2, mtCategory : TMenuItem;
   tmpMenuInfo : TMenuInfo;
+  tmpMenuMap : TmStringDictionary;
 begin
   if not Assigned(aMenuItem) then
     exit;
 
   //aMenuItem.Clear;
 
+  tmpMenuMap := TmStringDictionary.Create();
   tempListOfTransformers := TUramakiTransformers.Create;
   tempListOfPublishers := TUramakiPublishers.Create;
   try
@@ -338,7 +340,6 @@ begin
       begin
         mt2 := TMenuItem.Create(aMenuItem);
         mt2.Caption := tempListOfPublishers.Get(j).GetDescription;
-        aMenuItem.Add(mt2);
         mt2.OnClick:= Self.OnAddPlate;
         tmpMenuInfo := TMenuInfo.Create;
         tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
@@ -346,6 +347,22 @@ begin
         tmpMenuInfo.LivingPlateIdenfier := aLivingPlateIdentifier;
         mt2.Tag:= PtrInt(tmpMenuInfo);
         FMenuGarbageCollector.Add(tmpMenuInfo);
+
+        if tempListOfPublishers.Get(j).GetCategory <> '' then
+        begin
+          if tmpMenuMap.Contains(tempListOfPublishers.Get(j).GetCategory) then
+            mtCategory := tmpMenuMap.Find(tempListOfPublishers.Get(j).GetCategory) as TMenuItem
+          else
+          begin
+            mtCategory:= TMenuItem.Create(aMenuItem);
+            mtCategory.Caption:= tempListOfPublishers.Get(j).GetCategory;
+            aMenuItem.Add(mtCategory);
+            tmpMenuMap.Add(tempListOfPublishers.Get(j).GetCategory, mtCategory);
+          end;
+          mtCategory.Add(mt2);
+        end
+        else
+          aMenuItem.Add(mt2);
       end;
     end;
 
@@ -363,7 +380,6 @@ begin
         begin
           mt2 := TMenuItem.Create(aMenuItem);
           mt2.Caption := tempListOfPublishers.Get(j).GetDescription;
-          mt.Add(mt2);
           mt2.OnClick:= Self.OnAddPlate;
           tmpMenuInfo := TMenuInfo.Create;
           tmpMenuInfo.PublisherId:= tempListOfPublishers.Get(j).GetMyId;
@@ -371,12 +387,14 @@ begin
           tmpMenuInfo.LivingPlateIdenfier := aLivingPlateIdentifier;
           mt2.Tag:= PtrInt(tmpMenuInfo);
           FMenuGarbageCollector.Add(tmpMenuInfo);
+          mt.Add(mt2);
         end;
       end;
     end;
   finally
     tempListOfPublishers.Free;
     tempListOfTransformers.Free;
+    tmpMenuMap.Free;
   end;
 end;
 

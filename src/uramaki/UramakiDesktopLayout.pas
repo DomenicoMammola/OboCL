@@ -35,6 +35,7 @@ type
     FPosition : Double;
     FCaption : String;
     FColor : TColor;
+    FNote : String;
   protected
     procedure InternalAssign(aSource : TUramakiDesktopLayoutConfItem);
   public
@@ -47,6 +48,7 @@ type
     property Position : Double read FPosition write FPosition;
     property Caption : String read FCaption write FCaption;
     property Color : TColor read FColor write FColor;
+    property Note : string read FNote write FNote;
   end;
 
   { TUramakiDesktopLayoutConfSimpleItem }
@@ -92,7 +94,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, base64;
 
 function TContainerTypeToString(aValue: TContainerType): String;
 begin
@@ -121,6 +123,7 @@ begin
   Self.FPosition:= aSource.FPosition;
   Self.FCaption:= aSource.FCaption;
   Self.FColor:= aSource.FColor;
+  Self.FNote:= aSource.FNote;
 end;
 
 constructor TUramakiDesktopLayoutConfItem.Create;
@@ -135,14 +138,25 @@ begin
   aElement.SetFloatAttribute('position', FPosition);
   aElement.SetAttribute('caption', FCaption);
   aElement.SetAttribute('color', ColorToString(FColor));
+  aElement.SetAttribute('note', EncodeStringBase64(FNote));
 end;
 
 procedure TUramakiDesktopLayoutConfItem.LoadFromXMLElement(aElement: TmXmlElement);
+var
+   tmpString: String;
 begin
   FPosition := aElement.GetFloatAttribute('position', -1);
   FCaption := aElement.GetAttribute('caption', 'report');
   if aElement.HasAttribute('color') then
     FColor := StringToColor(aElement.GetAttribute('color'));
+  if aElement.HasAttribute('note') then
+  begin
+    tmpString:= aElement.GetAttribute('note');
+    if tmpString <> '' then
+      FNote := DecodeStringBase64(tmpString)
+    else
+      FNote := '';
+  end;
 end;
 
 { TUramakiDesktopLayoutConfSimpleItem }

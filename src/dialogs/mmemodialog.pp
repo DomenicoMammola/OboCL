@@ -23,7 +23,8 @@ type
   { TmMemoForm }
 
   TmMemoForm = class(TForm)
-    CloseBtn: TBitBtn;
+    CancelBtn: TBitBtn;
+    OkBtn: TBitBtn;
     MainMemo: TMemo;
     Panel1: TPanel;
     procedure FormCreate(Sender: TObject);
@@ -32,6 +33,7 @@ type
     procedure LoadTextFile (const aFileName: string);
 
     class procedure Show (const aOwner: TComponent; const aFileName : string);
+    class function ShowAndEdit (const aOwner : TComponent; const aSourceText: string) : String;
   end;
 
 
@@ -77,10 +79,30 @@ begin
     tmp := TmMemoForm.Create(aOwner);
     try
       tmp.LoadTextFile(aFileName);
+      tmp.WindowState:= wsMaximized;
+      tmp.MainMemo.ReadOnly:= true;
+      tmp.OkBtn.Visible:= false;
       tmp.ShowModal;
     finally
       tmp.Free;
     end;
+  end;
+end;
+
+class function TmMemoForm.ShowAndEdit(const aOwner: TComponent; const aSourceText: string): String;
+var
+  tmp : TmMemoForm;
+begin
+  tmp := TmMemoForm.Create(aOwner);
+  try
+    tmp.MainMemo.ReadOnly:= false;
+    tmp.MainMemo.Text := aSourceText;
+    if tmp.ShowModal = mrOk then
+      Result := tmp.MainMemo.Text
+    else
+      Result := aSourceText;
+  finally
+    tmp.Free;
   end;
 end;
 

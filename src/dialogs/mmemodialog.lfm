@@ -9,7 +9,6 @@ object mMemoForm: TmMemoForm
   OnShow = FormShow
   Position = poMainFormCenter
   LCLVersion = '1.8.2.0'
-  WindowState = wsMaximized
   object MainMemo: TMemo
     Left = 0
     Height = 256
@@ -22,7 +21,6 @@ object mMemoForm: TmMemoForm
     Font.Pitch = fpFixed
     Font.Quality = fqDraft
     ParentFont = False
-    ReadOnly = True
     ScrollBars = ssAutoBoth
     TabOrder = 0
     WordWrap = False
@@ -37,16 +35,28 @@ object mMemoForm: TmMemoForm
     ClientHeight = 46
     ClientWidth = 428
     TabOrder = 1
-    object CloseBtn: TBitBtn
+    object CancelBtn: TBitBtn
       Left = 336
       Height = 30
       Top = 8
       Width = 83
       Anchors = [akRight, akBottom]
       DefaultCaption = True
-      Kind = bkClose
-      ModalResult = 11
+      Kind = bkCancel
+      ModalResult = 2
       TabOrder = 0
+    end
+    object OkBtn: TBitBtn
+      Left = 248
+      Height = 30
+      Top = 8
+      Width = 83
+      Anchors = [akRight, akBottom]
+      Default = True
+      DefaultCaption = True
+      Kind = bkOK
+      ModalResult = 1
+      TabOrder = 1
     end
   end
 end

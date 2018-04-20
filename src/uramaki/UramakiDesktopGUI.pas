@@ -26,6 +26,7 @@ resourcestring
   SMenuItemConfigureHeader = 'Configure header';
   SMenuItemAddChild = 'Add a child widget...';
   SLabelUpdatingCaption = 'Updating...';
+  SMenuItemShowNote = 'Note...';
 
 type
 
@@ -58,6 +59,9 @@ type
   strict private
     FLivingPlateInstanceIdentifier : TGuid;
     FAddMenuItem : TMenuItem;
+    FShowNoteMenuItem : TMenuItem;
+    FNote : String;
+    procedure OnShowNote (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     procedure CreateCaptionPanel;
@@ -106,7 +110,8 @@ type
 implementation
 
 uses
-  SysUtils, mGraphicsUtility;
+  SysUtils,
+  mGraphicsUtility, mMemoDialog;
 
 { TUramakiDesktopPanel }
 
@@ -442,11 +447,20 @@ end;
 procedure TUramakiDesktopSimplePanel.CreatePopupMenu;
 begin
   inherited;
+  FShowNoteMenuItem := TMenuItem.Create(FPopupMenu);
+  FShowNoteMenuItem.Caption:= SMenuItemShowNote;
+  FShowNoteMenuItem.OnClick:= OnShowNote;
+  FPopupMenu.Items.Add(FShowNoteMenuItem);
   FAddMenuItem := TMenuItem.Create(FPopupMenu);
   FAddMenuItem.Caption:= SMenuItemAddChild;
   FPopupMenu.Items.Add(FAddMenuItem);
 
 //  FPopupMenu.OnPopup:= Self.OnPopupMenu;
+end;
+
+procedure TUramakiDesktopSimplePanel.OnShowNote(Sender: TObject);
+begin
+  FNote := TmMemoForm.ShowAndEdit(Self, FNote);
 end;
 
 constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
@@ -456,15 +470,7 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.ParentColor:= true;
-
-(*  FTitleBar := TPanel.Create(Self);
-  FTitleBar.Color:= clBlue;
-  FTitleBar.Parent := Self;
-  FTitleBar.Align:= alTop;
-  FTitleBar.BorderStyle:= bsNone;
-  FTitleBar.BevelInner:= bvNone;
-  FTitleBar.BevelOuter:= bvNone;
-  FTitleBar.Height:= 20;*)
+  Self.FNote:= '';
 end;
 
 procedure TUramakiDesktopSimplePanel.CreateCaptionPanel;
@@ -474,11 +480,9 @@ begin
   FTabs.OptTabWidthMinimal:= 3000;
   FTabs.OptShowDropMark := false;
   FTabs.OptShowArrowsNear:= false;
-//  FTabs.OptShowAtBottom:= false;
   FTabs.OptShowScrollMark:= false;
   FTabs.OptButtonLayout:= '';
   FTabs.OptShowFlat:= false;
-  //FTabs.OptShowAngleTangent:= 1;
   FTabs.Height:= FTabs.OptTabHeight;
   FTabs.OptSpacer:= 0;
   FTabs.OptSpaceInitial:= 0;
@@ -492,6 +496,7 @@ function TUramakiDesktopSimplePanel.ExportAsConfItem: TUramakiDesktopLayoutConfI
 begin
   Result := TUramakiDesktopLayoutConfSimpleItem.Create;
   (Result as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier:= Self.FLivingPlateInstanceIdentifier;
+  Result.Note:= FNote;
   if Assigned(FTabData) then
   begin
     (Result as TUramakiDesktopLayoutConfSimpleItem).Caption:= Self.FTabData.TabCaption;
@@ -502,6 +507,7 @@ end;
 procedure TUramakiDesktopSimplePanel.ImportFromConfItem(aSource: TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate);
 begin
   Self.FLivingPlateInstanceIdentifier := (aSource as TUramakiDesktopLayoutConfSimpleItem).LivingPlateIdentifier;
+  Self.FNote:= aSource.Note;
   if Assigned(FTabData) then
   begin
     FTabData.TabCaption:= (aSource as TUramakiDesktopLayoutConfSimpleItem).Caption;

@@ -22,6 +22,10 @@ uses
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
+resourcestring
+  SClearFilterCommand = 'Clear';
+  SFindFilteredCommand = 'Find';
+
 type
   { TmFilterConditionPanel }
 
@@ -33,14 +37,17 @@ type
     FFieldName : String;
     FCaption: string;
     FFilterOperator : TmFilterOperator;
-    FOperatorsMenu : TPopupMenu;
+    FOperatorsMenuItemSeparator : TMenuItem;
+    FFilterMenu : TPopupMenu;
+    FOperatorsMenuItems : TList;
     FAllowedOperators : TmFilterOperatorsSet;
     function CreateStandardLabel: TLabel;
-    function CreateStandardOperatorMenu (aLabel: TLabel) : TPopupMenu;
+    function CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;
     function FormatFilterCaption (aValue : String; const aShowOperator: boolean= true) : String;
     procedure UpdateCurrentOperatorCheck;
     procedure OperatorMenuItemClick (Sender : TObject);
-    procedure OperatorMenuPopup (Sender : TObject);
+    procedure ClearMenuItemClick (Sender : TObject);
+    procedure FilterMenuPopup (Sender : TObject);
     procedure SetFilterOperator(AValue: TmFilterOperator); virtual;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -48,6 +55,7 @@ type
     procedure SetFilterCaption (aValue : String); virtual;
 
     procedure ExportToFilter (aFilter : TmFilter); virtual;
+    procedure ImportFromFilter (const aFilter: TmFilter); virtual;
 
     function IsEmpty : boolean; virtual; abstract;
     procedure Clear; virtual; abstract;
@@ -72,6 +80,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure ImportFromFilter (const aFilter: TmFilter); override;
     function IsEmpty : boolean; override;
     procedure Clear; override;
   end;
@@ -90,6 +99,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure ImportFromFilter (const aFilter: TmFilter); override;
     procedure SetFilterValue (aValue : Variant);
     function IsEmpty : boolean; override;
     procedure Clear; override;
@@ -111,6 +121,7 @@ type
     destructor Destroy; override;
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure ImportFromFilter (const aFilter: TmFilter); override;
     procedure AddItem (aValue : String); overload;
     procedure AddItem (aLabel : String; aValue : Variant); overload;
     procedure ClearItems;
@@ -138,6 +149,7 @@ type
     destructor Destroy; override;
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure ImportFromFilter (const aFilter: TmFilter); override;
     procedure AddItem (aValue : String); overload;
     procedure AddItem (aLabel : String; aValue : Variant); overload;
     procedure ClearItems;
@@ -173,6 +185,7 @@ type
 
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
+    procedure ImportFromFilter (const aFilter: TmFilter); override;
     procedure SetFilterValue (const aValue : Variant; const aDescription: String);
     function IsEmpty : boolean; override;
     procedure Clear; override;
@@ -226,7 +239,8 @@ implementation
 
 uses
   SysUtils,
-  mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet, mCheckListForm;
+  mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet, mCheckListForm,
+  mDoubleList;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
@@ -270,9 +284,10 @@ begin
   FEdit.OnButtonClick:= Self.OnShowValuesList;
   FLabel := Self.CreateStandardLabel;
   FValueType:= efString;
-  CreateStandardOperatorMenu(FLabel);
+  CreateStandardFilterMenu(FLabel, true);
   FGarbage := TObjectList.Create(true);
   FValues := TStringList.Create;
+  CreateStandardFilterMenu(FLabel, false);
 end;
 
 destructor TmCheckListFilterConditionPanel.Destroy;
@@ -293,13 +308,14 @@ begin
   inherited ExportToFilter(aFilter);
   aFilter.Value:= FCurrentValue;
   aFilter.DataType:= fdtString;
+  aFilter.DisplayValue:= FEdit.Text;
+end;
 
-(*
-  if FComboBox.ItemIndex < 0 then
-    aFilter.Value := Null
-  else
-    aFilter.Value := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
-  aFilter.DataType:= fdtString;*)
+procedure TmCheckListFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+begin
+  inherited ImportFromFilter(aFilter);
+  FCurrentValue := aFilter.Value;
+  FEdit.Text:= aFilter.DisplayValue;
 end;
 
 procedure TmCheckListFilterConditionPanel.AddItem(aValue: String);
@@ -411,7 +427,7 @@ begin
   FEdit.OnButtonClick:= Self.OnShowLookup;
   FLabel := Self.CreateStandardLabel;
   FValueType:= efString;
-  CreateStandardOperatorMenu(FLabel);
+  CreateStandardFilterMenu(FLabel, true);
   FKeyFieldName:= '';
   FValueFieldName:= '';
   FDescriptionFieldName:= '';
@@ -434,6 +450,7 @@ end;
 procedure TmLookupFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
 begin
   inherited ExportToFilter(aFilter);
+  aFilter.DisplayValue:= FEdit.Text;
   aFilter.DataType:= fdtString;
   if VarIsNull(FCurrentValue) then
     aFilter.Value := null
@@ -459,6 +476,14 @@ begin
   end
   else
     aFilter.Value := FCurrentValue;
+end;
+
+procedure TmLookupFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+begin
+  Self.Clear;
+  inherited ImportFromFilter(aFilter);
+  FCurrentValue := aFilter.Value;
+  FEdit.Text := aFilter.DisplayValue;
 end;
 
 procedure TmLookupFilterConditionPanel.SetFilterValue(const aValue : Variant; const aDescription: String);
@@ -508,11 +533,11 @@ begin
   FClearButton.Parent := Self;
   FClearButton.Height:= Self.Height div 2;
   FClearButton.Align:= alTop;
-  FClearButton.Caption := 'Ripulisci';
+  FClearButton.Caption := SClearFilterCommand;
   FFilterButton := TButton.Create(Self);
   FFilterButton.Parent := Self;
   FFilterButton.Align := alClient;
-  FFilterButton.Caption := 'Cerca';
+  FFilterButton.Caption := SFindFilteredCommand;
   FOnClickClear:= nil;
   FOnClickFilter:= nil;
   FClearButton.OnClick:= Self.InternalOnClickClear;
@@ -623,7 +648,7 @@ begin
   FEdit.OnEditingDone:= Self.OnEditValueChanged;
   FLabel := Self.CreateStandardLabel;
   FValueType:= efString;
-  CreateStandardOperatorMenu(FLabel);
+  CreateStandardFilterMenu(FLabel, true);
 end;
 
 procedure TmEditFilterConditionPanel.SetFilterCaption(aValue: String);
@@ -672,6 +697,22 @@ begin
     aFilter.Value := FEdit.Text;
 end;
 
+procedure TmEditFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+begin
+  Self.Clear;
+  inherited ImportFromFilter(aFilter);
+  if not VarIsNull(aFilter.Value) then
+  begin
+    case FValueType of
+      efUppercaseString: FEdit.Text := UpperCase(VarToStr(aFilter.Value));
+      efInteger: FEdit.Text:= IntToStr(aFilter.Value);
+      efFloat: FEdit.Text := FloatToStr(aFilter.Value);
+      else
+        FEdit.Text:= VarToStr(aFilter.Value);
+    end;
+  end;
+end;
+
 procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant);
 begin
   if VarIsNull(aValue) then
@@ -711,6 +752,7 @@ begin
   FLabel := Self.CreateStandardLabel;
   FGarbage := TObjectList.Create(true);
   FDefaultItemIndex:= -1;
+  CreateStandardFilterMenu(FLabel, false);
 end;
 
 destructor TmComboFilterConditionPanel.Destroy;
@@ -733,6 +775,25 @@ begin
   else
     aFilter.Value := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
   aFilter.DataType:= fdtString;
+end;
+
+procedure TmComboFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+var
+  i : integer;
+begin
+  Self.Clear;
+  inherited ImportFromFilter(aFilter);
+  if not VarIsNull(aFilter.Value) then
+  begin
+    for i := 0 to FCombobox.Items.Count - 1 do
+    begin
+      if CompareVariants((FComboBox.Items.Objects[i] as TVariantObject).Value, aFilter.Value) = 0 then
+      begin
+        FComboBox.ItemIndex := i;
+        break;
+      end;
+    end;
+  end;
 end;
 
 (*
@@ -864,7 +925,7 @@ begin
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
   FLabel := Self.CreateStandardLabel;
-  CreateStandardOperatorMenu(FLabel);
+  CreateStandardFilterMenu(FLabel, true);
 end;
 
 procedure TmDateFilterConditionPanel.SetFilterCaption(aValue: String);
@@ -893,6 +954,39 @@ begin
       aFilter.Value := FDateEditMin.Date;
   end;
   aFilter.DataType:= fdtDate;
+end;
+
+procedure TmDateFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+var
+  tmpList : TDoubleList;
+begin
+  Self.Clear;
+
+  inherited ImportFromFilter(aFilter);
+  if VarIsNull(aFilter.Value) then
+  begin
+    FDateEditMin.Text:= '';
+    FDateEditMax.Text:= '';
+  end
+  else
+  begin
+    if aFilter.FilterOperator = foBetween then
+    begin
+      tmpList := TDoubleList.Create;
+      try
+        mUtility.ConvertVariantToDateTimeList(aFilter.Value, tmpList);
+        if tmpList.Count = 2 then
+        begin
+          FDateEditMin.Date:= tmpList.Items[0];
+          FDateEditMax.Date:= tmpList.Items[1];
+        end;
+      finally
+        tmpList.Free;
+      end;
+    end
+    else
+      FDateEditMin.Date:= aFilter.Value;
+  end;
 end;
 
 function TmDateFilterConditionPanel.IsEmpty: boolean;
@@ -936,60 +1030,81 @@ begin
   Result.Alignment:= taCenter;
 end;
 
-function TmFilterConditionPanel.CreateStandardOperatorMenu (aLabel: TLabel) : TPopupMenu;
+function TmFilterConditionPanel.CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;
 var
   mi : TMenuItem;
 begin
-  if not Assigned(FOperatorsMenu) then
+  if not Assigned(FFilterMenu) then
   begin
-    FOperatorsMenu := TPopupMenu.Create(Self);
-    aLabel.PopupMenu := FOperatorsMenu;
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foEq);
-    mi.Tag:= PtrInt(foEq);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:=TmFilterOperatorToString(foLike);
-    mi.Tag := PtrInt(foLike);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foNotEq);
-    mi.Tag:= PtrInt(foNotEq);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foGtOrEq);
-    mi.Tag:= PtrInt(foGtOrEq);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foLtOrEq);
-    mi.Tag:= PtrInt(foLtOrEq);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foStartWith);
-    mi.Tag:= PtrInt(foStartWith);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foEndWith);
-    mi.Tag:= PtrInt(foEndWith);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
-    mi := TMenuItem.Create(FOperatorsMenu);
-    mi.Caption:= TmFilterOperatorToString(foBetween);
-    mi.Tag:= PtrInt(foBetween);
-    mi.OnClick:= OperatorMenuItemClick;
-    FOperatorsMenu.Items.Add(mi);
+    FFilterMenu := TPopupMenu.Create(Self);
+    aLabel.PopupMenu := FFilterMenu;
 
-    UpdateCurrentOperatorCheck;
-    FOperatorsMenu.OnPopup:= OperatorMenuPopup;
+    mi := TMenuItem.Create(FFilterMenu);
+    mi.Caption := SClearFilterCommand;
+    mi.OnClick:= Self.ClearMenuItemClick;
+    FFilterMenu.Items.Add(mi);
+
+    if aAddFilterOperators then
+    begin
+      FOperatorsMenuItemSeparator := TMenuItem.Create(FFilterMenu);
+      FOperatorsMenuItemSeparator.Caption:= '-';
+      FFilterMenu.Items.Add(FOperatorsMenuItemSeparator);
+
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foEq);
+      mi.Tag:= PtrInt(foEq);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:=TmFilterOperatorToString(foLike);
+      mi.Tag := PtrInt(foLike);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foNotEq);
+      mi.Tag:= PtrInt(foNotEq);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foGtOrEq);
+      mi.Tag:= PtrInt(foGtOrEq);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foLtOrEq);
+      mi.Tag:= PtrInt(foLtOrEq);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foStartWith);
+      mi.Tag:= PtrInt(foStartWith);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foEndWith);
+      mi.Tag:= PtrInt(foEndWith);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+      mi := TMenuItem.Create(FFilterMenu);
+      mi.Caption:= TmFilterOperatorToString(foBetween);
+      mi.Tag:= PtrInt(foBetween);
+      mi.OnClick:= OperatorMenuItemClick;
+      FFilterMenu.Items.Add(mi);
+      FOperatorsMenuItems.Add(mi);
+
+      UpdateCurrentOperatorCheck;
+    end;
+    FFilterMenu.OnPopup:= FilterMenuPopup;
   end;
 
-  Result := FOperatorsMenu;
+  Result := FFilterMenu;
 end;
 
 function TmFilterConditionPanel.FormatFilterCaption(aValue: String; const aShowOperator: boolean = true) : String;
@@ -1006,10 +1121,10 @@ procedure TmFilterConditionPanel.UpdateCurrentOperatorCheck;
 var
   i : integer;
 begin
-  if Assigned(FOperatorsMenu) then
+  if Assigned(FFilterMenu) then
   begin
-    for i := 0 to FOperatorsMenu.Items.Count - 1 do
-      FOperatorsMenu.Items[i].Checked:= FOperatorsMenu.Items[i].Tag = PtrInt(FFilterOperator);
+    for i := 0 to FOperatorsMenuItems.Count - 1 do
+      TMenuItem(FOperatorsMenuItems.Items[i]).Checked:= TMenuItem(FOperatorsMenuItems.Items[i]).Tag = PtrInt(FFilterOperator);
   end;
 end;
 
@@ -1019,14 +1134,27 @@ begin
     Self.FilterOperator := TmFilterOperator((Sender as TMenuItem).Tag);
 end;
 
-procedure TmFilterConditionPanel.OperatorMenuPopup(Sender: TObject);
+procedure TmFilterConditionPanel.ClearMenuItemClick(Sender: TObject);
+begin
+  if (Sender is TMenuItem) then
+    Self.Clear;
+end;
+
+procedure TmFilterConditionPanel.FilterMenuPopup(Sender: TObject);
 var
   i : integer;
+  almostOne : boolean;
 begin
-  if Assigned(FOperatorsMenu) then
+  if Assigned(FFilterMenu) and (FFilterMenu.Items.Count > 2) then
   begin
-    for i := 0 to FOperatorsMenu.Items.Count - 1 do
-      FOperatorsMenu.Items[i].Visible:= (TmFilterOperator(FOperatorsMenu.Items[i].Tag) in FAllowedOperators);
+    almostOne:= false;
+    for i := 0 to FOperatorsMenuItems.Count - 1 do
+    begin
+      TMenuItem(FOperatorsMenuItems.Items[i]).Visible:= (TmFilterOperator(TMenuItem(FOperatorsMenuItems.Items[i]).Tag) in FAllowedOperators);
+      almostOne:= almostOne or TMenuItem(FOperatorsMenuItems.Items[i]).Visible;
+    end;
+    // show or hide the separator:
+    FOperatorsMenuItemSeparator.Visible := almostOne;
   end;
 end;
 
@@ -1041,10 +1169,12 @@ begin
   Self.Height := 40;
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
+  FOperatorsMenuItems := TList.Create;
 end;
 
 destructor TmFilterConditionPanel.Destroy;
 begin
+  FOperatorsMenuItems.Free;
   inherited Destroy;
 end;
 
@@ -1057,6 +1187,11 @@ procedure TmFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
 begin
   aFilter.FieldName := Self.FieldName;
   aFilter.FilterOperator := Self.FilterOperator;
+end;
+
+procedure TmFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+begin
+  Self.FilterOperator := aFilter.FilterOperator;
 end;
 
 

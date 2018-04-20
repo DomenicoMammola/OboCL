@@ -32,6 +32,7 @@ uses
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
   SExcelFileDescription = 'Excel 97-2003 files';
+  SHtmlFileDescription = 'Html files';
   SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again. Detail:';
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
@@ -45,6 +46,8 @@ resourcestring
   SExportGridAsCsvCommandCaption = 'Export to csv file...';
   SExportGridAsXlsCommandHint = 'Export grid data to Excel file (.xls)';
   SExportGridAsXlsCommandCaption = 'Export to Excel file (.xls)...';
+  SExportGridAsHtmlCommandHint = 'Export grid data to html file (.html)';
+  SExportGridAsHtmlCommandCaption = 'Export to html file (.html)...';
 
 type
 
@@ -81,6 +84,8 @@ type
     procedure OnExportGridAsCsv (Sender : TObject);
     procedure ExportGridAsXls (aStream : TStream);
     procedure OnExportGridAsXls (Sender : TObject);
+    procedure ExportGridAsHtml (aStream: TStream);
+    procedure OnExportGridAsHtml (Sender : TObject);
 
     procedure SelectAllRows;
 
@@ -117,6 +122,12 @@ begin
   begin
     FSaveDialog.DefaultExt:= 'xls';
     FSaveDialog.Filter:=SExcelFileDescription + '|*.xls';
+  end
+  else
+  if aFileType = 'HTML' then
+  begin
+    FSaveDialog.DefaultExt:= 'html';
+    FSaveDialog.Filter:=SHtmlFileDescription + '|*.html';
   end;
   if FSaveDialog.Execute then
   begin
@@ -134,7 +145,9 @@ begin
           if aFileType = 'CSV' then
             Self.ExportGridAsCsv(fs)
           else if aFileType = 'XLS' then
-            Self.ExportGridAsXls(fs);
+            Self.ExportGridAsXls(fs)
+          else if aFileType = 'HTML' then
+            Self.ExportGridAsHtml(fs);
         finally
           fs.Free;
         end;
@@ -221,6 +234,12 @@ begin
   itm.OnClick:= Self.OnExportGridAsXls;
   itm.Hint:= SExportGridAsXlsCommandHint;
   itm.Caption:= SExportGridAsXlsCommandCaption;
+
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsHtml();
+  itm.Hint:= SExportGridAsHtmlCommandHint;
+  itm.Caption:= SExportGridAsHtmlCommandCaption;
 
   tmp := TToolButton.Create(aToolbar);
   tmp.Style:= tbsDivider;
@@ -415,7 +434,6 @@ begin
 
     FDBGrid.DataSource.DataSet.DisableControls;
     try
-      //tmpFields := FDBGrid.DataSource.DataSet.Fields;
       col := 0;
       for i := 0 to FDBGrid.Columns.Count - 1 do
       begin
@@ -426,15 +444,6 @@ begin
           inc (col);
         end;
       end;
-(*      for i := 0 to tmpFields.Count - 1 do
-      begin
-        if tmpFields[i].Visible then
-        begin
-          MyWorksheet.WriteText(0, col, tmpFields[i].DisplayLabel);
-          MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
-          inc (col);
-        end;
-      end;*)
 
       rn := FDBGrid.DataSource.DataSet.RecNo;
       row := 1;
@@ -476,29 +485,6 @@ begin
             inc(col);
           end;
         end;
-(*        for i := 0 to tmpFields.Count - 1 do
-        begin
-          if tmpFields[i].Visible then
-          begin
-            if not tmpFields[i].IsNull then
-            begin
-              if (tmpFields[i].DataType = ftSmallint) or (tmpFields[i].DataType = ftInteger) or (tmpFields[i].DataType = ftLargeint) then
-                MyWorksheet.WriteNumber(row, col, tmpFields[i].AsFloat, nfGeneral, 0)
-              else
-              if (tmpFields[i].DataType = ftFloat) then
-                MyWorksheet.WriteNumber(row, col, tmpFields[i].AsFloat)
-              else
-              if (tmpFields[i].DataType = ftDate) or (tmpFields[i].DataType = ftDateTime) or (tmpFields[i].DataType = ftTime) or (tmpFields[i].DataType = ftTimeStamp) then
-                MyWorksheet.WriteDateTime(row, col, tmpFields[i].AsDateTime)
-              else
-              if (tmpFields[i].DataType = ftBoolean) then
-                MyWorksheet.WriteBoolValue(row, col, tmpFields[i].AsBoolean)
-              else
-                MyWorksheet.WriteText(row, col, tmpFields[i].AsString);
-            end;
-            inc(col);
-          end;
-        end;*)
 
         inc(row);
         FDBGrid.DataSource.DataSet.Next;
@@ -517,6 +503,235 @@ end;
 procedure TmDBGridHelper.OnExportGridAsXls(Sender : TObject);
 begin
   ExportGridToFile('XLS');
+end;
+
+procedure TmDBGridHelper.ExportGridAsHtml(aStream: TStream);
+var
+  htmlDoc : TStringList;
+  i, rn, row, col : integer;
+  tmpField : TField;
+begin
+  htmlDoc := TStringList.Create;
+  try
+    htmlDoc.Add('<!DOCTYPE html>');
+    htmlDoc.Add('<html>');
+    htmlDoc.Add('<head>');
+    htmlDoc.Add('<meta charset="utf-8">');
+    htmlDoc.Add('<!-- CREDITS ------------------------------ -->');
+    htmlDoc.Add('<!-- derived from style by João Sardinha ( http://johnsardine.com/freebies/dl-html-css/simple-little-tab/ ) -->');
+    htmlDoc.Add('<!-- -------------------------------------- -->');
+    htmlDoc.Add('<style type=text/css>');
+    htmlDoc.Add('p {');
+    htmlDoc.Add('	font-family:Arial, Helvetica, sans-serif;');
+    htmlDoc.Add('	background: #ededed;');
+    htmlDoc.Add('	font-size:12px;');
+    htmlDoc.Add('       text-shadow: 1px 1px 0px #fff;');
+    htmlDoc.Add('       margin:20px;');
+    htmlDoc.Add('       border:#ccc 1px solid;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table a:link {');
+    htmlDoc.Add('	color: #666;');
+    htmlDoc.Add('	font-weight: bold;');
+    htmlDoc.Add('	text-decoration:none;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table a:visited {');
+    htmlDoc.Add('	color: #999999;');
+    htmlDoc.Add('	font-weight:bold;');
+    htmlDoc.Add('	text-decoration:none;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table a:active,');
+    htmlDoc.Add('table a:hover {');
+    htmlDoc.Add('	color: #bd5a35;');
+    htmlDoc.Add('	text-decoration:underline;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table {');
+    htmlDoc.Add('	font-family:Arial, Helvetica, sans-serif;');
+    htmlDoc.Add('	color:#666;');
+    htmlDoc.Add('	font-size:12px;');
+    htmlDoc.Add('	text-shadow: 1px 1px 0px #fff;');
+    htmlDoc.Add('	background:#eaebec;');
+    htmlDoc.Add('	margin:20px;');
+    htmlDoc.Add('	border:#ccc 1px solid;');
+    htmlDoc.Add('');
+    htmlDoc.Add('	-moz-border-radius:3px;');
+    htmlDoc.Add('	-webkit-border-radius:3px;');
+    htmlDoc.Add('	border-radius:3px;');
+    htmlDoc.Add('');
+    htmlDoc.Add('	-moz-box-shadow: 0 1px 2px #d1d1d1;');
+    htmlDoc.Add('	-webkit-box-shadow: 0 1px 2px #d1d1d1;');
+    htmlDoc.Add('	box-shadow: 0 1px 2px #d1d1d1;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table th {');
+    htmlDoc.Add('	padding:21px 25px 22px 25px;');
+    htmlDoc.Add('	border-top:1px solid #fafafa;');
+    htmlDoc.Add('	border-bottom:1px solid #e0e0e0;');
+    htmlDoc.Add('');
+    htmlDoc.Add('	background: #ededed;');
+    htmlDoc.Add('	background: -webkit-gradient(linear, left top, left bottom, from(#ededed), to(#ebebeb));');
+    htmlDoc.Add('	background: -moz-linear-gradient(top,  #ededed,  #ebebeb);');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table th:first-child {');
+    htmlDoc.Add('	text-align: left;');
+    htmlDoc.Add('	padding-left:20px;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr:first-child th:first-child {');
+    htmlDoc.Add('	-moz-border-radius-topleft:3px;');
+    htmlDoc.Add('	-webkit-border-top-left-radius:3px;');
+    htmlDoc.Add('	border-top-left-radius:3px;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr:first-child th:last-child {');
+    htmlDoc.Add('	-moz-border-radius-topright:3px;');
+    htmlDoc.Add('	-webkit-border-top-right-radius:3px;');
+    htmlDoc.Add('	border-top-right-radius:3px;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr {');
+    htmlDoc.Add('	text-align: center;');
+    htmlDoc.Add('	padding-left:20px;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table td:first-child {');
+    htmlDoc.Add('	text-align: left;');
+    htmlDoc.Add('	padding-left:20px;');
+    htmlDoc.Add('	border-left: 0;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table td {');
+    htmlDoc.Add('	padding:18px;');
+    htmlDoc.Add('	border-top: 1px solid #ffffff;');
+    htmlDoc.Add('	border-bottom:1px solid #e0e0e0;');
+    htmlDoc.Add('	border-left: 1px solid #e0e0e0;');
+    htmlDoc.Add('');
+    htmlDoc.Add('	background: #fafafa;');
+    htmlDoc.Add('	background: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#fafafa));');
+    htmlDoc.Add('	background: -moz-linear-gradient(top,  #fbfbfb,  #fafafa);');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr.even td {');
+    htmlDoc.Add('	background: #f6f6f6;');
+    htmlDoc.Add('	background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));');
+    htmlDoc.Add('	background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr:last-child td {');
+    htmlDoc.Add('	border-bottom:0;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr:last-child td:first-child {');
+    htmlDoc.Add('	-moz-border-radius-bottomleft:3px;');
+    htmlDoc.Add('	-webkit-border-bottom-left-radius:3px;');
+    htmlDoc.Add('	border-bottom-left-radius:3px;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr:last-child td:last-child {');
+    htmlDoc.Add('	-moz-border-radius-bottomright:3px;');
+    htmlDoc.Add('	-webkit-border-bottom-right-radius:3px;');
+    htmlDoc.Add('	border-bottom-right-radius:3px;');
+    htmlDoc.Add('}');
+    htmlDoc.Add('table tr:hover td {');
+    htmlDoc.Add('	background: #f2f2f2;');
+    htmlDoc.Add('	background: -webkit-gradient(linear, left top, left bottom, from(#f2f2f2), to(#f0f0f0));');
+    htmlDoc.Add('	background: -moz-linear-gradient(top,  #f2f2f2,  #f0f0f0);');
+    htmlDoc.Add('}');
+
+    htmlDoc.Add('</style>');
+    htmlDoc.Add('</head>');
+    htmlDoc.Add('<body>');
+
+
+    htmlDoc.Add('<table>');
+
+    FDBGrid.DataSource.DataSet.DisableControls;
+    try
+      col := 0;
+      htmlDoc.Add('<tr>');
+      for i := 0 to FDBGrid.Columns.Count - 1 do
+      begin
+        if FDBGrid.Columns.Items[i].Visible then
+        begin
+          htmlDoc.Add('<th>' + FDBGrid.Columns.Items[i].Title.Caption + '</th>');
+          inc (col);
+        end;
+      end;
+      htmlDoc.Add('</tr>');
+
+      rn := FDBGrid.DataSource.DataSet.RecNo;
+      row := 1;
+
+
+      FDBGrid.DataSource.DataSet.First;
+      while not FDBGrid.DataSource.DataSet.EOF do
+      begin
+        col := 0;
+
+        htmlDoc.Add('<tr>');
+
+        for i := 0 to FDBGrid.Columns.Count - 1 do
+        begin
+          if FDBGrid.Columns.Items[i].Visible then
+          begin
+            htmlDoc.Add('<td>');
+            tmpField := FDBGrid.Columns.Items[i].Field;
+            if not tmpField.IsNull then
+            begin
+              if (tmpField.DataType = ftSmallint) or (tmpField.DataType = ftInteger) or (tmpField.DataType = ftLargeint) then
+                htmlDoc.Add(IntToStr(tmpField.AsInteger))
+              else
+              if (tmpField.DataType = ftFloat) then
+              begin
+                if (tmpField as TFloatField).DisplayFormat <> '' then
+                  htmlDoc.Add(FormatFloat((tmpField as TFloatField).DisplayFormat, tmpField.AsFloat))
+                else
+                  htmlDoc.Add(FloatToStr(tmpField.AsFloat));
+              end
+              else
+              if (tmpField.DataType = ftDate) then
+              begin
+                htmlDoc.Add(DateToStr(tmpField.AsDateTime));
+              end
+              else
+              if (tmpField.DataType = ftDateTime) or (tmpField.DataType = ftTimeStamp) then
+              begin
+                htmlDoc.Add(DateTimeToStr(tmpField.AsDateTime));
+              end
+              else
+              if (tmpField.DataType = ftTime) then
+              begin
+                htmlDoc.Add(TimeToStr(tmpField.AsDateTime));
+              end
+              else
+              if (tmpField.DataType = ftBoolean) then
+              begin
+                htmlDoc.Add(BoolToStr(tmpField.AsBoolean, true));
+              end
+              else
+                htmlDoc.Add(tmpField.AsString);
+            end;
+            htmlDoc.Add('</td>');
+            inc(col);
+          end;
+        end;
+        htmlDoc.Add('</tr>');
+
+        inc(row);
+        FDBGrid.DataSource.DataSet.Next;
+      end;
+      FDBGrid.DataSource.DataSet.RecNo:= rn;
+
+    finally
+      FDBGrid.DataSource.DataSet.EnableControls;
+    end;
+    htmlDoc.Add('</table>');
+
+    for i := 0 to FDBGrid.SummaryManager.GetSummaryValues.Count - 1 do
+    begin
+      htmlDoc.Add('<p>' + FDBGrid.SummaryManager.GetSummaryValues.Get(i).FormattedValue + '</p>');
+    end;
+
+    htmlDoc.Add('</body>');
+    htmlDoc.Add('</html>');
+    htmlDoc.SaveToStream(aStream);
+  finally
+    htmlDoc.Free;
+  end;
+end;
+
+procedure TmDBGridHelper.OnExportGridAsHtml(Sender: TObject);
+begin
+  ExportGridToFile('HTML');
 end;
 
 procedure TmDBGridHelper.SelectAllRows;

@@ -321,6 +321,12 @@ begin
   itm.Hint:= SExportGridAsXlsCommandHint;
   itm.Caption:= SExportGridAsXlsCommandCaption;
 
+  itm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(itm);
+  itm.OnClick:= Self.OnExportGridAsHtml();
+  itm.Hint:= SExportGridAsHtmlCommandHint;
+  itm.Caption:= SExportGridAsHtmlCommandCaption;
+
   aToolbar.AddSeparator;
   aToolbar.Update;
 
@@ -544,12 +550,14 @@ var
   tmpBookmark : TBookmark;
   i : integer;
   tmpDatum : IVDDatum;
+  tmpKey : string;
 begin
   FGrid.BeginUpdate;
   try
     if FGrid.SelectedRows.Count = 1 then
     begin
-      tmpDatum := GetDataProvider.FindDatumByStringKey(FDataset.FieldByName(aKeyFieldName).AsString);
+      tmpKey := FDataset.FieldByName(aKeyFieldName).AsString;
+      tmpDatum := GetDataProvider.FindDatumByStringKey(tmpKey);
       if Assigned(tmpDatum) then
         aList.Add(tmpDatum.AsObject);
     end

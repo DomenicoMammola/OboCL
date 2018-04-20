@@ -629,7 +629,6 @@ end;
 procedure TmDBGrid.RefreshSummaryPanel(Sender : TObject);
 var
   i : integer;
-  str : String;
   tempList : TmSummaryScreenValues;
 begin
   if Assigned(FSummaryManager) then
@@ -642,13 +641,9 @@ begin
         try
           for i := 0 to FSummaryManager.GetSummaryValues.Count - 1 do
           begin
-            str := TmSummaryOperatorToString(FSummaryManager.GetSummaryValues.Get(i).Definition.SummaryOperator);
-            str := str + '(';
-            str := str + FSummaryManager.GetSummaryValues.Get(i).Definition.Caption + ')= ';
-            str := str + FSummaryManager.GetSummaryValues.Get(i).ValueAsString;
             with tempList.Add do
             begin
-              FormattedValue:= str;
+              FormattedValue:= FSummaryManager.GetSummaryValues.Get(i).FormattedValue;
               RawValue:= FSummaryManager.GetSummaryValues.Get(i).ValueAsVariant;
               DataType:= FSummaryManager.GetSummaryValues.Get(i).DataType;
             end;

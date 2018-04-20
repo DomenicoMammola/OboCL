@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, Controls, ExtCtrls, Menus, contnrs,
-  ATButtons, ATButtonsToolbar;
+  ATButtons, ATFlatToolbar;
 
 type
 
@@ -60,7 +60,7 @@ type
   TUramakiToolbar = class (TComponent)
   strict private
     FPanel: TPanel;
-    FToolbar: TATButtonsToolbar;
+    FToolbar: TATFlatToolbar;
     FGarbage : TObjectList;
     function GetImages: TImageList;
     function GetParent: TWinControl;
@@ -143,7 +143,7 @@ begin
   if (FATButton.PopupMenu <> nil) then
   begin
     if aValue = bkText then
-      FATButton.Kind := abuTextArrow
+      FATButton.Kind := abuTextChoice// abuTextArrow
     else
       FATButton.Kind:= abuIconOnly; // abuIconArrow;
   end
@@ -154,6 +154,7 @@ begin
     else
       FATButton.Kind:= abuIconOnly;
   end;
+  FATButton.Arrow:= false;
 end;
 
 constructor TUramakiToolbarItem.Create;
@@ -186,6 +187,7 @@ begin
   FToolbar.Images := aValue;
   for i := 0 to FToolbar.ButtonCount - 1 do
     FToolbar.Buttons[i].Images := aValue;
+  FToolbar.UpdateControls(true)
 end;
 
 procedure TUramakiToolbar.SetParent(AValue: TWinControl);
@@ -199,13 +201,14 @@ begin
   FPanel := TPanel.Create(TheOwner);
   //FPanel.Parent := TheOwner;
   FPanel.Align:= alTop;
-  FToolbar := TATButtonsToolbar.Create(FPanel);
+  FToolbar := TATFlatToolbar.Create(FPanel);
   FToolbar.Parent := FPanel;
   FPanel.BorderStyle:= bsSingle;
   FPanel.BevelInner:= bvNone;
   FPanel.BevelOuter:= bvNone;
-  FPanel.AutoSize := true;
+  FPanel.Height:= 34;
   FToolbar.Align:= alTop;
+  FToolbar.Height:= 32;
   //FToolbar.Images := aImageList;
   FToolbar.ShowHint:= true;
   FGarbage:= TObjectList.Create(true);
@@ -231,9 +234,9 @@ function TUramakiToolbar.AddDropDownButton (aMenu: TPopupMenu): TUramakiToolbarI
 begin
   Result := TUramakiToolbarItem.Create;
   FGarbage.Add(Result);
-  FToolbar.AddDropdown(aMenu);
+  FToolbar.AddDropdown(0, aMenu);
   Result.ATButton := FToolbar.Buttons[FToolbar.ButtonCount - 1];
-  Result.ATButton.Kind:= abuTextArrow;
+  Result.ATButton.Kind:= abuTextChoice; // abuTextArrow;
   Result.ATButton.Images := FToolbar.Images;
 end;
 

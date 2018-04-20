@@ -106,7 +106,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, mGraphicsUtility;
 
 { TUramakiDesktopPanel }
 
@@ -182,6 +182,8 @@ procedure TUramakiDesktopPanel.OnConfigurePanel(Sender: TObject);
 var
   Dlg : TUramakiPanelConfigurationForm;
   Ref : TATTabData;
+  newCaption : String;
+  newColor : TColor;
 begin
   if Assigned(FTabData) then
     Ref := FTabData
@@ -200,7 +202,13 @@ begin
     Dlg.Init(Ref.TabCaption, Ref.TabColor);
     if Dlg.ShowModal = mrOk then
     begin
-      Dlg.GetValues(Ref.TabCaption, Ref.TabColor);
+      Dlg.GetValues(newCaption, newColor);
+      Ref.TabCaption := newCaption;
+      Ref.TabColor := newColor;
+      if IsDark(newColor) then
+        FTabs.Font.Color:= clWhite
+      else
+        FTabs.Font.Color:= clDefault;
       if Assigned(FTabs) then
         FTabs.Invalidate;
     end;

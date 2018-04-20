@@ -1,0 +1,1 @@
+C:\lazarus32_1_8_2\tools\lazres ..\lcl_filterpanel_images.lrs search.bmp clear.bmp

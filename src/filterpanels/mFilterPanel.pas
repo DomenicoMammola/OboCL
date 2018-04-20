@@ -19,12 +19,12 @@ interface
 uses
   Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants,
   ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
+  ATButtons,
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces;
 
 resourcestring
   SClearFilterCommand = 'Clear';
-  SFindFilteredCommand = 'Find';
 
 type
   { TmFilterConditionPanel }
@@ -203,10 +203,13 @@ type
 
   TmExecuteFilterPanel = class (TmFilterConditionPanel)
   private
-    FClearButton : TButton;
-    FFilterButton : TButton;
+//    FClearButton : TButton;
+//    FFilterButton : TButton;
+    FClearButton : TATButton;
+    FFilterButton : TATButton;
     FOnClickClear : TNotifyEvent;
     FOnClickFilter : TNotifyEvent;
+    FImages: TImageList;
 
     procedure InternalOnClickClear (Sender: TObject);
     procedure InternalOnClickFilter (Sender : TObject);
@@ -238,7 +241,7 @@ type
 implementation
 
 uses
-  SysUtils,
+  SysUtils, LResources,
   mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet, mCheckListForm,
   mDoubleList;
 
@@ -529,15 +532,27 @@ end;
 constructor TmExecuteFilterPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FClearButton := TButton.Create(Self);
+  FImages := TImageList.Create(Self);
+  FImages.Height:= 36;
+  FImages.Width:= 36;
+  FImages.AddLazarusResource('search', clWhite);
+  FImages.AddLazarusResource('clear', clWhite);
+
+  FClearButton := TATButton.Create(Self);
   FClearButton.Parent := Self;
-  FClearButton.Height:= Self.Height div 2;
-  FClearButton.Align:= alTop;
-  FClearButton.Caption := SClearFilterCommand;
-  FFilterButton := TButton.Create(Self);
+  FClearButton.Width:= Self.Width div 2;
+  FClearButton.Align:= alLeft;
+  FClearButton.Images := FImages;
+  FClearButton.ImageIndex:= 1;
+  FClearButton.Kind:=abuIconOnly;
+  FClearButton.Flat := true;
+  FFilterButton := TATButton.Create(Self);
   FFilterButton.Parent := Self;
   FFilterButton.Align := alClient;
-  FFilterButton.Caption := SFindFilteredCommand;
+  FFilterButton.Images := FImages;
+  FFilterButton.ImageIndex:= 0;
+  FFilterButton.Kind:= abuIconOnly;
+  FFilterButton.Flat:= true;
   FOnClickClear:= nil;
   FOnClickFilter:= nil;
   FClearButton.OnClick:= Self.InternalOnClickClear;
@@ -1194,5 +1209,7 @@ begin
   Self.FilterOperator := aFilter.FilterOperator;
 end;
 
+initialization
+  {$I lcl_filterpanel_images.lrs}
 
 end.

@@ -23,7 +23,6 @@ object mMemoForm: TmMemoForm
     ParentFont = False
     ScrollBars = ssAutoBoth
     TabOrder = 0
-    WordWrap = False
   end
   object Panel1: TPanel
     Left = 0

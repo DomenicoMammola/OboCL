@@ -38,16 +38,15 @@ type
     procedure OkBtnClick(Sender: TObject);
   private
     FLookupPanel : TmLookupPanel;
-    function GetSelectedDisplayLabel: string;
-    function GetSelectedValue: variant;
+    FSelectedValue : Variant;
+    FSelectedDisplayLabel : String;
     procedure OnSelectValue (const aKeyValue: variant; const aDisplayLabel: string);
-    procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel : string);
   public
     { public declarations }
     procedure Init (aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
 
-    property SelectedValue: variant read GetSelectedValue;
-    property SelectedDisplayLabel: string read GetSelectedDisplayLabel;
+    property SelectedValue: variant read FSelectedValue;
+    property SelectedDisplayLabel: string read FSelectedDisplayLabel;
   end;
 
 
@@ -71,47 +70,26 @@ begin
   FLookupPanel.Parent := Self;
   FLookupPanel.Align:= alClient;
   FLookupPanel.OnSelectAValue:= @OnSelectValue;
+  FSelectedValue:= Null;
+  FSelectedDisplayLabel:= '';
 end;
 
 procedure TmLookupWindow.OkBtnClick(Sender: TObject);
-var
-  tmpDisplayLabel: string;
-  tmpValue: Variant;
 begin
-  FLookupPanel.GetSelectedValues(tmpValue, tmpDisplayLabel);
-  if not VarIsNull(tmpValue) then
+  FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel);
+  if not VarIsNull(FSelectedValue) then
     ModalResult := mrOk
   else
     MessageDlg(SMissingValueCaption, SMissingValueWarning, mtInformation, [mbOk], 0);
 end;
 
-procedure TmLookupWindow.GetSelectedValues (out aKeyValue: variant; out aDisplayLabel : string);
-begin
-  FLookupPanel.GetSelectedValues(aKeyValue, aDisplayLabel);
-end;
 
 procedure TmLookupWindow.OnSelectValue(const aKeyValue: variant; const aDisplayLabel: string);
 begin
+  FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel);
   ModalResult := mrOk;
 end;
 
-function TmLookupWindow.GetSelectedValue: variant;
-var
-  tmpDisplayLabel : string;
-  tmpValue : variant;
-begin
-  Self.GetSelectedValues(tmpValue, tmpDisplayLabel);
-  Result := tmpValue;
-end;
-
-function TmLookupWindow.GetSelectedDisplayLabel: string;
-var
-  tmpDisplayLabel : string;
-  tmpValue : variant;
-begin
-  Self.GetSelectedValues(tmpValue, tmpDisplayLabel);
-  Result := tmpDisplayLabel;
-end;
 
 procedure TmLookupWindow.Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
 begin

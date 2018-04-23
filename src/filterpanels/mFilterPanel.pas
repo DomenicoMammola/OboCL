@@ -512,6 +512,7 @@ begin
 end;
 
   {$IFDEF LINUX}
+const
   CB_SETDROPPEDWIDTH = 352;
   {$ENDIF}
 

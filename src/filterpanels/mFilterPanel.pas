@@ -21,7 +21,8 @@ uses
   ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
   ATButtons,
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
-  mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces;
+  mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces,
+  mFilterPanelDataModule;
 
 resourcestring
   SClearFilterCommand = 'Clear';
@@ -209,7 +210,7 @@ type
     FFilterButton : TATButton;
     FOnClickClear : TNotifyEvent;
     FOnClickFilter : TNotifyEvent;
-    FImages: TImageList;
+    FImagesDataModule: TmFilterPnlDataModule;
 
     procedure InternalOnClickClear (Sender: TObject);
     procedure InternalOnClickFilter (Sender : TObject);
@@ -533,25 +534,21 @@ end;
 constructor TmExecuteFilterPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FImages := TImageList.Create(Self);
-  FImages.Height:= 36;
-  FImages.Width:= 36;
-  FImages.AddLazarusResource('search', clWhite);
-  FImages.AddLazarusResource('clear', clWhite);
+  FImagesDataModule:= TmFilterPnlDataModule.Create(Self);
 
   FClearButton := TATButton.Create(Self);
   FClearButton.Parent := Self;
   FClearButton.Width:= Self.Width div 2;
   FClearButton.Align:= alLeft;
-  FClearButton.Images := FImages;
-  FClearButton.ImageIndex:= 1;
+  FClearButton.Images := FImagesDataModule.FilterPanelExecuteIcons;
+  FClearButton.ImageIndex:= 0;
   FClearButton.Kind:=abuIconOnly;
   FClearButton.Flat := true;
   FFilterButton := TATButton.Create(Self);
   FFilterButton.Parent := Self;
   FFilterButton.Align := alClient;
-  FFilterButton.Images := FImages;
-  FFilterButton.ImageIndex:= 0;
+  FFilterButton.Images := FImagesDataModule.FilterPanelExecuteIcons;
+  FFilterButton.ImageIndex:= 1;
   FFilterButton.Kind:= abuIconOnly;
   FFilterButton.Flat:= true;
   FOnClickClear:= nil;
@@ -1209,8 +1206,5 @@ procedure TmFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
 begin
   Self.FilterOperator := aFilter.FilterOperator;
 end;
-
-initialization
-  {$I lcl_filterpanel_images.lrs}
 
 end.

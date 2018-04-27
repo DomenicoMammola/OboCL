@@ -80,6 +80,7 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
+    procedure SetFilterValue (aValue : Variant);
     procedure ExportToFilter (aFilter : TmFilter); override;
     procedure ImportFromFilter (const aFilter: TmFilter); override;
     function IsEmpty : boolean; override;
@@ -498,6 +499,7 @@ begin
   begin
     FCurrentValue:= aValue;
     FEdit.Text := aDescription;
+    Self.FilterOperator := foEq;
   end;
 end;
 
@@ -731,7 +733,10 @@ begin
   if VarIsNull(aValue) then
     Self.Clear
   else
+  begin
     FEdit.Text := VarToStr(aValue);
+    Self.FilterOperator := foEq;
+  end;
 end;
 
 function TmEditFilterConditionPanel.IsEmpty: boolean;
@@ -945,6 +950,17 @@ procedure TmDateFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited;
   FLabel.Caption := Self.FormatFilterCaption(aValue);
+end;
+
+procedure TmDateFilterConditionPanel.SetFilterValue(aValue: Variant);
+begin
+  if VarIsNull(aValue) then
+    Self.Clear
+  else
+  begin
+    Self.FilterOperator := foEq;
+    FDateEditMin.Text := VarToStr(aValue);
+  end;
 end;
 
 procedure TmDateFilterConditionPanel.ExportToFilter (aFilter : TmFilter);

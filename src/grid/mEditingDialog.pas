@@ -80,6 +80,7 @@ type
     function OnValueListEditorEditValue  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
+    function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
   protected
     FCommitted : boolean;
   protected
@@ -87,7 +88,6 @@ type
     procedure SetValue(const aName : string; const aDisplayValue: String; const aActualValue: variant);
     procedure SetReadOnly (const aName : string; const aValue : boolean); overload;
     procedure SetReadOnly (const aValue : boolean); overload;
-    function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
     // override these or use events (don't mix overrides and events!):
     procedure InternalOnEditValue(const aName : string; const aNewDisplayValue : variant; const aNewActualValue: variant); virtual;
     procedure InternalOnValidateValue(const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant); virtual;
@@ -104,7 +104,7 @@ type
     procedure AddLine (const aName : string; const aCaption : string; const aDefaultDisplayValue : string; const aDefaultActualValue: variant; const aEditorKind : TmEditingPanelEditorKind; const aReadOnly : boolean = false; const aMandatory: boolean = false; const aChangedValueDestination : TAbstractNullable = nil);
     procedure AddLineForNullable (const aName: string; const aCaption: String; aValue: TAbstractNullable; const aEditorKind: TmEditingPanelEditorKind; const aReadOnly, aMandatory : boolean; const aDisplayValue : variant);
 
-    procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double);
+    procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
     function GetValue(const aName : string) : Variant;
     function GetEditorKind(const aName : string): TmEditingPanelEditorKind;
 
@@ -156,6 +156,13 @@ type
     ChangedValueDestination: TAbstractNullable;
     Changed: boolean;
     function RowIndex : integer;
+  end;
+
+  TEditorMemo = class
+  public
+    Name : String;
+    Memo : TMemo;
+    ChangedValueDestination: TAbstractNullable;
   end;
 
 function TEditorLine.RowIndex: integer;
@@ -425,6 +432,7 @@ begin
       end;
     end;
   end;
+
   Self.InternalOnValidateValue(curLine.Name, OldValue, NewValue, oldActualValue, curLine.ActualValue);
 
   if NewValue <> OldValue then
@@ -600,12 +608,13 @@ begin
     FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
 end;
 
-procedure TmEditingPanel.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string; const aMemoHeightPercent : double);
+procedure TmEditingPanel.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
 var
   tmpPanel1, tmpPanel2 : TPanel;
   tmpMemo : TMemo;
   i : integer;
   position : double;
+  tmpEditorMemo : TEditorMemo;
 begin
   tmpPanel1 := TPanel.Create(FRootPanel);
   tmpPanel1.Parent := FRootPanel;
@@ -630,8 +639,13 @@ begin
   tmpMemo.WantReturns:= true;
   tmpMemo.Text:= aDefaultValue;
 
-  FMemos.Add(tmpMemo);
-  FMemosByName.Add(aName, tmpMemo);
+  tmpEditorMemo := TEditorMemo.Create;
+  tmpEditorMemo.Name:= aName;
+  tmpEditorMemo.Memo := tmpMemo;
+  tmpEditorMemo.ChangedValueDestination := aChangedValueDestination;
+
+  FMemos.Add(tmpEditorMemo);
+  FMemosByName.Add(aName, tmpEditorMemo);
 
   FRootPanel.PanelCollection.Items[FRootPanel.PanelCollection.Count - 1].Position:= 1;
   position := 1 - aMemoHeightPercent;
@@ -654,25 +668,21 @@ end;
 function TmEditingPanel.GetValue(const aName: string): Variant;
 var
   curLine : TEditorLine;
-//  tmp : string;
+  tmp : string;
 begin
   Result := Null;
 
-  curLine := FLinesByName.Find(aName) as TEditorLine;
-  Result := curLine.ActualValue;
-
-  (*tmp := Trim(FValueListEditor.Rows[curLine.Index + 1].Strings[1]);
-  case curLine.EditorKind of
-    ekInteger: Result := TNullableInteger.StringToVariant(tmp);
-    ekFloat: Result := TNullableDouble.StringToVariant(tmp);
-    ekDate: Result := TNullableDateTime.StringToVariant(tmp);
-    ekLookupText: Result := TNullableString.StringToVariant(tmp);
-    ekLookupFloat: Result := TNullableDouble.StringToVariant(tmp);
-    ekLookupInteger: Result := TNullableInteger.StringToVariant(tmp);
-    ekText: Result := TNullableString.StringToVariant(tmp);
-    ekUppercaseText: Result := TNullableString.StringToVariant(UpperCase(tmp));
-    ekContainerNumber: Result := TNullableString.StringToVariant(UpperCase(tmp));
-  end;*)
+  if FLinesByName.Contains(aName) then
+  begin
+    curLine := FLinesByName.Find(aName) as TEditorLine;
+    Result := curLine.ActualValue;
+  end
+  else if FMemosByName.Contains(aName) then
+  begin
+    tmp := GetValueFromMemo(aName, true);
+    if tmp <> '' then
+      Result := tmp;
+  end;
 end;
 
 function TmEditingPanel.GetEditorKind(const aName: string): TmEditingPanelEditorKind;
@@ -708,7 +718,7 @@ begin
 
   tmpObj := FMemosByName.Find(aName);
   if Assigned(tmpObj) then
-    (tmpObj as TMemo).ReadOnly:= aValue
+    (tmpObj as TEditorMemo).Memo.ReadOnly:= aValue
   else
     FValueListEditor.ItemProps[aName].ReadOnly := aValue;
 end;
@@ -721,7 +731,7 @@ begin
   for i := 0 to FLines.Count - 1 do
     (FLines.Items[i] as TEditorLine).ReadOnly:= aValue;
   for i := 0 to FMemos.Count - 1 do
-    (FMemos.Items[i] as TMemo).ReadOnly:= aValue;
+    (FMemos.Items[i] as TEditorMemo).Memo.ReadOnly:= aValue;
   for i := 0 to FValueListEditor.Strings.Count -1 do
   begin
     tmp := (FValueListEditor.ItemProps[i]);
@@ -733,10 +743,10 @@ end;
 function TmEditingPanel.GetValueFromMemo(const aName: string; const aTrimValue : boolean): string;
 var
   i : integer;
-  sep : string;
+  sep, s : string;
   tmpMemo : TMemo;
 begin
-  tmpMemo := FMemosByName.Find(aName) as TMemo;
+  tmpMemo := (FMemosByName.Find(aName) as TEditorMemo).Memo;
   Result := '';
   sep := '';
   for i := 0 to tmpMemo.Lines.Count -1 do
@@ -746,6 +756,9 @@ begin
   end;
   if aTrimValue then
     Result := Trim(Result);
+  s := StringReplace(Result, Chr(13), '', [rfReplaceAll]);
+  if Length(s) = 0 then
+    Result := '';
 end;
 
 procedure TmEditingPanel.InternalOnEditValue(const aName: string; const aNewDisplayValue : variant; const aNewActualValue: variant);
@@ -832,7 +845,7 @@ begin
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();
   FLines := TObjectList.Create(true);
-  FMemos := TObjectList.Create(false);
+  FMemos := TObjectList.Create(true);
   FMemosByName := TmStringDictionary.Create();
 
   FOnEditValueEvent:= nil;
@@ -887,6 +900,7 @@ procedure TmEditingPanel.CommitChanges;
 var
   i : integer;
   tmpLine : TEditorLine;
+  tmpMemo : TEditorMemo;
 begin
   if FCommitted then
     exit;
@@ -899,6 +913,14 @@ begin
       begin
         tmpLine.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
       end;
+    end;
+  end;
+  for i := 0 to FMemos.Count - 1 do
+  begin
+    tmpMemo := FMemos.Items[i] as TEditorMemo;
+    if Assigned(tmpMemo.ChangedValueDestination) and (not tmpMemo.Memo.ReadOnly) then
+    begin
+      tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(Self.GetValue(tmpMemo.Name));
     end;
   end;
   FCommitted := true;

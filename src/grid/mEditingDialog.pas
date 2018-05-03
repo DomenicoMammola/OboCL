@@ -25,7 +25,7 @@ uses
   oMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
   mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mVirtualFieldDefs, mNullables,
-  mISO6346Utility;
+  mISO6346Utility, mVirtualDataSetInterfaces;
 
 resourcestring
   SPropertyColumnTitle = 'Property';
@@ -44,6 +44,26 @@ type
   TmOnValidateValueEvent = procedure (const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
   TmOnInitProviderForLookupEvent = procedure (const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList; out aKeyFieldName, aDisplayLabelFieldName: string) of object;
   TmOnGetValueFromLookupKeyValueEvent = procedure (const aName : string; var aLookupValue: variant; var aDisplayValue: string) of object;
+
+  { TmEditorLineDataProvider }
+
+  TmEditorLineDataProvider = class
+  strict private
+    FDataProvider: IVDListDataProvider;
+    FVirtualFieldDefs: TmVirtualFieldDefs;
+    FKeyFieldName: string;
+    FDisplayLabelFieldName: string;
+    FFields : TStringList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property DataProvider : IVDListDataProvider read FDataProvider write FDataProvider;
+    property VirtualFieldDefs : TmVirtualFieldDefs read FVirtualFieldDefs;
+    property KeyFieldName: string read FKeyFieldName write FKeyFieldName;
+    property DisplayLabelFieldName: string read FDisplayLabelFieldName write FDisplayLabelFieldName;
+    property Fields : TStringList read FFields;
+  end;
 
   { TmValueListEditor }
 
@@ -70,6 +90,7 @@ type
     FOnInitProviderForLookupEvent: TmOnInitProviderForLookupEvent;
     FOnGetValueFromLookupKeyValueEvent: TmOnGetValueFromLookupKeyValueEvent;
     FMultiEditMode : boolean;
+    FSomethingChanged : boolean;
 
     function GetAlternateColor: TColor;
     procedure SetAlternateColor(AValue: TColor);
@@ -107,6 +128,7 @@ type
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
     function GetValue(const aName : string) : Variant;
     function GetEditorKind(const aName : string): TmEditingPanelEditorKind;
+    function GetDataProviderForLine (const aName : string): TmEditorLineDataProvider;
 
     property AlternateColor : TColor read GetAlternateColor write SetAlternateColor;
     property OnEditValue: TmOnEditValueEvent read FOnEditValueEvent write FOnEditValueEvent;
@@ -115,6 +137,7 @@ type
     property OnGetValueFromLookupKeyValue: TmOnGetValueFromLookupKeyValueEvent read FOnGetValueFromLookupKeyValueEvent write FOnGetValueFromLookupKeyValueEvent;
 
     property MultiEditMode : boolean read FMultiEditMode write FMultiEditMode;
+    property SomethingChanged : boolean read FSomethingChanged;
   end;
 
   { TmEditingForm }
@@ -134,6 +157,7 @@ type
   end;
 
 
+
 implementation
 
 uses
@@ -145,7 +169,7 @@ type
   { TEditorLine }
 
   TEditorLine = class
-  public
+  private
     Name: String;
     Caption: String;
     EditorKind: TmEditingPanelEditorKind;
@@ -155,15 +179,57 @@ type
     ActualValue: variant;
     ChangedValueDestination: TAbstractNullable;
     Changed: boolean;
+    LineDataProvider: TmEditorLineDataProvider;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
     function RowIndex : integer;
   end;
 
   TEditorMemo = class
-  public
+  private
     Name : String;
     Memo : TMemo;
     ChangedValueDestination: TAbstractNullable;
   end;
+
+{ TmEditorLineDataProvider }
+
+constructor TmEditorLineDataProvider.Create;
+begin
+  FVirtualFieldDefs := TmVirtualFieldDefs.Create;
+  FDataProvider := nil;
+  FKeyFieldName := '';
+  FDisplayLabelFieldName := '';
+  FFields := TStringList.Create;
+end;
+
+destructor TmEditorLineDataProvider.Destroy;
+begin
+  FFields.Free;
+  FVirtualFieldDefs.Free;
+  inherited Destroy;
+end;
+
+constructor TEditorLine.Create;
+begin
+  LineDataProvider := TmEditorLineDataProvider.Create;
+  Name:= '';
+  Caption:= '';
+  Index:= 0;
+  ReadOnly:= false;
+  Mandatory:= false;
+  ActualValue:= Null;
+  ChangedValueDestination:= nil;
+  Changed:= false;
+end;
+
+destructor TEditorLine.Destroy;
+begin
+  LineDataProvider.Free;
+  inherited Destroy;
+end;
 
 function TEditorLine.RowIndex: integer;
 begin
@@ -696,6 +762,17 @@ begin
     raise Exception.Create('Unknown editor line:' + aName);
 end;
 
+function TmEditingPanel.GetDataProviderForLine(const aName: string): TmEditorLineDataProvider;
+var
+  curLine: TEditorLine;
+begin
+  curLine := FLinesByName.Find(aName) as TEditorLine;
+  if Assigned(curLine) then
+    Result := curLine.LineDataProvider
+  else
+    Result := nil;
+end;
+
 procedure TmEditingPanel.SetValue(const aName: string; const aDisplayValue: String; const aActualValue: variant);
 var
   curLine: TEditorLine;
@@ -774,11 +851,25 @@ begin
 end;
 
 procedure TmEditingPanel.InternalInitProviderForLookup(const aName : string; aDatasetProvider: TReadOnlyVirtualDatasetProvider; aFieldsList: TStringList; out aKeyFieldName, aDisplayLabelFieldName: string);
+var
+  curLine: TEditorLine;
 begin
   aKeyFieldName := '';
   aDisplayLabelFieldName := '';
   if Assigned(FOnInitProviderForLookupEvent) then
-    FOnInitProviderForLookupEvent(aName, aDatasetProvider, aFieldsList, aKeyFieldName, aDisplayLabelFieldName);
+    FOnInitProviderForLookupEvent(aName, aDatasetProvider, aFieldsList, aKeyFieldName, aDisplayLabelFieldName)
+  else
+  begin
+    curLine := FLinesByName.Find(aName) as TEditorLine;
+    if Assigned(curLine) and Assigned(curLine.LineDataProvider.DataProvider) then
+    begin
+      aFieldsList.AddStrings(curLine.LineDataProvider.Fields);
+      aKeyFieldName:= curLine.LineDataProvider.KeyFieldName;
+      aDisplayLabelFieldName:= curLine.LineDataProvider.DisplayLabelFieldName;
+      aDatasetProvider.Init(curLine.LineDataProvider.DataProvider);
+      aDatasetProvider.VirtualFieldDefs.Assign(curLine.LineDataProvider.VirtualFieldDefs);
+    end;
+  end;
 end;
 
 (*
@@ -807,6 +898,7 @@ begin
 
   FCommitted:= false;
   FMultiEditMode:= false;
+  FSomethingChanged:= false;
 
   FValueListEditor:= TmValueListEditor.Create(FRootPanel);
   FValueListEditor.Parent := FRootPanel;
@@ -904,6 +996,7 @@ var
 begin
   if FCommitted then
     exit;
+
   for i:= 0 to FLines.Count - 1 do
   begin
     tmpLine:= FLines.Items[i] as TEditorLine;
@@ -912,6 +1005,7 @@ begin
       if (not MultiEditMode) or  (MultiEditMode and tmpLine.Changed) then
       begin
         tmpLine.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
+        FSomethingChanged := FSomethingChanged or tmpLine.ChangedValueDestination.TagChanged;
       end;
     end;
   end;
@@ -921,6 +1015,7 @@ begin
     if Assigned(tmpMemo.ChangedValueDestination) and (not tmpMemo.Memo.ReadOnly) then
     begin
       tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(Self.GetValue(tmpMemo.Name));
+      FSomethingChanged := FSomethingChanged or tmpMemo.ChangedValueDestination.TagChanged;
     end;
   end;
   FCommitted := true;

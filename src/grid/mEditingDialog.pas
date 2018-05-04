@@ -35,10 +35,11 @@ resourcestring
   SDefaultCaption = 'Edit values';
   SErrorNotADate = 'Not a date.';
   SErrorNotANumber = 'Not a number.';
+  SErrorNotATime = 'Not a time.';
 
 type
 
-  TmEditingPanelEditorKind = (ekInteger, ekFloat, ekDate, ekLookupText, ekLookupInteger, ekLookupFloat, ekText, ekUppercaseText, ekContainerNumber, ekMRNNumber);
+  TmEditingPanelEditorKind = (ekInteger, ekFloat, ekDate, ekTime, ekLookupText, ekLookupInteger, ekLookupFloat, ekText, ekUppercaseText, ekContainerNumber, ekMRNNumber);
 
   TmOnEditValueEvent = procedure (const aName : string; const aNewDisplayValue: string; const aNewActualValue : variant) of object;
   TmOnValidateValueEvent = procedure (const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
@@ -417,6 +418,24 @@ begin
     end
     else
       curLine.ActualValue:= null;
+  end else if curLine.EditorKind = ekTime then
+  begin
+    vDate := 0;
+    if NewValue <> '' then
+    begin
+      if TryToUnderstandTimeString(NewValue, vDate) then
+      begin
+        NewValue := TimeToStr(vDate);
+        curLine.ActualValue := vDate;
+      end
+      else
+      begin
+        NewValue := OldValue;
+        TmToast.ShowText(SErrorNotATime);
+      end;
+    end
+    else
+      curLine.ActualValue:= null;
   end else if curLine.EditorKind = ekInteger then
   begin
     if NewValue <> '' then
@@ -658,6 +677,8 @@ begin
   begin
     if (aEditorKind = ekDate) and (aValue is TNullableDateTime) then
       str := (aValue as TNullableDateTime).AsString(false)
+    else if (aEditorKind = ekTime) and (aValue is TNullableTime) then
+      str := (aValue as TNullableTime).AsString
     else
       str := aValue.AsString;
   end

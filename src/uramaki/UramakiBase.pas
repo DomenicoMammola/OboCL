@@ -15,7 +15,7 @@ unit UramakiBase;
 
 interface
 uses
-  Classes, SysUtils, contnrs, Controls, ExtCtrls, db,
+  Classes, SysUtils, contnrs, Controls, ExtCtrls, db, Forms,
   mXML;
 
 const
@@ -64,6 +64,7 @@ type
     procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); virtual;
     procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); virtual;
     procedure Clear; virtual; abstract;
+    function GetParentForm : TForm;
 
     property EngineMediator : TUramakiAbstractEngineMediator read FEngineMediator write FEngineMediator;
     property OnDestroy : TNotifyEvent read FOnUramakiPlateDestroy write FOnUramakiPlateDestroy;
@@ -231,6 +232,19 @@ end;
 procedure TUramakiPlate.SaveConfigurationToXML(aXMLElement: TmXmlElement);
 begin
   //
+end;
+
+function TUramakiPlate.GetParentForm: TForm;
+var
+  currentControl : TWinControl;
+begin
+  currentControl := Self;
+  while Assigned(currentControl) and (not (currentControl is TForm)) do
+    currentControl := currentControl.Parent;
+  if Assigned(currentControl) and (currentControl is TForm) then
+    Result := currentControl as TForm
+  else
+    Result := nil;
 end;
 
 { TUramakiRoll }

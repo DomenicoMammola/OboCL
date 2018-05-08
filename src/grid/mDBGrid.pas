@@ -20,7 +20,7 @@ uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants, Grids, ExtCtrls,
   mGridColumnSettings, mXML, mSortConditions, mGridIcons,
   mDatasetInterfaces, mSystemColumns, mFilter, mFilterOperators, mCellDecorations,
-  mSummary, KAParser;
+  mSummary, KAParser, mMaps;
 
 resourcestring
   SFilterValuesMenuCaption = 'Filter by value...';
@@ -348,7 +348,7 @@ begin
   if aSettings.Width.NotNull then
     aColumn.Width:= max(aSettings.Width.Value, MINIMUM_GRID_COLUMN_WIDTH);
   if aSettings.SortOrder.NotNull then
-    aColumn.Index := aSettings.SortOrder.Value;
+    aColumn.Index := min(aSettings.SortOrder.Value, Self.Columns.Count - 1);
 end;
 
 procedure TmDBGrid.ExtractSettingsFromField(aColumn: TColumn; aSettings: TmGridColumnSettings);
@@ -733,27 +733,39 @@ end;
 
 procedure TmDBGrid.ApplySettings(aSettings: TmGridColumnsSettings);
 var
-  op : TmGridColumnSettings;
   i : integer;
-  tmpList : TObjectList;
+  tmpDictionary : TmStringDictionary;
+  tmpList : TList;
+  tmpObj : TObject;
 begin
-  tmpList := TObjectList.Create(false);
+  tmpDictionary := TmStringDictionary.Create();
+  tmpList := TList.Create;
   try
     for i := 0 to Self.Columns.Count - 1 do
     begin
-      tmpList.Add(Self.Columns.Items[i]);
-    end;
-    for i := 0 to tmpList.Count - 1 do
-    begin
-      if not IsSystemField ((tmpList.Items[i] as TColumn).Field) then
+      if not IsSystemField (Self.Columns.Items[i].Field) then
       begin
-        op := aSettings.GetSettingsForField((tmpList.Items[i] as TColumn).FieldName);
-        if Assigned(op) then
-          ApplySettingsToField(tmpList.Items[i] as TColumn, op);
-      end;
+        if Assigned(aSettings.GetSettingsForField(Self.Columns.Items[i].Field.FieldName)) then
+          tmpDictionary.Add(Self.Columns.Items[i].Field.FieldName, Self.Columns.Items[i])
+        else
+          tmpList.Add(Self.Columns.Items[i]);
+      end
+      else
+        tmpList.Add(Self.Columns.Items[i]);
+    end;
+
+    for i := 0 to tmpList.Count - 1 do
+      TColumn(tmpList.Items[i]).Index:= Columns.Count - 1;
+
+    for i := aSettings.Count - 1 downto 0 do
+    begin
+      tmpObj :=  tmpDictionary.Find(aSettings.Get(i).FieldName);
+      if Assigned(tmpObj) then
+        ApplySettingsToField(tmpObj as TColumn, aSettings.Get(i));
     end;
   finally
     tmpList.Free;
+    tmpDictionary.Free;;
   end;
 end;
 

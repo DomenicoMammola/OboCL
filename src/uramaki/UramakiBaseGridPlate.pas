@@ -56,6 +56,8 @@ type
 
   TUramakiGridSummaryPanel = class (ISummaryPanel)
   strict private
+    const DEFAULT_HEIGHT = 25;
+  strict private
     FPanel : TFlowPanel;
     FSubPanels : TList;
   public
@@ -141,7 +143,8 @@ type
 implementation
 
 uses
-  Clipbrd, variants;
+  Clipbrd, variants,
+  mGraphicsUtility;
 
 type
 
@@ -247,7 +250,7 @@ begin
     tmpPanel := TPanel.Create(FPanel);
     tmpPanel.Parent := FPanel;
     tmpPanel.Align:= alLeft;
-    tmpPanel.Height:= 25;
+    tmpPanel.Height:= ScaleForDPI(DEFAULT_HEIGHT);
     tmpPanel.BorderSpacing.Left:= 2;
     tmpPanel.BorderSpacing.Right:= 2;
     tmpPanel.BorderSpacing.Top:= 2;

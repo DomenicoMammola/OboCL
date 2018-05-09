@@ -50,6 +50,8 @@ type
     procedure ClearMenuItemClick (Sender : TObject);
     procedure FilterMenuPopup (Sender : TObject);
     procedure SetFilterOperator(AValue: TmFilterOperator); virtual;
+  protected
+    procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy; const AXProportion, AYProportion: Double); override;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -87,7 +89,7 @@ type
     procedure Clear; override;
   end;
 
-  TmEditFilterValueType = (efString, efUppercaseString, efInteger, efFloat);
+  TmEditFilterValueType = (efString, efUppercaseString, efInteger, efFloat, efUniqueIdentifier);
 
   { TmEditFilterConditionPanel }
 
@@ -243,12 +245,13 @@ type
 implementation
 
 uses
-  SysUtils, LResources,
+  SysUtils, LResources, Forms,
   mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet, mCheckListForm,
-  mDoubleList;
+  mDoubleList, mGraphicsUtility;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
+  DEFAULT_HEIGHT = 40;
 
 { TmCheckListFilterConditionPanel }
 
@@ -462,6 +465,14 @@ begin
   else if FValueType = efUppercaseString then
     aFilter.Value := Uppercase(VarToStr(FCurrentValue))
   else
+  if FValueType = efUniqueIdentifier then
+  begin
+    if IsUniqueIdentifier(trim(FCurrentValue)) then
+      aFilter.Value := trim(FCurrentValue)
+    else
+      aFilter.Value := null;
+    aFilter.DataType:= fdtString;
+  end;
   if FValueType = efInteger then
   begin
     if VarIsNumeric(FCurrentValue) then
@@ -632,6 +643,12 @@ procedure TmEditFilterConditionPanel.OnEditValueChanged(Sender: TObject);
 begin
   FEdit.OnEditingDone:= nil;
   try
+    if FValueType = efUniqueIdentifier then
+    begin
+      if not IsUniqueIdentifier(FEdit.Text) then
+        FEdit.Text := '';
+    end
+    else
     if FValueType = efInteger then
     begin
       if not IsNumeric(FEdit.Text, false) then
@@ -686,6 +703,15 @@ begin
     aFilter.Value := Uppercase(FEdit.Text)
   end
   else
+  if FValueType = efUniqueIdentifier then
+  begin
+    if IsUniqueIdentifier(trim(FEdit.Text)) then
+      aFilter.Value := trim(FEdit.Text)
+    else
+      aFilter.Value := null;
+    aFilter.DataType:= fdtString;
+  end
+  else
   if FValueType = efInteger then
   begin
     if IsNumeric(FEdit.Text, false) then
@@ -722,6 +748,7 @@ begin
       efUppercaseString: FEdit.Text := UpperCase(VarToStr(aFilter.Value));
       efInteger: FEdit.Text:= IntToStr(aFilter.Value);
       efFloat: FEdit.Text := FloatToStr(aFilter.Value);
+      efUniqueIdentifier: FEdit.Text:= VarToStr(aFilter.Value)
       else
         FEdit.Text:= VarToStr(aFilter.Value);
     end;
@@ -1041,6 +1068,12 @@ begin
   Self.SetFilterCaption(FCaption);
 end;
 
+procedure TmFilterConditionPanel.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy; const AXProportion, AYProportion: Double);
+begin
+  Self.Width := Round(Self.Width * AXProportion);
+  Self.Height:= Round(Self.Height * AYProportion);
+end;
+
 
 procedure TmFilterConditionPanel.SetFlex(AValue: integer);
 begin
@@ -1193,12 +1226,13 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.FFlex := 2;
-  Self.Width := Self.FFlex * DEFAULT_FLEX_WIDTH;
+  Self.Width := Self.FFlex * ScaleForDPI (DEFAULT_FLEX_WIDTH);
   Self.Caption := '';
-  Self.Height := 40;
+  Self.Height := ScaleForDPI(DEFAULT_HEIGHT);
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
   FOperatorsMenuItems := TList.Create;
+
 end;
 
 destructor TmFilterConditionPanel.Destroy;

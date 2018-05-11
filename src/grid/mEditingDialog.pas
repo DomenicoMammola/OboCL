@@ -25,7 +25,7 @@ uses
   oMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
   mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mVirtualFieldDefs, mNullables,
-  mISO6346Utility, mVirtualDataSetInterfaces;
+  mISO6346Utility, mVirtualDataSetInterfaces, mBooleanDataProvider;
 
 resourcestring
   SPropertyColumnTitle = 'Property';
@@ -41,10 +41,12 @@ type
 
   TmEditingPanelEditorKind = (ekInteger, ekFloat, ekDate, ekTime, ekLookupText, ekLookupInteger, ekLookupFloat, ekText, ekUppercaseText, ekContainerNumber, ekMRNNumber);
 
-  TmOnEditValueEvent = procedure (const aName : string; const aNewDisplayValue: string; const aNewActualValue : variant) of object;
-  TmOnValidateValueEvent = procedure (const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
-  TmOnInitProviderForLookupEvent = procedure (const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList; out aKeyFieldName, aDisplayLabelFieldName: string) of object;
-  TmOnGetValueFromLookupKeyValueEvent = procedure (const aName : string; var aLookupValue: variant; var aDisplayValue: string) of object;
+  TmEditingPanel = class;
+
+  TmOnEditValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aNewDisplayValue: string; const aNewActualValue : variant) of object;
+  TmOnValidateValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
+  TmOnInitProviderForLookupEvent = procedure (aSender : TmEditingPanel; const aName : string; aDatasetProvider : TReadOnlyVirtualDatasetProvider; aFieldsList : TStringList; out aKeyFieldName, aDisplayLabelFieldName: string) of object;
+  TmOnGetValueFromLookupKeyValueEvent = procedure (aSender : TmEditingPanel; const aName : string; var aLookupValue: variant; var aDisplayValue: string) of object;
 
   { TmEditorLineDataProvider }
 
@@ -55,6 +57,11 @@ type
     FKeyFieldName: string;
     FDisplayLabelFieldName: string;
     FFields : TStringList;
+    FBooleanProvider : TBooleanDataProvider;
+    function GetUseBooleanProvider: boolean;
+    procedure SetUseBooleanProvider(AValue: boolean);
+  private
+    class procedure ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
   public
     constructor Create;
     destructor Destroy; override;
@@ -64,6 +71,7 @@ type
     property KeyFieldName: string read FKeyFieldName write FKeyFieldName;
     property DisplayLabelFieldName: string read FDisplayLabelFieldName write FDisplayLabelFieldName;
     property Fields : TStringList read FFields;
+    property UseBooleanProvider : boolean read GetUseBooleanProvider write SetUseBooleanProvider;
   end;
 
   { TmValueListEditor }
@@ -107,7 +115,6 @@ type
     FCommitted : boolean;
   protected
     procedure ExtractFields (aVirtualFields : TmVirtualFieldDefs; aList : TStringList);
-    procedure SetValue(const aName : string; const aDisplayValue: String; const aActualValue: variant);
     procedure SetReadOnly (const aName : string; const aValue : boolean); overload;
     procedure SetReadOnly (const aValue : boolean); overload;
     // override these or use events (don't mix overrides and events!):
@@ -128,6 +135,7 @@ type
 
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
     function GetValue(const aName : string) : Variant;
+    procedure SetValue(const aName : string; const aDisplayValue: String; const aActualValue: variant);
     function GetEditorKind(const aName : string): TmEditingPanelEditorKind;
     function GetDataProviderForLine (const aName : string): TmEditorLineDataProvider;
 
@@ -197,6 +205,40 @@ type
 
 { TmEditorLineDataProvider }
 
+function TmEditorLineDataProvider.GetUseBooleanProvider: boolean;
+begin
+  Result := Assigned(FBooleanProvider);
+end;
+
+procedure TmEditorLineDataProvider.SetUseBooleanProvider(AValue: boolean);
+begin
+  if aValue then
+  begin
+    if not Assigned(FBooleanProvider) then
+      FBooleanProvider:= TBooleanDataProvider.Create;
+    FDataProvider := FBooleanProvider;
+    FKeyFieldName := TBooleanDatum.GetKeyField;
+    FDisplayLabelFieldName:= FKeyFieldName;
+    TBooleanDatum.FillVirtualFieldDefs(FVirtualFieldDefs, '');
+    ExtractFields(FVirtualFieldDefs, FFields);
+  end
+  else
+  begin
+    if Assigned(FDataProvider) and Assigned(FBooleanProvider) then
+      FDataProvider := nil;
+    FreeAndNil(FBooleanProvider);
+  end;
+end;
+
+class procedure TmEditorLineDataProvider.ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
+var
+  i : integer;
+begin
+  aList.Clear;
+  for i := 0 to aVirtualFields.Count -1 do
+    aList.Add(aVirtualFields.VirtualFieldDefs[i].Name);
+end;
+
 constructor TmEditorLineDataProvider.Create;
 begin
   FVirtualFieldDefs := TmVirtualFieldDefs.Create;
@@ -204,12 +246,14 @@ begin
   FKeyFieldName := '';
   FDisplayLabelFieldName := '';
   FFields := TStringList.Create;
+  FBooleanProvider := nil;
 end;
 
 destructor TmEditorLineDataProvider.Destroy;
 begin
   FFields.Free;
   FVirtualFieldDefs.Free;
+  FreeAndNil(FBooleanProvider);
   inherited Destroy;
 end;
 
@@ -591,7 +635,7 @@ begin
             aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
             aNewActualValue:= lookupFrm.SelectedValue;
             if Assigned(FOnGetValueFromLookupKeyValueEvent) then
-              FOnGetValueFromLookupKeyValueEvent(curLine.Name, aNewActualValue, aNewDisplayValue);
+              FOnGetValueFromLookupKeyValueEvent(Self, curLine.Name, aNewActualValue, aNewDisplayValue);
 
             FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
             curLine.ActualValue:= aNewActualValue;
@@ -744,12 +788,8 @@ begin
 end;
 
 procedure TmEditingPanel.ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
-var
-  i : integer;
 begin
-  aList.Clear;
-  for i := 0 to aVirtualFields.Count -1 do
-    aList.Add(aVirtualFields.VirtualFieldDefs[i].Name);
+  TmEditorLineDataProvider.ExtractFields(aVirtualFields, aList);
 end;
 
 function TmEditingPanel.GetValue(const aName: string): Variant;
@@ -862,13 +902,13 @@ end;
 procedure TmEditingPanel.InternalOnEditValue(const aName: string; const aNewDisplayValue : variant; const aNewActualValue: variant);
 begin
   if Assigned(FOnEditValueEvent) then
-    FOnEditValueEvent(aName, aNewDisplayValue, aNewActualValue);
+    FOnEditValueEvent(Self, aName, aNewDisplayValue, aNewActualValue);
 end;
 
 procedure TmEditingPanel.InternalOnValidateValue(const aName: string; const aOldDisplayValue: String; var aNewDisplayValue: String; const aOldActualValue: Variant; var aNewActualValue: variant);
 begin
   if Assigned(FOnValidateValueEvent) then
-    FOnValidateValueEvent(aName, aOldDisplayValue, aNewDisplayValue, aOldActualValue, aNewActualValue);
+    FOnValidateValueEvent(Self, aName, aOldDisplayValue, aNewDisplayValue, aOldActualValue, aNewActualValue);
 end;
 
 procedure TmEditingPanel.InternalInitProviderForLookup(const aName : string; aDatasetProvider: TReadOnlyVirtualDatasetProvider; aFieldsList: TStringList; out aKeyFieldName, aDisplayLabelFieldName: string);
@@ -878,7 +918,7 @@ begin
   aKeyFieldName := '';
   aDisplayLabelFieldName := '';
   if Assigned(FOnInitProviderForLookupEvent) then
-    FOnInitProviderForLookupEvent(aName, aDatasetProvider, aFieldsList, aKeyFieldName, aDisplayLabelFieldName)
+    FOnInitProviderForLookupEvent(Self, aName, aDatasetProvider, aFieldsList, aKeyFieldName, aDisplayLabelFieldName)
   else
   begin
     curLine := FLinesByName.Find(aName) as TEditorLine;

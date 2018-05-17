@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mLookupPanel;
+unit mLookupPanelForDataset;
 
 {$mode objfpc}
 {$H+}
@@ -17,10 +17,8 @@ interface
 
 uses
   Classes, Controls, ExtCtrls, ComCtrls, DB, contnrs,
-  Variants,
   ListViewFilterEdit,
-  mLookupWindowEvents, mMaps, mVirtualDatasetDataProvider,
-  mDatasetStandardSetup, mVirtualDataSetInterfaces;
+  mLookupWindowEvents, mMaps;
 
 type
 
@@ -28,14 +26,15 @@ type
 
   TmLookupPanel = class (TCustomPanel)
   private
+    const BLANK_PLACEHOLDER = '*BLANK*';
+  private
     LValues: TListView;
     LValuesFilter: TListViewFilterEdit;
     FOnSelectAValue : TOnSelectAValue;
     FFieldsList : TStringList;
-
-    FKeyFieldName : String;
-    FProvider : TmDatasetDataProvider;
-    FDisplayFieldNames : TStringList;
+    FIdxKeyFieldName : integer;
+    FValuesIndex : TmStringDictionary;
+    FGarbage: TObjectList;
 
     procedure LValuesDblClick (Sender : TObject);
     procedure LValuesKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -45,7 +44,7 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
-    procedure Init(const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+    procedure Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
     procedure SetFocusOnFilter;
     procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
 
@@ -115,13 +114,21 @@ end;
 
 procedure TmLookupPanel.GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
 var
-  i : integer;
+  tmp : TResultValues;
+  tmpKey : string;
 begin
-  if (LValues.SelCount = 1) then
+  if (LValues.SelCount = 1) and (FIdxKeyFieldName >= 0) then
   begin
-    i := UIntPtr(LValues.Selected.Data);
-    aKeyValue := FProvider.GetDatum(i).GetPropertyByFieldName(FKeyFieldName);
-    aDisplayLabel:= ConcatenateFieldValues(FProvider.GetDatum(i), FDisplayFieldNames);
+    if FIdxKeyFieldName = 0 then
+      tmpKey := LValues.Selected.Caption
+    else
+      tmpKey := LValues.Selected.SubItems[FIdxKeyFieldName - 1];
+    if tmpKey = '' then
+      tmp := FValuesIndex.Find(BLANK_PLACEHOLDER) as TResultValues
+    else
+      tmp := FValuesIndex.Find(tmpKey) as TResultValues;
+    aKeyValue := tmp.ValueAsVariant;
+    aDisplayLabel:= tmp.DisplayLabel;
   end
   else
   begin
@@ -151,64 +158,78 @@ begin
   LValues.RowSelect := True;
   LValues.ViewStyle := vsReport;
   FFieldsList := TStringList.Create;
-  FDisplayFieldNames := TStringList.Create;
+  FIdxKeyFieldName := -1;
+  FValuesIndex := TmStringDictionary.Create();
+  FGarbage := TObjectList.Create(true);
 end;
 
 destructor TmLookupPanel.Destroy;
 begin
+  FGarbage.Free;
+  FValuesIndex.Free;
   FFieldsList.Free;
-  FDisplayFieldNames.Free;
   inherited Destroy;
 end;
 
-procedure TmLookupPanel.Init(const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+procedure TmLookupPanel.Init(aValues: TDataset; aFieldNames: TStringList;aKeyFieldName, aDisplayLabelFieldName: string);
 var
-  k, i : integer;
-  ptr : UIntPtr;
+  i : integer;
   col : TListColumn;
   item : TListItem;
+  tmpField : TField;
   str : String;
-  curValue : Variant;
-  curDatum : IVDDatum;
+  valueShell : TResultValues;
 begin
-  FKeyFieldName:= aKeyFieldName;
-  FDisplayFieldNames.Clear;
-  FDisplayFieldNames.AddStrings(aDisplayFieldNames);
-  FProvider := aProvider;
-
   LValues.BeginUpdate;
   try
-    FFieldsList.Clear;
-    FFieldsList.AddStrings(aFieldNames);
-
     for i := 0 to aFieldNames.Count -1 do
     begin
       col := LValues.Columns.Add;
-      col.Caption:= GenerateDisplayLabel(aFieldNames.Strings[i]);
+      tmpField := aValues.FieldByName(aFieldNames.Strings[i]);
+      col.Caption:= tmpField.DisplayLabel;
       col.Width:= 200;
+//      col.AutoSize:= true;
+      FFieldsList.Add(tmpField.FieldName);
+      if CompareText(aFieldNames.Strings[i], aKeyFieldName) = 0 then
+        FIdxKeyFieldName := FFieldsList.Count - 1;
     end;
 
-    ptr := 0;
-    for i := 0 to FProvider.Count - 1 do
-    begin
-      item := LValues.Items.Add;
-      item.Data:= pointer(ptr);
-      ptr := ptr + 1;
+    if FIdxKeyFieldName < 0 then
+      raise Exception.Create('Key fieldname is missing!');
 
-      for k := 0 to FFieldsList.Count - 1 do
+    aValues.DisableControls;
+    try
+      aValues.First;
+      while not aValues.EOF do
       begin
-        curDatum := FProvider.GetDatum(i);
-        curValue := curDatum.GetPropertyByFieldName(FFieldsList.Strings[k]);
+        item := LValues.Items.Add;
+        for i := 0 to FFieldsList.Count - 1 do
+        begin
+          tmpField := aValues.FieldByName(FFieldsList.Strings[i]);
+          if tmpField.IsNull then
+            str := ''
+          else
+            str := tmpField.AsString;
+          if i = 0 then
+            item.Caption:= str
+          else
+            item.SubItems.Add(str);
+        end;
+        tmpField := aValues.FieldByName(aKeyFieldName);
+        valueShell := TResultValues.Create();
+        valueShell.ValueAsVariant:= tmpField.Value;
+        if tmpField.IsNull then
+          FValuesIndex.Add(BLANK_PLACEHOLDER, valueShell)
+        else
+          FValuesIndex.Add(tmpField.AsString, valueShell);
+        tmpField := aValues.FieldByName(aDisplayLabelFieldName);
+        valueShell.DisplayLabel:= tmpField.AsString;
+        FGarbage.Add(valueShell);
 
-        if VarIsNull(curValue) then
-          str := ''
-        else
-          str := VarToStr(curValue);
-        if k = 0 then
-          item.Caption:= str
-        else
-          item.SubItems.Add(str);
+        aValues.Next;
       end;
+    finally
+      aValues.EnableControls;
     end;
   finally
     LValues.EndUpdate;

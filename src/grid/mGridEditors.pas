@@ -40,7 +40,7 @@ type
 
   before in the creation method of the parent component:
   [..]
-  FEditor := TmExtStringCellEditor.Create(Self);
+  FEditor := TmExtDialogCellEditor.Create(Self);
   FEditor.Visible := false;
   FEditor.Event:= Self.myEvent;
   FEditor.ParentGrid := ..;
@@ -48,18 +48,16 @@ type
 
   *)
 
-  TmOnCellEditorShowEditorEvent = function(const aCol, aRow: integer;
-    var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
-  TmOnCellEditorShowWizardEvent = function(const aCol, aRow: integer;
-    var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
+  TmOnCellEditorShowDialogEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
+  TmOnCellEditorShowWizardEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
   TmOnCellEditorClearEvent = function(const aCol, aRow: integer): boolean of object;
 
-  { TmExtStringCellEditor }
+  { TmExtDialogCellEditor }
 
-  TmExtStringCellEditor = class(TStringCellEditor)
+  TmExtDialogCellEditor = class(TStringCellEditor)
   strict private
     FParentGrid: TCustomStringGrid;
-    FOnShowEditorEvent: TmOnCellEditorShowEditorEvent;
+    FOnShowDialogEvent: TmOnCellEditorShowDialogEvent;
     FOnShowWizardEvent: TmOnCellEditorShowWizardEvent;
     FOnClearEvent: TmOnCellEditorClearEvent;
     FDefaultShowEditorKey: word;
@@ -74,33 +72,118 @@ type
 
     property ParentGrid: TCustomStringGrid read FParentGrid write FParentGrid;
 
-    property OnShowEditorEvent: TmOnCellEditorShowEditorEvent read FOnShowEditorEvent write FOnShowEditorEvent;
+    property OnShowDialogEvent: TmOnCellEditorShowDialogEvent read FOnShowDialogEvent write FOnShowDialogEvent;
     property OnShowWizardEvent: TmOnCellEditorShowWizardEvent read FOnShowWizardEvent write FOnShowWizardEvent;
     property OnClearEvent: TmOnCellEditorClearEvent read FOnClearEvent write FOnClearEvent;
 
-    property DefaultShowEditorKey: word read FDefaultShowEditorKey
-      write FDefaultShowEditorKey;
+    property DefaultShowEditorKey: word read FDefaultShowEditorKey write FDefaultShowEditorKey;
     property DefaultClearKey: word read FDefaultClearKey write FDefaultClearKey;
-    property DefaultShowWizardKey: word read FDefaultShowWizardKey
-      write FDefaultShowWizardKey;
-    property AllowDeleteWhenReadOnly: boolean
-      read FAllowDeleteWhenReadOnly write FAllowDeleteWhenReadOnly;
+    property DefaultShowWizardKey: word read FDefaultShowWizardKey write FDefaultShowWizardKey;
+    property AllowDeleteWhenReadOnly: boolean read FAllowDeleteWhenReadOnly write FAllowDeleteWhenReadOnly;
   end;
 
-(*  TmExtButtonCellEditor = class (TECEditBtn)
+  { TmExtButtonTextCellEditor }
+
+  TmExtButtonTextCellEditor = class (TCompositeCellEditor)
   strict private
-    FParentGrid : TCustomStringGrid;
-    FOnKeyPressEvent : TOnSelectEvent;
+    FTextEditor : TmExtDialogCellEditor;
+    FLookupButtonEditor : TButtonCellEditor;
+    FParentGrid: TCustomStringGrid;
+    FOnShowDialogEvent: TmOnCellEditorShowDialogEvent;
+    FOnShowWizardEvent: TmOnCellEditorShowWizardEvent;
+    FOnClearEvent: TmOnCellEditorClearEvent;
+    function GetReadOnly: Boolean;
+    procedure SetReadOnly(Value: Boolean);
+    procedure SetOnClearEvent(AValue: TmOnCellEditorClearEvent);
+    procedure SetOnShowDialogEvent(AValue: TmOnCellEditorShowDialogEvent);
+    procedure SetOnShowWizardEvent(AValue: TmOnCellEditorShowWizardEvent);
+    procedure SetParentGrid(AValue: TCustomStringGrid);
+    procedure OnClickLookupButton (Sender: TObject);
   public
-    property ParentGrid : TCustomStringGrid read FParentGrid write FParentGrid;
-    property OnKeyPressEvent : TOnSelectEvent read FOnKeyPressEvent write FOnKeyPressEvent;
-  end;*)
+    constructor Create(Aowner: TComponent); override;
+
+    property TextEditor : TmExtDialogCellEditor read FTextEditor;
+
+    property ParentGrid: TCustomStringGrid read FParentGrid write SetParentGrid;
+    property OnShowDialogEvent: TmOnCellEditorShowDialogEvent read FOnShowDialogEvent write SetOnShowDialogEvent;
+    property OnShowWizardEvent: TmOnCellEditorShowWizardEvent read FOnShowWizardEvent write SetOnShowWizardEvent;
+    property OnClearEvent: TmOnCellEditorClearEvent read FOnClearEvent write SetOnClearEvent;
+
+    property ReadOnly: Boolean read GetReadOnly write SetReadOnly;
+  end;
+
 
 implementation
 
-{ TmExtStringCellEditor }
+uses
+  Controls;
 
-procedure TmExtStringCellEditor.KeyDown(var Key: word; Shift: TShiftState);
+{ TmExtButtonTextCellEditor }
+
+procedure TmExtButtonTextCellEditor.SetOnClearEvent(AValue: TmOnCellEditorClearEvent);
+begin
+  FOnClearEvent:=AValue;
+  FTextEditor.OnClearEvent:= AValue;
+end;
+
+function TmExtButtonTextCellEditor.GetReadOnly: Boolean;
+begin
+  Result := FTextEditor.ReadOnly;
+end;
+
+procedure TmExtButtonTextCellEditor.SetOnShowDialogEvent(AValue: TmOnCellEditorShowDialogEvent);
+begin
+  FOnShowDialogEvent:=AValue;
+  FTextEditor.OnShowDialogEvent:= aValue;
+end;
+
+procedure TmExtButtonTextCellEditor.SetOnShowWizardEvent(AValue: TmOnCellEditorShowWizardEvent);
+begin
+  FOnShowWizardEvent:=AValue;
+  FTextEditor.OnShowWizardEvent:=aValue;
+end;
+
+procedure TmExtButtonTextCellEditor.SetParentGrid(AValue: TCustomStringGrid);
+begin
+  if FParentGrid=AValue then Exit;
+  FParentGrid:=AValue;
+  FTextEditor.ParentGrid := aValue;
+end;
+
+procedure TmExtButtonTextCellEditor.OnClickLookupButton(Sender: TObject);
+var
+  newDisplayValue: string;
+  newActualValue: variant;
+begin
+  if Assigned(FOnShowDialogEvent) then
+  begin
+    if FOnShowDialogEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+      FTextEditor.Text := newDisplayValue;
+  end;
+end;
+
+procedure TmExtButtonTextCellEditor.SetReadOnly(Value: Boolean);
+begin
+  FTextEditor.ReadOnly:= Value;
+end;
+
+constructor TmExtButtonTextCellEditor.Create(Aowner: TComponent);
+begin
+  inherited Create(Aowner);
+  FOnShowDialogEvent := nil;
+  FOnShowWizardEvent := nil;
+  FOnClearEvent := nil;
+  FTextEditor := TmExtDialogCellEditor.Create(AOwner);
+  FLookupButtonEditor := TButtonCellEditor.Create(AOwner);
+  FLookupButtonEditor.Caption := '...';
+  FLookupButtonEditor.OnClick := Self.OnClickLookupButton;
+  Self.AddEditor(FTextEditor, alClient, true);
+  Self.AddEditor(FLookupButtonEditor, alRight, false);
+end;
+
+{ TmExtDialogCellEditor }
+
+procedure TmExtDialogCellEditor.KeyDown(var Key: word; Shift: TShiftState);
 var
   newDisplayValue: string;
   newActualValue: variant;
@@ -108,11 +191,10 @@ begin
   inherited KeyDown(Key, Shift);
   if Key = FDefaultShowEditorKey then
   begin
-    if Assigned(FOnShowEditorEvent) then
+    if Assigned(FOnShowDialogEvent) then
     begin
-      if FOnShowEditorEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+      if FOnShowDialogEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
         Self.Text := newDisplayValue;
-      //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
     end;
   end
   else
@@ -143,29 +225,29 @@ begin
   end;
 end;
 
-procedure TmExtStringCellEditor.DblClick;
+procedure TmExtDialogCellEditor.DblClick;
 var
   newDisplayValue: string;
   newActualValue: variant;
 begin
   inherited DblClick;
-  if Assigned(FOnShowEditorEvent) then
+  if Assigned(FOnShowDialogEvent) then
   begin
-    if FOnShowEditorEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue,
+    if FOnShowDialogEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue,
       newActualValue) then
       Self.Text := newDisplayValue;
     //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
   end;
 end;
 
-constructor TmExtStringCellEditor.Create(Aowner: TComponent);
+constructor TmExtDialogCellEditor.Create(Aowner: TComponent);
 begin
   inherited Create(Aowner);
   FDefaultShowEditorKey := VK_RETURN;
   FDefaultShowWizardKey := VK_F1;
   FDefaultClearKey := VK_DELETE;
   FAllowDeleteWhenReadOnly := True;
-  FOnShowEditorEvent := nil;
+  FOnShowDialogEvent := nil;
   FOnShowWizardEvent := nil;
   FOnClearEvent := nil;
 end;

@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mlookupform;
+unit mlookupformfordataset;
 
 {$mode objfpc}
 {$H+}
@@ -18,18 +18,18 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics,
   Dialogs, ExtCtrls, Buttons, DB,
-  mLookupPanel, mVirtualDatasetDataProvider;
+  mLookupPanelForDataset;
 
 resourcestring
-  SLookupFormMissingValueCaption = 'Warning';
-  SLookupFormMissingValueWarning = 'No value selected.';
+  SMissingValueCaption = 'Warning';
+  SMissingValueWarning = 'No value selected.';
 
 
 type
 
-  { TmLookupFrm }
+  { TmLookupWindow }
 
-  TmLookupFrm = class(TForm)
+  TmLookupWindow = class(TForm)
     BottomPanel: TPanel;
     CancelBtn: TBitBtn;
     OkBtn: TBitBtn;
@@ -43,7 +43,7 @@ type
     procedure OnSelectValue (const aKeyValue: variant; const aDisplayLabel: string);
   public
     { public declarations }
-    procedure Init (const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+    procedure Init (aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
 
     property SelectedValue: variant read FSelectedValue;
     property SelectedDisplayLabel: string read FSelectedDisplayLabel;
@@ -57,14 +57,14 @@ uses
 
 {$R *.lfm}
 
-{ TmLookupFrm }
+{ TmLookupWindow }
 
-procedure TmLookupFrm.FormShow(Sender: TObject);
+procedure TmLookupWindow.FormShow(Sender: TObject);
 begin
   FLookupPanel.SetFocusOnFilter;
 end;
 
-procedure TmLookupFrm.FormCreate(Sender: TObject);
+procedure TmLookupWindow.FormCreate(Sender: TObject);
 begin
   FLookupPanel := TmLookupPanel.Create(Self);
   FLookupPanel.Parent := Self;
@@ -74,26 +74,26 @@ begin
   FSelectedDisplayLabel:= '';
 end;
 
-procedure TmLookupFrm.OkBtnClick(Sender: TObject);
+procedure TmLookupWindow.OkBtnClick(Sender: TObject);
 begin
   FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel);
   if not VarIsNull(FSelectedValue) then
     ModalResult := mrOk
   else
-    MessageDlg(SLookupFormMissingValueCaption, SLookupFormMissingValueWarning, mtInformation, [mbOk], 0);
+    MessageDlg(SMissingValueCaption, SMissingValueWarning, mtInformation, [mbOk], 0);
 end;
 
 
-procedure TmLookupFrm.OnSelectValue(const aKeyValue: variant; const aDisplayLabel: string);
+procedure TmLookupWindow.OnSelectValue(const aKeyValue: variant; const aDisplayLabel: string);
 begin
   FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel);
   ModalResult := mrOk;
 end;
 
 
-procedure TmLookupFrm.Init(const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+procedure TmLookupWindow.Init(aValues : TDataset; aFieldNames : TStringList; aKeyFieldName, aDisplayLabelFieldName : string);
 begin
-  FLookupPanel.Init(aProvider, aFieldNames, aKeyFieldName, aDisplayFieldNames);
+  FLookupPanel.Init(aValues, aFieldNames, aKeyFieldName, aDisplayLabelFieldName);
 end;
 
 end.

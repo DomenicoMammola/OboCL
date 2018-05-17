@@ -23,7 +23,7 @@ uses
   Classes, Controls, Forms, ValEdit, Graphics, Grids, contnrs, ExtCtrls,
   SysUtils, variants, StdCtrls, Buttons,
   oMultiPanelSetup, OMultiPanel,
-  mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
+  mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupFormForDataset,
   mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mVirtualFieldDefs, mNullables,
   mISO6346Utility, mVirtualDataSetInterfaces, mBooleanDataProvider;
 
@@ -87,8 +87,9 @@ type
   strict private
     FRootPanel : TOMultiPanel;
     FValueListEditor: TmValueListEditor;
-    FCustomDateEditor : TmExtStringCellEditor;
-    FCustomEditor : TmExtStringCellEditor;
+    FCustomDateEditor : TmExtDialogCellEditor;
+    FCustomEditor : TmExtDialogCellEditor;
+    FCustomButtonEditor : TmExtButtonTextCellEditor;
     FLinesByName : TmStringDictionary;
     FLinesByRowIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
@@ -107,7 +108,7 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
-    function OnValueListEditorEditValue  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnShowDialog  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
@@ -419,8 +420,10 @@ begin
   end
   else if (curLine.EditorKind = ekLookupText) or (curLine.EditorKind = ekLookupFloat) or (curLine.EditorKind = ekLookupInteger) then
   begin
-    FCustomEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
-    Editor := FCustomEditor;
+//    FCustomEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+//    Editor := FCustomEditor;
+    FCustomButtonEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FCustomButtonEditor;
   end;
 end;
 
@@ -571,7 +574,7 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnValueListEditorEditValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnShowDialog(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
   str, tmpKeyFieldName, tmpDisplayLabelFieldName : String;
@@ -981,19 +984,26 @@ begin
   FValueListEditor.ColWidths[0] := 230;
   FValueListEditor.ColWidths[1] := 370;
 
-  FCustomEditor := TmExtStringCellEditor.Create(Self);
+  FCustomEditor := TmExtDialogCellEditor.Create(Self);
   FCustomEditor.Visible := false;
   FCustomEditor.ReadOnly := true;
-  FCustomEditor.OnShowEditorEvent:= Self.OnValueListEditorEditValue;
+  FCustomEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomEditor.ParentGrid := FValueListEditor;
 
-  FCustomDateEditor := TmExtStringCellEditor.Create(Self);
+  FCustomDateEditor := TmExtDialogCellEditor.Create(Self);
   FCustomDateEditor.Visible := false;
   FCustomDateEditor.ReadOnly := false;
-  FCustomDateEditor.OnShowEditorEvent:= Self.OnValueListEditorEditValue;
+  FCustomDateEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomDateEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomDateEditor.ParentGrid := FValueListEditor;
+
+  FCustomButtonEditor := TmExtButtonTextCellEditor.Create(Self);
+  FCustomButtonEditor.Visible:= false;
+  FCustomButtonEditor.OnShowDialogEvent:= Self.OnShowDialog;
+  FCustomButtonEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FCustomButtonEditor.ParentGrid := FValueListEditor;
+  FCustomButtonEditor.ReadOnly:= true;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();

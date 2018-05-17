@@ -51,7 +51,7 @@ type
   TmEditorLineConfiguration = class
   strict private
     FDataProvider: TmDatasetDataProvider;
-    FDisplayLabelFieldName: string;
+    FDisplayLabelFieldNames: TStringList;
     FAlternativeKeyFieldName : string;
     FFieldsForLookup : TStringList;
     FBooleanProvider : TBooleanDatasetDataProvider;
@@ -78,7 +78,7 @@ type
     property Mandatory: boolean read FMandatory write FMandatory;
     property ChangedValueDestination: TAbstractNullable read FChangedValueDestination write FChangedValueDestination;
 
-    property DisplayLabelFieldName: string read FDisplayLabelFieldName write FDisplayLabelFieldName;
+    property DisplayLabelFieldNames: TStringList read FDisplayLabelFieldNames;
     property AlternativeKeyFieldName : string read FAlternativeKeyFieldName write FAlternativeKeyFieldName;
     property FieldsForLookup : TStringList read FFieldsForLookup;
     property UseBooleanProvider : boolean read GetUseBooleanProvider write SetUseBooleanProvider;
@@ -97,8 +97,9 @@ type
   strict private
     FRootPanel : TOMultiPanel;
     FValueListEditor: TmValueListEditor;
-    FCustomDateEditor : TmExtStringCellEditor;
-    FCustomEditor : TmExtStringCellEditor;
+    FCustomDateEditor : TmExtDialogCellEditor;
+    FCustomEditor : TmExtDialogCellEditor;
+    FCustomButtonEditor : TmExtButtonTextCellEditor;
     FLinesByName : TmStringDictionary;
     FLinesByRowIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
@@ -116,7 +117,7 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
-    function OnValueListEditorEditValue  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnShowDialog  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
@@ -214,6 +215,7 @@ begin
     if not Assigned(FBooleanProvider) then
       FBooleanProvider:= TBooleanDatasetDataProvider.Create;
     FDataProvider := FBooleanProvider;
+    FDisplayLabelFieldNames.Add(TBooleanDatum.FLD_VALUE);
   end
   else
   begin
@@ -235,7 +237,7 @@ end;
 constructor TmEditorLineConfiguration.Create;
 begin
   FDataProvider := nil;
-  FDisplayLabelFieldName := '';
+  FDisplayLabelFieldNames := TStringList.Create;
   FAlternativeKeyFieldName:= '';
   FFieldsForLookup := TStringList.Create;
   FBooleanProvider := nil;
@@ -250,6 +252,7 @@ end;
 destructor TmEditorLineConfiguration.Destroy;
 begin
   FFieldsForLookup.Free;
+  FDisplayLabelFieldNames.Free;
   FreeAndNil(FBooleanProvider);
   inherited Destroy;
 end;
@@ -412,8 +415,10 @@ begin
   end
   else if (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekLookupFloat) or (curLine.Configuration.EditorKind = ekLookupInteger) then
   begin
-    FCustomEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
-    Editor := FCustomEditor;
+//    FCustomEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+//    Editor := FCustomEditor;
+    FCustomButtonEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FCustomButtonEditor;
   end;
 end;
 
@@ -568,14 +573,13 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnValueListEditorEditValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnShowDialog(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
   str, keyFieldName : String;
   curLine : TEditorLine;
-  lookupFrm : TmLookupWindow;
-  tmpDatasetProvider : TReadOnlyVirtualDatasetProvider;
-  tmpDataset : TmVirtualDataset;
+  lookupFrm : TmLookupFrm;
+  tmpVirtualFieldDefs : TmVirtualFieldDefs;
 begin
   Result := false;
 
@@ -611,46 +615,38 @@ begin
   end
   else if (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupFloat) then
   begin
-    lookupFrm := TmLookupWindow.Create(Self);
+    lookupFrm := TmLookupFrm.Create(Self);
     try
-      tmpDatasetProvider := TReadOnlyVirtualDatasetProvider.Create;
-      tmpDataset := TmVirtualDataset.Create(Self);
-      try
-        tmpDataset.DatasetDataProvider := tmpDatasetProvider;
+      assert (Assigned(curLine.Configuration.DataProvider));
 
-
-        assert (Assigned(curLine.Configuration.DataProvider));
-
-        tmpDatasetProvider.Init(curLine.Configuration.DataProvider);
-        curLine.Configuration.DataProvider.FillVirtualFieldDefs(tmpDatasetProvider.VirtualFieldDefs, '');
-
-        if curLine.Configuration.FieldsForLookup.Count = 0 then
-          curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.FieldsForLookup);
-        if curLine.Configuration.FieldsForLookup.Count = 0 then
-          TmEditorLineConfiguration.ExtractFields(tmpDatasetProvider.VirtualFieldDefs, curLine.Configuration.FieldsForLookup);
-
-        tmpDataset.Active:= true;
-        tmpDataset.Refresh;
-
-        if curLine.Configuration.AlternativeKeyFieldName <> '' then
-          keyFieldName := curLine.Configuration.AlternativeKeyFieldName
-        else
-          keyFieldName := curLine.Configuration.DataProvider.GetKeyFieldName;
-
-        lookupFrm.Init(tmpDataset, curLine.Configuration.FieldsForLookup,
-          keyFieldName, curLine.Configuration.DisplayLabelFieldName);
-        if lookupFrm.ShowModal = mrOk then
-        begin
-          aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
-          aNewActualValue:= lookupFrm.SelectedValue;
-
-          FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
-          curLine.ActualValue:= aNewActualValue;
-          Result := true;
+      if curLine.Configuration.FieldsForLookup.Count = 0 then
+        curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.FieldsForLookup);
+      if curLine.Configuration.FieldsForLookup.Count = 0 then
+      begin
+        tmpVirtualFieldDefs := TmVirtualFieldDefs.Create;
+        try
+          curLine.Configuration.DataProvider.FillVirtualFieldDefs(tmpVirtualFieldDefs, '');
+          TmEditorLineConfiguration.ExtractFields(tmpVirtualFieldDefs, curLine.Configuration.FieldsForLookup);
+        finally
+          tmpVirtualFieldDefs.Free;;
         end;
-      finally
-        tmpDataset.Free;
-        tmpDatasetProvider.Free;
+      end;
+
+      if curLine.Configuration.AlternativeKeyFieldName <> '' then
+        keyFieldName := curLine.Configuration.AlternativeKeyFieldName
+      else
+        keyFieldName := curLine.Configuration.DataProvider.GetKeyFieldName;
+
+      lookupFrm.Init(curLine.Configuration.DataProvider, curLine.Configuration.FieldsForLookup,
+        keyFieldName, curLine.Configuration.DisplayLabelFieldNames);
+      if lookupFrm.ShowModal = mrOk then
+      begin
+        aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
+        aNewActualValue:= lookupFrm.SelectedValue;
+
+        FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
+        curLine.ActualValue:= aNewActualValue;
+        Result := true;
       end;
 
     finally
@@ -804,13 +800,7 @@ begin
         end;
       end;
       if Assigned(curDatum) then
-      begin
-        curValue := curDatum.GetPropertyByFieldName(curLine.Configuration.DisplayLabelFieldName);
-        if not VarIsNull(curValue) then
-          str := VarToStr(curValue)
-        else
-          str := '';
-      end
+        str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
       else
         str := curLine.Configuration.ChangedValueDestination.AsString;
     end
@@ -928,19 +918,26 @@ begin
   FValueListEditor.ColWidths[0] := 230;
   FValueListEditor.ColWidths[1] := 370;
 
-  FCustomEditor := TmExtStringCellEditor.Create(Self);
+  FCustomEditor := TmExtDialogCellEditor.Create(Self);
   FCustomEditor.Visible := false;
   FCustomEditor.ReadOnly := true;
-  FCustomEditor.OnShowEditorEvent:= Self.OnValueListEditorEditValue;
+  FCustomEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomEditor.ParentGrid := FValueListEditor;
 
-  FCustomDateEditor := TmExtStringCellEditor.Create(Self);
+  FCustomDateEditor := TmExtDialogCellEditor.Create(Self);
   FCustomDateEditor.Visible := false;
   FCustomDateEditor.ReadOnly := false;
-  FCustomDateEditor.OnShowEditorEvent:= Self.OnValueListEditorEditValue;
+  FCustomDateEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomDateEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomDateEditor.ParentGrid := FValueListEditor;
+
+  FCustomButtonEditor := TmExtButtonTextCellEditor.Create(Self);
+  FCustomButtonEditor.Visible:= false;
+  FCustomButtonEditor.OnShowDialogEvent:= Self.OnShowDialog;
+  FCustomButtonEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FCustomButtonEditor.ParentGrid := FValueListEditor;
+  FCustomButtonEditor.ReadOnly:= true;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();

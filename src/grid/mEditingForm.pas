@@ -52,8 +52,9 @@ type
   strict private
     FDataProvider: TmDatasetDataProvider;
     FDisplayLabelFieldName: string;
+    FAlternativeKeyFieldName : string;
     FFieldsForLookup : TStringList;
-    FBooleanProvider : TBooleanDataProvider;
+    FBooleanProvider : TBooleanDatasetDataProvider;
     FCaption: String;
     FReadOnly: boolean;
     FMandatory: boolean;
@@ -78,6 +79,7 @@ type
     property ChangedValueDestination: TAbstractNullable read FChangedValueDestination write FChangedValueDestination;
 
     property DisplayLabelFieldName: string read FDisplayLabelFieldName write FDisplayLabelFieldName;
+    property AlternativeKeyFieldName : string read FAlternativeKeyFieldName write FAlternativeKeyFieldName;
     property FieldsForLookup : TStringList read FFieldsForLookup;
     property UseBooleanProvider : boolean read GetUseBooleanProvider write SetUseBooleanProvider;
   end;
@@ -131,8 +133,6 @@ type
 
     function AddLine(const aName : String): TmEditorLineConfiguration;
 
-    procedure AddLine_ (const aName : string; const aCaption : string; const aDefaultDisplayValue : string; const aDefaultActualValue: variant; const aEditorKind : TmEditorLineKind; const aReadOnly : boolean = false; const aMandatory: boolean = false; const aChangedValueDestination : TAbstractNullable = nil);
-    procedure AddLineForNullable_ (const aName: string; const aCaption: String; aValue: TAbstractNullable; const aEditorKind: TmEditorLineKind; const aReadOnly, aMandatory : boolean; const aDisplayValue : variant);
     procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
 
     function GetValue(const aName : string) : Variant;
@@ -140,7 +140,7 @@ type
 
     function GetConfigurationForLine (const aName : string): TmEditorLineConfiguration;
 
-    procedure Update;
+    procedure Run;
 
     property AlternateColor : TColor read GetAlternateColor write SetAlternateColor;
     property OnEditValue: TmOnEditValueEvent read FOnEditValueEvent write FOnEditValueEvent;
@@ -212,7 +212,7 @@ begin
   if aValue then
   begin
     if not Assigned(FBooleanProvider) then
-      FBooleanProvider:= TBooleanDataProvider.Create;
+      FBooleanProvider:= TBooleanDatasetDataProvider.Create;
     FDataProvider := FBooleanProvider;
   end
   else
@@ -236,6 +236,7 @@ constructor TmEditorLineConfiguration.Create;
 begin
   FDataProvider := nil;
   FDisplayLabelFieldName := '';
+  FAlternativeKeyFieldName:= '';
   FFieldsForLookup := TStringList.Create;
   FBooleanProvider := nil;
   FCaption:= '';
@@ -570,7 +571,7 @@ end;
 function TmEditingPanel.OnValueListEditorEditValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
-  str : String;
+  str, keyFieldName : String;
   curLine : TEditorLine;
   lookupFrm : TmLookupWindow;
   tmpDatasetProvider : TReadOnlyVirtualDatasetProvider;
@@ -630,8 +631,14 @@ begin
 
         tmpDataset.Active:= true;
         tmpDataset.Refresh;
+
+        if curLine.Configuration.AlternativeKeyFieldName <> '' then
+          keyFieldName := curLine.Configuration.AlternativeKeyFieldName
+        else
+          keyFieldName := curLine.Configuration.DataProvider.GetKeyFieldName;
+
         lookupFrm.Init(tmpDataset, curLine.Configuration.FieldsForLookup,
-          curLine.Configuration.DataProvider.GetKeyFieldName, curLine.Configuration.DisplayLabelFieldName);
+          keyFieldName, curLine.Configuration.DisplayLabelFieldName);
         if lookupFrm.ShowModal = mrOk then
         begin
           aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
@@ -679,61 +686,6 @@ begin
     Result := aCaption + ' *'
   else
     Result := aCaption;
-end;
-
-procedure TmEditingPanel.AddLine_(const aName: string; const aCaption: string; const aDefaultDisplayValue: string; const aDefaultActualValue: variant; const aEditorKind : TmEditorLineKind; const aReadOnly : boolean = false; const aMandatory: boolean = false; const aChangedValueDestination : TAbstractNullable=nil);
-var
-  tmp : TEditorLine;
-begin
-  tmp := TEditorLine.Create;
-  FLines.Add(tmp);
-  FLinesByName.Add(aName, tmp);
-  tmp.Configuration.FEditorKind:= aEditorKind;
-  tmp.Name := aName;
-  tmp.Configuration.Caption := aCaption;
-  tmp.Index:= FValueListEditor.InsertRow(ComposeCaption(aCaption, aMandatory), aDefaultDisplayValue, true);
-  tmp.ActualValue:= aDefaultActualValue;
-  tmp.Configuration.ReadOnly:= aReadOnly;
-  tmp.Configuration.Mandatory:= aMandatory;
-  tmp.Configuration.ChangedValueDestination := aChangedValueDestination;
-  FLinesByRowIndex.Add(tmp.RowIndex, tmp);
-  FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.Configuration.ReadOnly;
-  if (not tmp.Configuration.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookupFloat) or (aEditorKind = ekLookupInteger) or (aEditorKind = ekLookupText)) then
-    FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
-end;
-
-procedure TmEditingPanel.AddLineForNullable_(const aName: string; const aCaption: String; aValue: TAbstractNullable;
-  const aEditorKind: TmEditorLineKind; const aReadOnly, aMandatory: boolean; const aDisplayValue : variant);
-var
-  tmp : TEditorLine;
-  str : string;
-begin
-  tmp := TEditorLine.Create;
-  FLines.Add(tmp);
-  FLinesByName.Add(aName, tmp);
-  tmp.Configuration.EditorKind:= aEditorKind;
-  tmp.Name := aName;
-  tmp.Configuration.Caption := aCaption;
-  if VarIsNull(aDisplayValue) then
-  begin
-    if (aEditorKind = ekDate) and (aValue is TNullableDateTime) then
-      str := (aValue as TNullableDateTime).AsString(false)
-    else if (aEditorKind = ekTime) and (aValue is TNullableTime) then
-      str := (aValue as TNullableTime).AsString
-    else
-      str := aValue.AsString;
-  end
-  else
-    str := VarToStr(aDisplayValue);
-  tmp.Index:= FValueListEditor.InsertRow(ComposeCaption(aCaption, aMandatory), str, true);
-  tmp.ActualValue:= aValue.AsVariant;
-  tmp.Configuration.ReadOnly:= aReadOnly;
-  tmp.Configuration.Mandatory:= aMandatory;
-  tmp.Configuration.ChangedValueDestination := aValue;
-  FLinesByRowIndex.Add(tmp.RowIndex, tmp);
-  FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.Configuration.ReadOnly;
-  if (not tmp.Configuration.ReadOnly) and ((aEditorKind = ekDate) or (aEditorKind = ekLookupFloat) or (aEditorKind = ekLookupInteger) or (aEditorKind = ekLookupText)) then
-    FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
 end;
 
 procedure TmEditingPanel.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
@@ -815,36 +767,63 @@ begin
     Result := nil;
 end;
 
-procedure TmEditingPanel.Update;
+procedure TmEditingPanel.Run;
 var
-  i : integer;
-  tmp : TEditorLine;
+  i, k : integer;
+  curLine : TEditorLine;
   str : String;
+  curDatum : IVDDatum;
+  curValue : Variant;
 begin
   for i := 0 to FLines.Count - 1 do
   begin
-    tmp := FLines.Items[i] as TEditorLine;
-    if Assigned(tmp.Configuration.ChangedValueDestination) then
-      tmp.ActualValue:= tmp.Configuration.ChangedValueDestination.AsVariant;
+    curLine := FLines.Items[i] as TEditorLine;
+    if Assigned(curLine.Configuration.ChangedValueDestination) then
+      curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
 
-    if (tmp.Configuration.EditorKind = ekDate) and (tmp.Configuration.ChangedValueDestination is TNullableDateTime) then
-      str := (tmp.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
-    else if (tmp.Configuration.EditorKind = ekTime) and (tmp.Configuration.ChangedValueDestination is TNullableTime) then
-      str := (tmp.Configuration.ChangedValueDestination as TNullableTime).AsString
-    else if (tmp.Configuration.EditorKind = ekLookupText) and (tmp.Configuration.ChangedValueDestination.NotNull) then
+    if (curLine.Configuration.EditorKind = ekDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
+      str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
+    else if (curLine.Configuration.EditorKind = ekTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
+      str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
+    else if (curLine.Configuration.EditorKind = ekLookupText) and (curLine.Configuration.ChangedValueDestination.NotNull) then
     begin
-      str := VarToStr(tmp.Configuration.DataProvider.FindDatumByStringKey(tmp.Configuration.ChangedValueDestination.AsString).GetPropertyByFieldName(tmp.Configuration.DisplayLabelFieldName));
+      assert (Assigned(curLine.Configuration.DataProvider));
+      if curLine.Configuration.AlternativeKeyFieldName = '' then
+        curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
+      else
+      begin
+        curDatum := nil;
+        for k := 0 to curLine.Configuration.DataProvider.Count - 1 do
+        begin
+          curValue := curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.AlternativeKeyFieldName);
+          if CompareVariants(curValue, curLine.Configuration.ChangedValueDestination.AsVariant) = 0 then
+          begin
+            curDatum := curLine.Configuration.DataProvider.GetDatum(k);
+            break;
+          end;
+        end;
+      end;
+      if Assigned(curDatum) then
+      begin
+        curValue := curDatum.GetPropertyByFieldName(curLine.Configuration.DisplayLabelFieldName);
+        if not VarIsNull(curValue) then
+          str := VarToStr(curValue)
+        else
+          str := '';
+      end
+      else
+        str := curLine.Configuration.ChangedValueDestination.AsString;
     end
     else
-      str := tmp.Configuration.ChangedValueDestination.AsString;
+      str := curLine.Configuration.ChangedValueDestination.AsString;
 
-    tmp.Index:= FValueListEditor.InsertRow(ComposeCaption(tmp.Configuration.Caption, tmp.Configuration.Mandatory), str, true);
+    curLine.Index:= FValueListEditor.InsertRow(ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory), str, true);
 
-    FLinesByRowIndex.Add(tmp.RowIndex, tmp);
-    FValueListEditor.ItemProps[tmp.Index].ReadOnly:= tmp.Configuration.ReadOnly;
-    if (not tmp.Configuration.ReadOnly) and ((tmp.Configuration.EditorKind = ekDate) or (tmp.Configuration.EditorKind = ekLookupFloat)
-      or (tmp.Configuration.EditorKind = ekLookupInteger) or (tmp.Configuration.EditorKind = ekLookupText)) then
-      FValueListEditor.ItemProps[tmp.Index].EditStyle:=esEllipsis;
+    FLinesByRowIndex.Add(curLine.RowIndex, curLine);
+    FValueListEditor.ItemProps[curLine.Index].ReadOnly:= curLine.Configuration.ReadOnly;
+    if (not curLine.Configuration.ReadOnly) and ((curLine.Configuration.EditorKind = ekDate) or (curLine.Configuration.EditorKind = ekLookupFloat)
+      or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupText)) then
+      FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
   end;
 end;
 

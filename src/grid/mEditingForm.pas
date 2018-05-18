@@ -39,7 +39,7 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekInteger, ekFloat, ekDate, ekTime, ekLookupText, ekLookupInteger, ekLookupFloat, ekText, ekUppercaseText, ekContainerNumber, ekMRNNumber);
+  TmEditorLineKind = (ekInteger, ekFloat, ekDate, ekTime, ekLookupText, ekLookupInteger, ekLookupFloat, ekText, ekUppercaseText, ekContainerNumber, ekMRNNumber, ekTextAndLookupText);
 
   TmEditingPanel = class;
 
@@ -98,7 +98,7 @@ type
     FRootPanel : TOMultiPanel;
     FValueListEditor: TmValueListEditor;
     FCustomDateEditor : TmExtDialogCellEditor;
-    FCustomEditor : TmExtDialogCellEditor;
+    //FCustomEditor : TmExtDialogCellEditor;
     FCustomButtonEditor : TmExtButtonTextCellEditor;
     FLinesByName : TmStringDictionary;
     FLinesByRowIndex : TmIntegerDictionary;
@@ -419,6 +419,13 @@ begin
 //    Editor := FCustomEditor;
     FCustomButtonEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FCustomButtonEditor;
+    FCustomButtonEditor.AllowCustomText:= false;
+  end
+  else if (curLine.Configuration.EditorKind = ekTextAndLookupText) then
+  begin
+    FCustomButtonEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FCustomButtonEditor;
+    FCustomButtonEditor.AllowCustomText:= true;
   end;
 end;
 
@@ -524,6 +531,12 @@ begin
       curLine.ActualValue:= NewValue
     else
       curLine.ActualValue:= null;
+  end else if curLine.Configuration.EditorKind = ekTextAndLookupText then
+  begin
+    if NewValue <> '' then
+      curLine.ActualValue:= NewValue
+    else
+      curLine.ActualValue:= null;
   end else if curLine.Configuration.EditorKind = ekContainerNumber then
   begin
     if NewValue <> '' then
@@ -613,7 +626,8 @@ begin
       calendarFrm.Free;
     end;
   end
-  else if (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupFloat) then
+  else if (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupFloat)
+    or (curLine.Configuration.EditorKind = ekTextAndLookupText) then
   begin
     lookupFrm := TmLookupFrm.Create(Self);
     try
@@ -812,7 +826,7 @@ begin
     FLinesByRowIndex.Add(curLine.RowIndex, curLine);
     FValueListEditor.ItemProps[curLine.Index].ReadOnly:= curLine.Configuration.ReadOnly;
     if (not curLine.Configuration.ReadOnly) and ((curLine.Configuration.EditorKind = ekDate) or (curLine.Configuration.EditorKind = ekLookupFloat)
-      or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupText)) then
+      or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekTextAndLookupText)) then
       FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
   end;
 end;
@@ -918,12 +932,12 @@ begin
   FValueListEditor.ColWidths[0] := 230;
   FValueListEditor.ColWidths[1] := 370;
 
-  FCustomEditor := TmExtDialogCellEditor.Create(Self);
+(*  FCustomEditor := TmExtDialogCellEditor.Create(Self);
   FCustomEditor.Visible := false;
   FCustomEditor.ReadOnly := true;
   FCustomEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
-  FCustomEditor.ParentGrid := FValueListEditor;
+  FCustomEditor.ParentGrid := FValueListEditor;*)
 
   FCustomDateEditor := TmExtDialogCellEditor.Create(Self);
   FCustomDateEditor.Visible := false;
@@ -937,7 +951,7 @@ begin
   FCustomButtonEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomButtonEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomButtonEditor.ParentGrid := FValueListEditor;
-  FCustomButtonEditor.ReadOnly:= true;
+  FCustomButtonEditor.AllowCustomText:= false;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();

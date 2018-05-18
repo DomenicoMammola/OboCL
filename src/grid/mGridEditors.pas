@@ -92,8 +92,8 @@ type
     FOnShowDialogEvent: TmOnCellEditorShowDialogEvent;
     FOnShowWizardEvent: TmOnCellEditorShowWizardEvent;
     FOnClearEvent: TmOnCellEditorClearEvent;
-    function GetReadOnly: Boolean;
-    procedure SetReadOnly(Value: Boolean);
+    function GetAllowCustomText: Boolean;
+    procedure SetAllowCustomText(Value: Boolean);
     procedure SetOnClearEvent(AValue: TmOnCellEditorClearEvent);
     procedure SetOnShowDialogEvent(AValue: TmOnCellEditorShowDialogEvent);
     procedure SetOnShowWizardEvent(AValue: TmOnCellEditorShowWizardEvent);
@@ -109,7 +109,7 @@ type
     property OnShowWizardEvent: TmOnCellEditorShowWizardEvent read FOnShowWizardEvent write SetOnShowWizardEvent;
     property OnClearEvent: TmOnCellEditorClearEvent read FOnClearEvent write SetOnClearEvent;
 
-    property ReadOnly: Boolean read GetReadOnly write SetReadOnly;
+    property AllowCustomText: Boolean read GetAllowCustomText write SetAllowCustomText;
   end;
 
 
@@ -126,9 +126,9 @@ begin
   FTextEditor.OnClearEvent:= AValue;
 end;
 
-function TmExtButtonTextCellEditor.GetReadOnly: Boolean;
+function TmExtButtonTextCellEditor.GetAllowCustomText: Boolean;
 begin
-  Result := FTextEditor.ReadOnly;
+  Result := not FTextEditor.ReadOnly;
 end;
 
 procedure TmExtButtonTextCellEditor.SetOnShowDialogEvent(AValue: TmOnCellEditorShowDialogEvent);
@@ -162,9 +162,9 @@ begin
   end;
 end;
 
-procedure TmExtButtonTextCellEditor.SetReadOnly(Value: Boolean);
+procedure TmExtButtonTextCellEditor.SetAllowCustomText(Value: Boolean);
 begin
-  FTextEditor.ReadOnly:= Value;
+  FTextEditor.ReadOnly:= not Value;
 end;
 
 constructor TmExtButtonTextCellEditor.Create(Aowner: TComponent);

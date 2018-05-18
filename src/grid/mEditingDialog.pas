@@ -1003,7 +1003,7 @@ begin
   FCustomButtonEditor.OnShowDialogEvent:= Self.OnShowDialog;
   FCustomButtonEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomButtonEditor.ParentGrid := FValueListEditor;
-  FCustomButtonEditor.ReadOnly:= true;
+  FCustomButtonEditor.AllowCustomText:= false;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();

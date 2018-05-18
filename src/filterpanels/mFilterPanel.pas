@@ -22,7 +22,7 @@ uses
   ATButtons,
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces,
-  mFilterPanelDataModule;
+  mFilterPanelDataModule, mlookupformfordataset;
 
 resourcestring
   SClearFilterCommand = 'Clear';

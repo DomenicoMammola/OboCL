@@ -24,12 +24,17 @@ const
   GRID_ICON_UP_FILTER = 3;
   GRID_ICON_DOWN_FILTER = 4;
 
+  GRID_EDITORS_ICON_DOTS = 0;
+  GRID_EDITORS_ICON_CALENDAR = 1;
+  GRID_EDITORS_ICON_MAGICWAND = 2;
+
 type
 
   { TmGridIconsDataModule }
 
   TmGridIconsDataModule = class(TDataModule)
     GridImageList: TImageList;
+    GridEditorsImageList: TImageList;
   private
     { private declarations }
   public
@@ -37,9 +42,18 @@ type
   end;
 
 
+var
+  GridIconsDataModule : TmGridIconsDataModule;
+
 implementation
 
 {$R *.lfm}
+
+initialization
+  GridIconsDataModule := TmGridIconsDataModule.Create(nil);
+
+finalization
+  GridIconsDataModule.Free;
 
 end.
 

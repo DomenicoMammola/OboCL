@@ -39,12 +39,15 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekInteger, ekFloat, ekDate, ekTime, ekLookupText, ekLookupInteger, ekLookupFloat, ekText, ekUppercaseText, ekContainerNumber, ekMRNNumber, ekTextAndLookupText);
+  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard);
+  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber);
 
   TmEditingPanel = class;
 
   TmOnEditValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aNewDisplayValue: string; const aNewActualValue : variant) of object;
   TmOnValidateValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
+  TmOnShowDialogEvent = function (aSender : TmEditingPanel; const aName: string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant): boolean of object;
+  TmOnActivateWizardEvent = function (aSender : TmEditingPanel; const aName: string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant): boolean of object;
 
   { TmEditorLineConfiguration }
 
@@ -58,12 +61,17 @@ type
     FCaption: String;
     FReadOnly: boolean;
     FMandatory: boolean;
+    FAllowFreeTypedText : boolean;
     FChangedValueDestination: TAbstractNullable;
+    FEditorKind: TmEditorLineKind;
+    FDataType : TmEditorLineDataType;
 
     function GetUseBooleanProvider: boolean;
     procedure SetUseBooleanProvider(AValue: boolean);
   private
-    FEditorKind: TmEditorLineKind;
+    FFractionalPartDigits : byte;
+    FDisplayFormat : String;
+    FRoundingMethod : TRoundingMethod;
 
     class procedure ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
   public
@@ -71,17 +79,22 @@ type
     destructor Destroy; override;
 
     property EditorKind : TmEditorLineKind read FEditorKind write FEditorKind;
+    property DataType : TmEditorLineDataType read FDataType write FDataType;
     property DataProvider : TmDatasetDataProvider read FDataProvider write FDataProvider;
 
     property Caption: String read FCaption write FCaption;
     property ReadOnly: boolean read FReadOnly write FReadOnly;
     property Mandatory: boolean read FMandatory write FMandatory;
+    property AllowFreeTypedText : boolean read FAllowFreeTypedText write FAllowFreeTypedText;
     property ChangedValueDestination: TAbstractNullable read FChangedValueDestination write FChangedValueDestination;
 
     property DisplayLabelFieldNames: TStringList read FDisplayLabelFieldNames;
     property AlternativeKeyFieldName : string read FAlternativeKeyFieldName write FAlternativeKeyFieldName;
     property FieldsForLookup : TStringList read FFieldsForLookup;
     property UseBooleanProvider : boolean read GetUseBooleanProvider write SetUseBooleanProvider;
+    property FractionalPartDigits : byte read FFractionalPartDigits;
+    property DisplayFormat : String read FDisplayFormat;
+    property RoundingMethod : TRoundingMethod read FRoundingMethod;
   end;
 
   { TmValueListEditor }
@@ -97,9 +110,9 @@ type
   strict private
     FRootPanel : TOMultiPanel;
     FValueListEditor: TmValueListEditor;
-    FCustomDateEditor : TmExtDialogCellEditor;
-    //FCustomEditor : TmExtDialogCellEditor;
-    FCustomButtonEditor : TmExtButtonTextCellEditor;
+    FDateCellEditor : TmExtButtonTextCellEditor;
+    FButtonCellEditor : TmExtButtonTextCellEditor;
+    FWizardCellEditor : TmExtButtonTextCellEditor;
     FLinesByName : TmStringDictionary;
     FLinesByRowIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
@@ -107,6 +120,8 @@ type
     FMemos : TObjectList;
     FOnEditValueEvent: TmOnEditValueEvent;
     FOnValidateValueEvent: TmOnValidateValueEvent;
+    FOnShowDialogEvent: TmOnShowDialogEvent;
+    FOnActivateWizardEvent: TmOnActivateWizardEvent;
     FMultiEditMode : boolean;
     FSomethingChanged : boolean;
     FCommitted : boolean;
@@ -117,7 +132,7 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
-    function OnShowDialog  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnGetValue (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
@@ -144,10 +159,13 @@ type
     procedure Run;
 
     property AlternateColor : TColor read GetAlternateColor write SetAlternateColor;
+    property MultiEditMode : boolean read FMultiEditMode write FMultiEditMode;
+
     property OnEditValue: TmOnEditValueEvent read FOnEditValueEvent write FOnEditValueEvent;
     property OnValidateValue: TmOnValidateValueEvent read FOnValidateValueEvent write FOnValidateValueEvent;
+    property OnShowDialog : TmOnShowDialogEvent read FOnShowDialogEvent write FOnShowDialogEvent;
+    property OnActivateWizard : TmOnActivateWizardEvent read FOnActivateWizardEvent write FOnActivateWizardEvent;
 
-    property MultiEditMode : boolean read FMultiEditMode write FMultiEditMode;
     property SomethingChanged : boolean read FSomethingChanged;
   end;
 
@@ -234,6 +252,7 @@ begin
     aList.Add(aVirtualFields.VirtualFieldDefs[i].Name);
 end;
 
+
 constructor TmEditorLineConfiguration.Create;
 begin
   FDataProvider := nil;
@@ -245,8 +264,11 @@ begin
   FReadOnly:= false;
   FMandatory:= false;
   FChangedValueDestination:= nil;
-//  FDefaultValue:= Null;
-//  DefaultDisplayValue := Null;
+  FEditorKind:= ekSimple;
+  FDataType:= dtText;
+  FAllowFreeTypedText := true;
+  FFractionalPartDigits:= 0;
+  FDisplayFormat:= '';
 end;
 
 destructor TmEditorLineConfiguration.Destroy;
@@ -408,24 +430,28 @@ begin
   if (not Assigned(curLine)) or curLine.Configuration.ReadOnly then
     exit;
 
-  if (curLine.Configuration.EditorKind = ekDate) then
+  if (curLine.Configuration.EditorKind = ekCalendar) then
   begin
-    FCustomDateEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
-    Editor := FCustomDateEditor;
+    FDateCellEditor.TextEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FDateCellEditor;
   end
-  else if (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekLookupFloat) or (curLine.Configuration.EditorKind = ekLookupInteger) then
+  else if (curLine.Configuration.EditorKind = ekLookup) then
   begin
-//    FCustomEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
-//    Editor := FCustomEditor;
-    FCustomButtonEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
-    Editor := FCustomButtonEditor;
-    FCustomButtonEditor.AllowCustomText:= false;
+    FButtonCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FButtonCellEditor;
+    FButtonCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
   end
-  else if (curLine.Configuration.EditorKind = ekTextAndLookupText) then
+  else if (curLine.Configuration.EditorKind = ekDialog) then
   begin
-    FCustomButtonEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
-    Editor := FCustomButtonEditor;
-    FCustomButtonEditor.AllowCustomText:= true;
+    FButtonCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FButtonCellEditor;
+    FButtonCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
+  end
+  else if (curLine.Configuration.EditorKind = ekWizard) then
+  begin
+    FWizardCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FWizardCellEditor;
+    FWizardCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
   end;
 end;
 
@@ -449,126 +475,130 @@ begin
     exit;
   end;
 
-  if curLine.Configuration.EditorKind = ekDate then
+  if (curLine.Configuration.EditorKind = ekSimple)
+    or (curLine.Configuration.EditorKind = ekCalendar)
+    or (curLine.Configuration.AllowFreeTypedText) then
   begin
-    vDate := 0;
-    if NewValue <> '' then
+    if curLine.Configuration.DataType = dtDate then
     begin
-      if TryToUnderstandDateString(NewValue, vDate) then
+      vDate := 0;
+      if NewValue <> '' then
       begin
-        NewValue := DateToStr(vDate);
-        curLine.ActualValue := vDate;
+        if TryToUnderstandDateString(NewValue, vDate) then
+        begin
+          NewValue := DateToStr(vDate);
+          curLine.ActualValue := vDate;
+        end
+        else
+        begin
+          NewValue := OldValue;
+          TmToast.ShowText(SErrorNotADate);
+        end;
       end
       else
-      begin
-        NewValue := OldValue;
-        TmToast.ShowText(SErrorNotADate);
-      end;
-    end
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekTime then
-  begin
-    vDate := 0;
-    if NewValue <> '' then
+        curLine.ActualValue:= null;
+    end else if curLine.Configuration.DataType = dtTime then
     begin
-      if TryToUnderstandTimeString(NewValue, vDate) then
+      vDate := 0;
+      if NewValue <> '' then
       begin
-        NewValue := TimeToStr(vDate);
-        curLine.ActualValue := vDate;
+        if TryToUnderstandTimeString(NewValue, vDate) then
+        begin
+          NewValue := TimeToStr(vDate);
+          curLine.ActualValue := vDate;
+        end
+        else
+        begin
+          NewValue := OldValue;
+          TmToast.ShowText(SErrorNotATime);
+        end;
       end
       else
-      begin
-        NewValue := OldValue;
-        TmToast.ShowText(SErrorNotATime);
-      end;
-    end
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekInteger then
-  begin
-    if NewValue <> '' then
+        curLine.ActualValue:= null;
+    end else if curLine.Configuration.DataType = dtInteger then
     begin
-      if not IsNumeric(NewValue, false) then
+      if NewValue <> '' then
       begin
-        NewValue := OldValue;
-        TmToast.ShowText(SErrorNotANumber);
+        if not IsNumeric(NewValue, false) then
+        begin
+          NewValue := OldValue;
+          TmToast.ShowText(SErrorNotANumber);
+        end
+        else
+        begin
+          curLine.ActualValue:= StrToInt(NewValue);
+        end;
       end
       else
-      begin
-        curLine.ActualValue:= StrToInt(NewValue);
-      end;
-    end
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekFloat then
-  begin
-    if NewValue <> '' then
+        curLine.ActualValue:= null;
+    end else if (curLine.Configuration.DataType = dtFloat) then
     begin
-      if TryToConvertToDouble(NewValue, tmpDouble) then
+      if NewValue <> '' then
       begin
-        NewValue := FloatToStr(tmpDouble);
-        curLine.ActualValue:= tmpDouble;
+        if TryToConvertToDouble(NewValue, tmpDouble) then
+        begin
+          if curLine.Configuration.FractionalPartDigits > 0 then
+            tmpDouble := RoundToExt(tmpDouble, curLine.Configuration.RoundingMethod, curLine.Configuration.FractionalPartDigits);
+          if curLine.Configuration.DisplayFormat <> '' then
+            NewValue := FormatFloat(curLine.Configuration.DisplayFormat, tmpDouble)
+          else
+            NewValue := FloatToStr(tmpDouble);
+          curLine.ActualValue:= tmpDouble;
+        end
+        else
+        begin
+          NewValue := OldValue;
+          TmToast.ShowText(SErrorNotANumber);
+        end;
       end
       else
-      begin
-        NewValue := OldValue;
-        TmToast.ShowText(SErrorNotANumber);
-      end;
-    end
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekUppercaseText then
-  begin
-    NewValue := Uppercase(NewValue);
-    if NewValue <> '' then
-      curLine.ActualValue:= NewValue
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekText then
-  begin
-    if NewValue <> '' then
-      curLine.ActualValue:= NewValue
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekTextAndLookupText then
-  begin
-    if NewValue <> '' then
-      curLine.ActualValue:= NewValue
-    else
-      curLine.ActualValue:= null;
-  end else if curLine.Configuration.EditorKind = ekContainerNumber then
-  begin
-    if NewValue <> '' then
+        curLine.ActualValue:= null;
+    end else if curLine.Configuration.DataType = dtUppercaseText then
     begin
       NewValue := Uppercase(NewValue);
-      if not mISO6346Utility.IsContainerCodeValid(NewValue, errorMessage) then
+      if NewValue <> '' then
+        curLine.ActualValue:= NewValue
+      else
+        curLine.ActualValue:= null;
+    end else if curLine.Configuration.DataType = dtText then
+    begin
+      if NewValue <> '' then
+        curLine.ActualValue:= NewValue
+      else
+        curLine.ActualValue:= null;
+    end else if curLine.Configuration.DataType = dtContainerNumber then
+    begin
+      if NewValue <> '' then
       begin
-        NewValue := OldValue;
-        TmToast.ShowText(errorMessage);
+        NewValue := Uppercase(NewValue);
+        if not mISO6346Utility.IsContainerCodeValid(NewValue, errorMessage) then
+        begin
+          NewValue := OldValue;
+          TmToast.ShowText(errorMessage);
+        end
+        else
+        begin
+          curLine.ActualValue:= NewValue;
+        end;
       end
       else
       begin
-        curLine.ActualValue:= NewValue;
+        curLine.ActualValue:= null;
       end;
-    end
-    else
+    end else if curLine.Configuration.DataType = dtMRNNumber then
     begin
-      curLine.ActualValue:= null;
-    end;
-  end else if curLine.Configuration.EditorKind = ekMRNNumber then
-  begin
-    if NewValue <> '' then
-    begin
-      NewValue := Uppercase(NewValue);
-      if not mISO6346Utility.IsMRNCodeValid(NewValue, errorMessage) then
+      if NewValue <> '' then
       begin
-        NewValue := OldValue;
-        TmToast.ShowText(errorMessage);
-      end
-      else
-      begin
-        curLine.ActualValue:= NewValue;
+        NewValue := Uppercase(NewValue);
+        if not mISO6346Utility.IsMRNCodeValid(NewValue, errorMessage) then
+        begin
+          NewValue := OldValue;
+          TmToast.ShowText(errorMessage);
+        end
+        else
+        begin
+          curLine.ActualValue:= NewValue;
+        end;
       end;
     end;
   end;
@@ -586,13 +616,14 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnShowDialog(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnGetValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
   str, keyFieldName : String;
   curLine : TEditorLine;
   lookupFrm : TmLookupFrm;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
+  tmpValue : Variant;
 begin
   Result := false;
 
@@ -601,7 +632,7 @@ begin
   if curLine.Configuration.ReadOnly then
     exit;
 
-  if curLine.Configuration.EditorKind = ekDate then
+  if curLine.Configuration.EditorKind = ekCalendar then
   begin
     calendarFrm := TmCalendarDialog.Create;
     try
@@ -626,8 +657,35 @@ begin
       calendarFrm.Free;
     end;
   end
-  else if (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupFloat)
-    or (curLine.Configuration.EditorKind = ekTextAndLookupText) then
+  else if (curLine.Configuration.EditorKind = ekDialog) then
+  begin
+    if Assigned(FOnShowDialogEvent) then
+    begin
+      if FOnShowDialogEvent(Self, curLine.Name, FValueListEditor.Cells[aCol, aRow], str, curLine.ActualValue, tmpValue) then
+      begin
+        FValueListEditor.Cells[aCol, aRow] := str;
+        aNewDisplayValue := str;
+        aNewActualValue := tmpValue;
+        curLine.ActualValue:= tmpValue;
+        Result := true;
+      end;
+    end;
+  end
+  else if (curLine.Configuration.EditorKind = ekWizard) then
+  begin
+    if Assigned(FOnActivateWizardEvent) then
+    begin
+      if FOnActivateWizardEvent(Self, curLine.Name, FValueListEditor.Cells[aCol, aRow], str, curLine.ActualValue, tmpValue) then
+      begin
+        FValueListEditor.Cells[aCol, aRow] := str;
+        aNewDisplayValue := str;
+        aNewActualValue := tmpValue;
+        curLine.ActualValue:= tmpValue;
+        Result := true;
+      end;
+    end;
+  end
+  else if (curLine.Configuration.EditorKind = ekLookup) then
   begin
     lookupFrm := TmLookupFrm.Create(Self);
     try
@@ -788,14 +846,24 @@ begin
   for i := 0 to FLines.Count - 1 do
   begin
     curLine := FLines.Items[i] as TEditorLine;
-    if Assigned(curLine.Configuration.ChangedValueDestination) then
-      curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
 
-    if (curLine.Configuration.EditorKind = ekDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
+    if not Assigned(curLine.Configuration.ChangedValueDestination) then
+      raise Exception.Create('Nullable destination not set for field ' + curLine.Name);
+
+    curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
+
+    if (curLine.Configuration.DataType = dtFloat) and (curLine.Configuration.ChangedValueDestination is TNullableDouble) then
+    begin
+      curLine.Configuration.FDisplayFormat:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).DisplayFormat;
+      curLine.Configuration.FFractionalPartDigits := (curLine.Configuration.ChangedValueDestination as TNullableDouble).FractionalPartDigits;
+      curLine.Configuration.FRoundingMethod:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).RoundingMethod;
+      str := curLine.Configuration.ChangedValueDestination.AsString;
+    end
+    else if (curLine.Configuration.DataType = dtDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
-    else if (curLine.Configuration.EditorKind = ekTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
+    else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
-    else if (curLine.Configuration.EditorKind = ekLookupText) and (curLine.Configuration.ChangedValueDestination.NotNull) then
+    else if (curLine.Configuration.EditorKind = ekLookup) and (curLine.Configuration.ChangedValueDestination.NotNull) then
     begin
       assert (Assigned(curLine.Configuration.DataProvider));
       if curLine.Configuration.AlternativeKeyFieldName = '' then
@@ -825,9 +893,9 @@ begin
 
     FLinesByRowIndex.Add(curLine.RowIndex, curLine);
     FValueListEditor.ItemProps[curLine.Index].ReadOnly:= curLine.Configuration.ReadOnly;
-    if (not curLine.Configuration.ReadOnly) and ((curLine.Configuration.EditorKind = ekDate) or (curLine.Configuration.EditorKind = ekLookupFloat)
-      or (curLine.Configuration.EditorKind = ekLookupInteger) or (curLine.Configuration.EditorKind = ekLookupText) or (curLine.Configuration.EditorKind = ekTextAndLookupText)) then
-      FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
+    if (not curLine.Configuration.ReadOnly) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
+      or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard)) then
+        FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
   end;
 end;
 
@@ -932,26 +1000,28 @@ begin
   FValueListEditor.ColWidths[0] := 230;
   FValueListEditor.ColWidths[1] := 370;
 
-(*  FCustomEditor := TmExtDialogCellEditor.Create(Self);
-  FCustomEditor.Visible := false;
-  FCustomEditor.ReadOnly := true;
-  FCustomEditor.OnShowDialogEvent:= Self.OnShowDialog;
-  FCustomEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
-  FCustomEditor.ParentGrid := FValueListEditor;*)
+  FDateCellEditor := TmExtButtonTextCellEditor.Create(Self);
+  FDateCellEditor.Visible := false;
+  FDateCellEditor.AllowFreeTypedText := true;
+  FDateCellEditor.OnGetValueEvent:= Self.OnGetValue;
+  FDateCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FDateCellEditor.ParentGrid := FValueListEditor;
+  FDateCellEditor.ButtonStyle:= cebsCalendar;
 
-  FCustomDateEditor := TmExtDialogCellEditor.Create(Self);
-  FCustomDateEditor.Visible := false;
-  FCustomDateEditor.ReadOnly := false;
-  FCustomDateEditor.OnShowDialogEvent:= Self.OnShowDialog;
-  FCustomDateEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
-  FCustomDateEditor.ParentGrid := FValueListEditor;
+  FButtonCellEditor := TmExtButtonTextCellEditor.Create(Self);
+  FButtonCellEditor.Visible:= false;
+  FButtonCellEditor.OnGetValueEvent:= Self.OnGetValue;
+  FButtonCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FButtonCellEditor.ParentGrid := FValueListEditor;
+  FButtonCellEditor.AllowFreeTypedText:= false;
 
-  FCustomButtonEditor := TmExtButtonTextCellEditor.Create(Self);
-  FCustomButtonEditor.Visible:= false;
-  FCustomButtonEditor.OnShowDialogEvent:= Self.OnShowDialog;
-  FCustomButtonEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
-  FCustomButtonEditor.ParentGrid := FValueListEditor;
-  FCustomButtonEditor.AllowCustomText:= false;
+  FWizardCellEditor := TmExtButtonTextCellEditor.Create(Self);
+  FWizardCellEditor.Visible:= false;
+  FWizardCellEditor.OnGetValueEvent:= Self.OnGetValue;
+  FWizardCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FWizardCellEditor.ParentGrid := FValueListEditor;
+  FWizardCellEditor.AllowFreeTypedText:= false;
+  FWizardCellEditor.ButtonStyle:= cebsMagicWand;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();
@@ -961,6 +1031,8 @@ begin
 
   FOnEditValueEvent:= nil;
   FOnValidateValueEvent:= nil;
+  FOnShowDialogEvent:= nil;
+  FOnActivateWizardEvent:= nil;
 end;
 
 destructor TmEditingPanel.Destroy;

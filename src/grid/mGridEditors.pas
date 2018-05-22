@@ -17,10 +17,10 @@ unit mGridEditors;
 interface
 
 uses
-  Classes, Grids,
-  LCLType
-  //  ,ECEditBtns
-  ;
+  Classes, Grids, contnrs,
+  LCLType,
+  ATButtons,
+  mMaps;
 
 type
   (*
@@ -48,7 +48,7 @@ type
 
   *)
 
-  TmOnCellEditorShowDialogEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
+  TmOnCellEditorGetValueEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
   TmOnCellEditorShowWizardEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
   TmOnCellEditorClearEvent = function(const aCol, aRow: integer): boolean of object;
 
@@ -57,7 +57,7 @@ type
   TmExtDialogCellEditor = class(TStringCellEditor)
   strict private
     FParentGrid: TCustomStringGrid;
-    FOnShowDialogEvent: TmOnCellEditorShowDialogEvent;
+    FOnGetValueEvent: TmOnCellEditorGetValueEvent;
     FOnShowWizardEvent: TmOnCellEditorShowWizardEvent;
     FOnClearEvent: TmOnCellEditorClearEvent;
     FDefaultShowEditorKey: word;
@@ -72,7 +72,7 @@ type
 
     property ParentGrid: TCustomStringGrid read FParentGrid write FParentGrid;
 
-    property OnShowDialogEvent: TmOnCellEditorShowDialogEvent read FOnShowDialogEvent write FOnShowDialogEvent;
+    property OnGetValueEvent: TmOnCellEditorGetValueEvent read FOnGetValueEvent write FOnGetValueEvent;
     property OnShowWizardEvent: TmOnCellEditorShowWizardEvent read FOnShowWizardEvent write FOnShowWizardEvent;
     property OnClearEvent: TmOnCellEditorClearEvent read FOnClearEvent write FOnClearEvent;
 
@@ -82,41 +82,102 @@ type
     property AllowDeleteWhenReadOnly: boolean read FAllowDeleteWhenReadOnly write FAllowDeleteWhenReadOnly;
   end;
 
+  { TATButtonCellEditor }
+
+  TATButtonCellEditor = class(TATButton)
+  private
+    FGrid: TCustomGrid;
+    FCol,FRow: Integer;
+  protected
+    procedure msg_SetGrid(var Msg: TGridMessage); message GM_SETGRID;
+    procedure msg_SetBounds(var Msg: TGridMessage); message GM_SETBOUNDS;
+    procedure msg_SetPos(var Msg: TGridMessage); message GM_SETPOS;
+    procedure msg_Ready(var Msg: TGridMessage); message GM_READY;
+    procedure msg_GetGrid(var Msg: TGridMessage); message GM_GETGRID;
+  public
+    property Col: Integer read FCol;
+    property Row: Integer read FRow;
+  end;
+
+
+  TmCellEditorButtonStyle = (cebsDots, cebsCalendar, cebsMagicWand);
+
   { TmExtButtonTextCellEditor }
 
   TmExtButtonTextCellEditor = class (TCompositeCellEditor)
   strict private
-    FTextEditor : TmExtDialogCellEditor;
-    FLookupButtonEditor : TButtonCellEditor;
+    FTextEditor: TmExtDialogCellEditor;
     FParentGrid: TCustomStringGrid;
-    FOnShowDialogEvent: TmOnCellEditorShowDialogEvent;
-    FOnShowWizardEvent: TmOnCellEditorShowWizardEvent;
+    FButtonStyle: TmCellEditorButtonStyle;
+    FOnGetValueEvent: TmOnCellEditorGetValueEvent;
     FOnClearEvent: TmOnCellEditorClearEvent;
-    function GetAllowCustomText: Boolean;
-    procedure SetAllowCustomText(Value: Boolean);
+    function GetAllowFreeTypedText: Boolean;
+    procedure SetAllowFreeTypedText(Value: Boolean);
+    procedure SetButtonStyle(AValue: TmCellEditorButtonStyle);
     procedure SetOnClearEvent(AValue: TmOnCellEditorClearEvent);
-    procedure SetOnShowDialogEvent(AValue: TmOnCellEditorShowDialogEvent);
-    procedure SetOnShowWizardEvent(AValue: TmOnCellEditorShowWizardEvent);
+    procedure SetOnGetValueEvent(AValue: TmOnCellEditorGetValueEvent);
     procedure SetParentGrid(AValue: TCustomStringGrid);
     procedure OnClickLookupButton (Sender: TObject);
+  protected
+    FLookupButtonEditor : TATButtonCellEditor; //TButtonCellEditor;
   public
     constructor Create(Aowner: TComponent); override;
 
     property TextEditor : TmExtDialogCellEditor read FTextEditor;
 
     property ParentGrid: TCustomStringGrid read FParentGrid write SetParentGrid;
-    property OnShowDialogEvent: TmOnCellEditorShowDialogEvent read FOnShowDialogEvent write SetOnShowDialogEvent;
-    property OnShowWizardEvent: TmOnCellEditorShowWizardEvent read FOnShowWizardEvent write SetOnShowWizardEvent;
+    property ButtonStyle: TmCellEditorButtonStyle read FButtonStyle write SetButtonStyle;
+
+    property OnGetValueEvent: TmOnCellEditorGetValueEvent read FOnGetValueEvent write SetOnGetValueEvent;
     property OnClearEvent: TmOnCellEditorClearEvent read FOnClearEvent write SetOnClearEvent;
 
-    property AllowCustomText: Boolean read GetAllowCustomText write SetAllowCustomText;
+    property AllowFreeTypedText: Boolean read GetAllowFreeTypedText write SetAllowFreeTypedText;
   end;
+
 
 
 implementation
 
 uses
-  Controls;
+  Controls,
+  mBaseClassesAsObjects, mGridIcons;
+
+
+{ TATButtonCellEditor }
+
+procedure TATButtonCellEditor.msg_SetGrid(var Msg: TGridMessage);
+begin
+  FGrid:=Msg.Grid;
+  Msg.Options:=EO_HOOKKEYDOWN or EO_HOOKKEYPRESS or EO_HOOKKEYUP;
+end;
+
+procedure TATButtonCellEditor.msg_SetBounds(var Msg: TGridMessage);
+var
+  r: TRect;
+begin
+  r := Msg.CellRect;
+  FGrid.AdjustInnerCellRect(r);
+  if r.Right-r.Left>DEFBUTTONWIDTH then
+    r.Left:=r.Right-DEFBUTTONWIDTH;
+  SetBounds(r.Left, r.Top, r.Right-r.Left, r.Bottom-r.Top);
+end;
+
+procedure TATButtonCellEditor.msg_SetPos(var Msg: TGridMessage);
+begin
+  FCol := Msg.Col;
+  FRow := Msg.Row;
+end;
+
+procedure TATButtonCellEditor.msg_Ready(var Msg: TGridMessage);
+begin
+  Width := DEFBUTTONWIDTH;
+end;
+
+procedure TATButtonCellEditor.msg_GetGrid(var Msg: TGridMessage);
+begin
+  Msg.Grid := FGrid;
+  Msg.Options:= EO_IMPLEMENTED;
+end;
 
 { TmExtButtonTextCellEditor }
 
@@ -126,21 +187,15 @@ begin
   FTextEditor.OnClearEvent:= AValue;
 end;
 
-function TmExtButtonTextCellEditor.GetAllowCustomText: Boolean;
+function TmExtButtonTextCellEditor.GetAllowFreeTypedText: Boolean;
 begin
   Result := not FTextEditor.ReadOnly;
 end;
 
-procedure TmExtButtonTextCellEditor.SetOnShowDialogEvent(AValue: TmOnCellEditorShowDialogEvent);
+procedure TmExtButtonTextCellEditor.SetOnGetValueEvent(AValue: TmOnCellEditorGetValueEvent);
 begin
-  FOnShowDialogEvent:=AValue;
-  FTextEditor.OnShowDialogEvent:= aValue;
-end;
-
-procedure TmExtButtonTextCellEditor.SetOnShowWizardEvent(AValue: TmOnCellEditorShowWizardEvent);
-begin
-  FOnShowWizardEvent:=AValue;
-  FTextEditor.OnShowWizardEvent:=aValue;
+  FOnGetValueEvent:=AValue;
+  FTextEditor.OnGetValueEvent:= aValue;
 end;
 
 procedure TmExtButtonTextCellEditor.SetParentGrid(AValue: TCustomStringGrid);
@@ -155,27 +210,42 @@ var
   newDisplayValue: string;
   newActualValue: variant;
 begin
-  if Assigned(FOnShowDialogEvent) then
+  if Assigned(FOnGetValueEvent) then
   begin
-    if FOnShowDialogEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+    if FOnGetValueEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
       FTextEditor.Text := newDisplayValue;
   end;
 end;
 
-procedure TmExtButtonTextCellEditor.SetAllowCustomText(Value: Boolean);
+procedure TmExtButtonTextCellEditor.SetAllowFreeTypedText(Value: Boolean);
 begin
   FTextEditor.ReadOnly:= not Value;
+end;
+
+procedure TmExtButtonTextCellEditor.SetButtonStyle(AValue: TmCellEditorButtonStyle);
+begin
+  if FButtonStyle=AValue then Exit;
+  FButtonStyle:=AValue;
+  if aValue = cebsCalendar then
+    FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_CALENDAR
+  else if aValue = cebsMagicWand then
+    FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_MAGICWAND
+  else
+    FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_DOTS;
+  FLookupButtonEditor.Invalidate;
 end;
 
 constructor TmExtButtonTextCellEditor.Create(Aowner: TComponent);
 begin
   inherited Create(Aowner);
-  FOnShowDialogEvent := nil;
-  FOnShowWizardEvent := nil;
+  FOnGetValueEvent := nil;
   FOnClearEvent := nil;
   FTextEditor := TmExtDialogCellEditor.Create(AOwner);
-  FLookupButtonEditor := TButtonCellEditor.Create(AOwner);
-  FLookupButtonEditor.Caption := '...';
+  FLookupButtonEditor := TATButtonCellEditor.Create(AOwner); //TButtonCellEditor.Create(AOwner);
+  FLookupButtonEditor.Images := GridIconsDataModule.GridEditorsImageList;
+  FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_DOTS;
+  FLookupButtonEditor.Kind:= abuIconOnly;
+  FButtonStyle:= cebsDots;
   FLookupButtonEditor.OnClick := Self.OnClickLookupButton;
   Self.AddEditor(FTextEditor, alClient, true);
   Self.AddEditor(FLookupButtonEditor, alRight, false);
@@ -191,9 +261,9 @@ begin
   inherited KeyDown(Key, Shift);
   if Key = FDefaultShowEditorKey then
   begin
-    if Assigned(FOnShowDialogEvent) then
+    if Assigned(FOnGetValueEvent) then
     begin
-      if FOnShowDialogEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+      if FOnGetValueEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
         Self.Text := newDisplayValue;
     end;
   end
@@ -231,12 +301,11 @@ var
   newActualValue: variant;
 begin
   inherited DblClick;
-  if Assigned(FOnShowDialogEvent) then
+  if Assigned(FOnGetValueEvent) then
   begin
-    if FOnShowDialogEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue,
+    if FOnGetValueEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue,
       newActualValue) then
       Self.Text := newDisplayValue;
-    //FParentGrid.Cells[FParentGrid.Col, FParentGrid.Row];
   end;
 end;
 
@@ -247,7 +316,7 @@ begin
   FDefaultShowWizardKey := VK_F1;
   FDefaultClearKey := VK_DELETE;
   FAllowDeleteWhenReadOnly := True;
-  FOnShowDialogEvent := nil;
+  FOnGetValueEvent := nil;
   FOnShowWizardEvent := nil;
   FOnClearEvent := nil;
 end;

@@ -1,7 +1,7 @@
 object mLookupFrm: TmLookupFrm
-  Left = 1795
+  Left = 2074
   Height = 548
-  Top = 279
+  Top = 307
   Width = 801
   Caption = 'Find a value'
   ClientHeight = 548

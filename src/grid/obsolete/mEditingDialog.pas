@@ -87,7 +87,7 @@ type
   strict private
     FRootPanel : TOMultiPanel;
     FValueListEditor: TmValueListEditor;
-    FCustomDateEditor : TmExtDialogCellEditor;
+    FCustomDateEditor : TmExtButtonTextCellEditor;
     FCustomEditor : TmExtDialogCellEditor;
     FCustomButtonEditor : TmExtButtonTextCellEditor;
     FLinesByName : TmStringDictionary;
@@ -415,7 +415,7 @@ begin
 
   if (curLine.EditorKind = ekDate) then
   begin
-    FCustomDateEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    FCustomDateEditor.TextEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FCustomDateEditor;
   end
   else if (curLine.EditorKind = ekLookupText) or (curLine.EditorKind = ekLookupFloat) or (curLine.EditorKind = ekLookupInteger) then
@@ -987,23 +987,24 @@ begin
   FCustomEditor := TmExtDialogCellEditor.Create(Self);
   FCustomEditor.Visible := false;
   FCustomEditor.ReadOnly := true;
-  FCustomEditor.OnShowDialogEvent:= Self.OnShowDialog;
+  FCustomEditor.OnGetValueEvent:= Self.OnShowDialog;
   FCustomEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomEditor.ParentGrid := FValueListEditor;
 
-  FCustomDateEditor := TmExtDialogCellEditor.Create(Self);
+  FCustomDateEditor := TmExtButtonTextCellEditor.Create(Self);
   FCustomDateEditor.Visible := false;
-  FCustomDateEditor.ReadOnly := false;
-  FCustomDateEditor.OnShowDialogEvent:= Self.OnShowDialog;
+  FCustomDateEditor.AllowFreeTypedText := false;
+  FCustomDateEditor.ButtonStyle:= cebsCalendar;
+  FCustomDateEditor.OnGetValueEvent:= Self.OnShowDialog;
   FCustomDateEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomDateEditor.ParentGrid := FValueListEditor;
 
   FCustomButtonEditor := TmExtButtonTextCellEditor.Create(Self);
   FCustomButtonEditor.Visible:= false;
-  FCustomButtonEditor.OnShowDialogEvent:= Self.OnShowDialog;
+  FCustomButtonEditor.OnGetValueEvent:= Self.OnShowDialog;
   FCustomButtonEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FCustomButtonEditor.ParentGrid := FValueListEditor;
-  FCustomButtonEditor.AllowCustomText:= false;
+  FCustomButtonEditor.AllowFreeTypedText:= false;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();

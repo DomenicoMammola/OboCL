@@ -993,7 +993,7 @@ begin
 
   FCustomDateEditor := TmExtButtonTextCellEditor.Create(Self);
   FCustomDateEditor.Visible := false;
-  FCustomDateEditor.AllowFreeTypedText := false;
+  FCustomDateEditor.AllowFreeTypedText := true;
   FCustomDateEditor.ButtonStyle:= cebsCalendar;
   FCustomDateEditor.OnGetValueEvent:= Self.OnShowDialog;
   FCustomDateEditor.OnClearEvent:= Self.OnValueListEditorClearValue;

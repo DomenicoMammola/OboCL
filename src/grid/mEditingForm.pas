@@ -54,9 +54,9 @@ type
   TmEditorLineConfiguration = class
   strict private
     FDataProvider: TmDatasetDataProvider;
+    FLookupFieldNames : TStringList;
     FDisplayLabelFieldNames: TStringList;
     FAlternativeKeyFieldName : string;
-    FFieldsForLookup : TStringList;
     FBooleanProvider : TBooleanDatasetDataProvider;
     FCaption: String;
     FReadOnly: boolean;
@@ -72,8 +72,6 @@ type
     FFractionalPartDigits : byte;
     FDisplayFormat : String;
     FRoundingMethod : TRoundingMethod;
-
-    class procedure ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
   public
     constructor Create;
     destructor Destroy; override;
@@ -90,7 +88,7 @@ type
 
     property DisplayLabelFieldNames: TStringList read FDisplayLabelFieldNames;
     property AlternativeKeyFieldName : string read FAlternativeKeyFieldName write FAlternativeKeyFieldName;
-    property FieldsForLookup : TStringList read FFieldsForLookup;
+    property LookupFieldNames : TStringList read FLookupFieldNames;
     property UseBooleanProvider : boolean read GetUseBooleanProvider write SetUseBooleanProvider;
     property FractionalPartDigits : byte read FFractionalPartDigits;
     property DisplayFormat : String read FDisplayFormat;
@@ -243,22 +241,12 @@ begin
   end;
 end;
 
-class procedure TmEditorLineConfiguration.ExtractFields(aVirtualFields: TmVirtualFieldDefs; aList: TStringList);
-var
-  i : integer;
-begin
-  aList.Clear;
-  for i := 0 to aVirtualFields.Count -1 do
-    aList.Add(aVirtualFields.VirtualFieldDefs[i].Name);
-end;
-
-
 constructor TmEditorLineConfiguration.Create;
 begin
   FDataProvider := nil;
   FDisplayLabelFieldNames := TStringList.Create;
   FAlternativeKeyFieldName:= '';
-  FFieldsForLookup := TStringList.Create;
+  FLookupFieldNames := TStringList.Create;
   FBooleanProvider := nil;
   FCaption:= '';
   FReadOnly:= false;
@@ -273,7 +261,7 @@ end;
 
 destructor TmEditorLineConfiguration.Destroy;
 begin
-  FFieldsForLookup.Free;
+  FLookupFieldNames.Free;
   FDisplayLabelFieldNames.Free;
   FreeAndNil(FBooleanProvider);
   inherited Destroy;
@@ -691,25 +679,28 @@ begin
     try
       assert (Assigned(curLine.Configuration.DataProvider));
 
-      if curLine.Configuration.FieldsForLookup.Count = 0 then
-        curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.FieldsForLookup);
-      if curLine.Configuration.FieldsForLookup.Count = 0 then
+      if curLine.Configuration.LookupFieldNames.Count = 0 then
+        curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.LookupFieldNames);
+      if curLine.Configuration.LookupFieldNames.Count = 0 then
       begin
         tmpVirtualFieldDefs := TmVirtualFieldDefs.Create;
         try
           curLine.Configuration.DataProvider.FillVirtualFieldDefs(tmpVirtualFieldDefs, '');
-          TmEditorLineConfiguration.ExtractFields(tmpVirtualFieldDefs, curLine.Configuration.FieldsForLookup);
+          tmpVirtualFieldDefs.ExtractFieldNames(curLine.Configuration.LookupFieldNames);
         finally
           tmpVirtualFieldDefs.Free;;
         end;
       end;
+
+      if curLine.Configuration.DisplayLabelFieldNames.Count = 0 then
+        curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
 
       if curLine.Configuration.AlternativeKeyFieldName <> '' then
         keyFieldName := curLine.Configuration.AlternativeKeyFieldName
       else
         keyFieldName := curLine.Configuration.DataProvider.GetKeyFieldName;
 
-      lookupFrm.Init(curLine.Configuration.DataProvider, curLine.Configuration.FieldsForLookup,
+      lookupFrm.Init(curLine.Configuration.DataProvider, curLine.Configuration.LookupFieldNames,
         keyFieldName, curLine.Configuration.DisplayLabelFieldNames);
       if lookupFrm.ShowModal = mrOk then
       begin

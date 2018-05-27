@@ -23,7 +23,6 @@ type
   public
     procedure LayoutChanged; virtual; abstract;
     procedure DateChanged(OldDate: TDateTime); virtual; abstract;
-    procedure UpdateState; virtual; abstract;
   end;
 
   TmTimerulerEventsSubscriptionClass = class of TmTimerulerEventsSubscription;

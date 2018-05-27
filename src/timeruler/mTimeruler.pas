@@ -39,8 +39,8 @@ uses
 type
   TmTimeruler = class;
 
-  TOnDrawTimelineEvent = procedure(Sender: TmTimeruler; Timeline: TmTimeline; ARect: TRect; StartDate: TDateTime) of object;
-  TOnDrawTimelineBucketEvent = procedure(Sender: TmTimeruler; Timeline: TmTimeline; ARect: TRect; ADate: TDateTime) of object;
+  TOnDrawTimelineEvent = procedure(Sender: TmTimeruler; ACanvas: TCanvas; Timeline: TmTimeline; ARect: TRect; StartDate: TDateTime) of object;
+  TOnDrawTimelineBucketEvent = procedure(Sender: TmTimeruler; ACanvas: TCanvas; Timeline: TmTimeline; ARect: TRect; ADate: TDateTime) of object;
   TOnDateChangingEvent = procedure(Sender: TmTimeruler; var NewDate: TDateTime) of object;
 
   TmTimerulerEventKind = (trLayoutChanged, trCurrentDateChanged);
@@ -54,6 +54,7 @@ type
 
     FTimelines : TmTimelines;
     FMainTimelineRef : TmTimeline;
+    FDoubleBufferedBitmap: TBitmap;
 
     FOnDateChanged: TNotifyEvent;
     FOnBeforeDateChange: TOnDateChangingEvent;
@@ -78,7 +79,7 @@ type
     {$endif}
 
 
-    procedure PaintTimeline(ARect: TRect; StartDate: TDateTime; Timeline: TmTimeline);
+    procedure PaintTimeline(ACanvas: TCanvas; ARect: TRect; StartDate: TDateTime; Timeline: TmTimeline);
     procedure SaveMouseMoveData(X, Y: integer);
 
   protected
@@ -109,6 +110,7 @@ type
     property OnDrawTimeline: TOnDrawTimelineEvent read FOnDrawTimeline write FOnDrawTimeline;
     property OnDrawBucket: TOnDrawTimelineBucketEvent read FOnDrawBucket write FOnDrawBucket;
     property ResizingBuckets: boolean read FResizingBuckets;
+    property MainTimeline : TmTimeline read FMainTimelineRef;
   end;
 
 
@@ -127,6 +129,13 @@ begin
   FEventsSubscriptions.Add(newSubscription);
   Result := newSubscription;
 end;
+
+{$ifdef fpc}
+function IsDoubleBufferedNeeded: boolean;
+begin
+  Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;
+end;
+{$endif}
 
 
 {$ifdef fpc}
@@ -295,6 +304,13 @@ end;
 constructor TmTimeruler.Create(AOwner: TComponent);
 begin
   inherited;
+  ControlStyle:= ControlStyle + [csOpaque] - [csTripleClicks];
+
+  FDoubleBufferedBitmap := TBitmap.Create;
+  {$ifdef fpc}
+  DoubleBuffered:= IsDoubleBufferedNeeded;
+  {$endif}
+
   Align := alTop;
 
   FEventsSubscriptions := TObjectList.Create(true);
@@ -318,6 +334,7 @@ begin
   FEventsSubscriptions.Destroy;
   FTimelines.Free;
   FMouseMoveData.Free;
+  FDoubleBufferedBitmap.Free;
   inherited;
 end;
 
@@ -386,7 +403,7 @@ begin
     if FMouseMoveData.ClickOnBucketDelimiter then
     begin
       FMouseMoveData.LastCalculatedOneBucketWidth := 0;
-      MouseCapture;
+      // MouseCapture;
       FResizingBuckets := true;
     end;
   end;
@@ -398,47 +415,70 @@ procedure TmTimeruler.Paint;
 var
   CurrentTimelineHeight: integer;
   StartDate: TDateTime;
-  CurrentRect: TRect;
+  FullRect, CurrentRect: TRect;
   i, p : integer;
   CurrentTimeline: TmTimeline;
+  tmpCanvas: TCanvas;
 begin
+  inherited;
+
   if (FTimelines.Count > 0) and Assigned(FMainTimelineRef) then
   begin
-    p := 0;
-    for i := 0 to FTimelines.Count - 1 do
+    if DoubleBuffered then
     begin
-      CurrentTimeline := FTimelines[i];
-      CurrentTimelineHeight := CalculateTimelineHeight(CurrentTimeline);
+      FDoubleBufferedBitmap.Width := Width;
+      FDoubleBufferedBitmap.Height := Height;
+      tmpCanvas := FDoubleBufferedBitmap.Canvas;
+    end
+    else
+      tmpCanvas := Self.Canvas;
 
-      if (P < Canvas.ClipRect.Bottom) and (P + CurrentTimelineHeight > Canvas.ClipRect.Top) then
+    FullRect:= ClientRect; //  FullRect:= Canvas.ClipRect;
+    tmpCanvas.Lock;
+    try
+      tmpCanvas.Brush.Color := Color;
+      tmpCanvas.FillRect(FullRect);
+
+      p := 0;
+      for i := 0 to FTimelines.Count - 1 do
       begin
-        StartDate := CurrentTimeline.Scale.TruncDate(PixelsToDateTime(Canvas.ClipRect.Left));
-        SetRect(CurrentRect, DateTimeToPixels(StartDate), P, Canvas.ClipRect.Right, P + CurrentTimelineHeight);
-        if Assigned(FOnDrawTimeline) and CurrentTimeline.OwnerDraw then
-          FOnDrawTimeline(Self, CurrentTimeline, CurrentRect, StartDate)
-        else
-          PaintTimeline(CurrentRect, StartDate, CurrentTimeline);
+        CurrentTimeline := FTimelines[i];
+        CurrentTimelineHeight := CalculateTimelineHeight(CurrentTimeline);
+
+        if (P < FullRect.Bottom) and (P + CurrentTimelineHeight > FullRect.Top) then
+        begin
+          StartDate := CurrentTimeline.Scale.TruncDate(PixelsToDateTime(FullRect.Left));
+          SetRect(CurrentRect, DateTimeToPixels(StartDate), P, FullRect.Right, P + CurrentTimelineHeight);
+          if Assigned(FOnDrawTimeline) and CurrentTimeline.OwnerDraw then
+            FOnDrawTimeline(Self, tmpCanvas, CurrentTimeline, CurrentRect, StartDate)
+          else
+            PaintTimeline(tmpCanvas, CurrentRect, StartDate, CurrentTimeline);
+        end;
+        P := P + CurrentTimelineHeight;
       end;
-      P := P + CurrentTimelineHeight;
+    finally
+      tmpCanvas.Unlock;
     end;
+    Canvas.CopyRect(FullRect, FDoubleBufferedBitmap.Canvas, FullRect);
+    Brush.Style := bsClear;
   end;
 end;
 
-procedure TmTimeruler.PaintTimeline(ARect: TRect; StartDate: TDateTime; Timeline: TmTimeline);
+procedure TmTimeruler.PaintTimeline(ACanvas: TCanvas; ARect: TRect; StartDate: TDateTime; Timeline: TmTimeline);
 var
   DummyRect: TRect;
   DummyDate: TDateTime;
   EndPos: integer;
 begin
   if Timeline.ParentColor then
-    Canvas.Brush.Color := Color
+    ACanvas.Brush.Color := Color
   else
-    Canvas.Brush.Color := Timeline.Color;
+    ACanvas.Brush.Color := Timeline.Color;
 
   if Timeline.ParentFont then
-    Canvas.Font := Font
+    ACanvas.Font := Font
   else
-    Canvas.Font := Timeline.Font;
+    ACanvas.Font := Timeline.Font;
 
   EndPos := ARect.Right;
   ARect.Left := max(ARect.Left, 0);
@@ -458,9 +498,9 @@ begin
     DummyRect.Right := min(Width, ARect.Right);
 
     if Assigned(FOnDrawBucket) and Timeline.OwnerDraw then
-      FOnDrawBucket(Self, Timeline, ARect, DummyDate)
+      FOnDrawBucket(Self, ACanvas, Timeline, ARect, DummyDate)
     else
-      DrawBucketBox(Canvas, DummyRect, ExtFormatDateTime(Timeline.Scale.DisplayFormat, DummyDate), Timeline.Alignment);
+      DrawBucketBox(ACanvas, DummyRect, ExtFormatDateTime(Timeline.Scale.DisplayFormat, DummyDate), Timeline.Alignment);
 
     ARect.Left := ARect.Right;
   end;

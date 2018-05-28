@@ -843,6 +843,7 @@ begin
 
     curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
 
+
     if (curLine.Configuration.DataType = dtFloat) and (curLine.Configuration.ChangedValueDestination is TNullableDouble) then
     begin
       curLine.Configuration.FDisplayFormat:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).DisplayFormat;
@@ -857,6 +858,10 @@ begin
     else if (curLine.Configuration.EditorKind = ekLookup) and (curLine.Configuration.ChangedValueDestination.NotNull) then
     begin
       assert (Assigned(curLine.Configuration.DataProvider));
+
+      if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
+        curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+
       if curLine.Configuration.AlternativeKeyFieldName = '' then
         curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
       else

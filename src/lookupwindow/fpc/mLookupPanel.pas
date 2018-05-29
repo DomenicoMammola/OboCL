@@ -19,7 +19,7 @@ uses
   Classes, Controls, ExtCtrls, ComCtrls, DB, contnrs,
   Variants,
   ListViewFilterEdit,
-  mLookupWindowEvents, mMaps, mVirtualDatasetDataProvider,
+  mLookupWindowEvents, mMaps,
   mDatasetStandardSetup, mVirtualDataSetInterfaces;
 
 type
@@ -34,7 +34,7 @@ type
     FFieldsList : TStringList;
 
     FKeyFieldName : String;
-    FProvider : TmDatasetDataProvider;
+    FDataProvider : IVDDataProvider;
     FDisplayFieldNames : TStringList;
 
     procedure LValuesDblClick (Sender : TObject);
@@ -45,7 +45,7 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
-    procedure Init(const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+    procedure Init(const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
     procedure SetFocusOnFilter;
     procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
 
@@ -120,8 +120,8 @@ begin
   if (LValues.SelCount = 1) then
   begin
     i := UIntPtr(LValues.Selected.Data);
-    aKeyValue := FProvider.GetDatum(i).GetPropertyByFieldName(FKeyFieldName);
-    aDisplayLabel:= ConcatenateFieldValues(FProvider.GetDatum(i), FDisplayFieldNames);
+    aKeyValue := FDataProvider.GetDatum(i).GetPropertyByFieldName(FKeyFieldName);
+    aDisplayLabel:= ConcatenateFieldValues(FDataProvider.GetDatum(i), FDisplayFieldNames);
   end
   else
   begin
@@ -161,7 +161,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TmLookupPanel.Init(const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+procedure TmLookupPanel.Init(const aDataProvider : IVDDataProvider;  const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
 var
   k, i : integer;
   ptr : UIntPtr;
@@ -174,7 +174,7 @@ begin
   FKeyFieldName:= aKeyFieldName;
   FDisplayFieldNames.Clear;
   FDisplayFieldNames.AddStrings(aDisplayFieldNames);
-  FProvider := aProvider;
+  FDataProvider := aDataProvider;
 
   LValues.BeginUpdate;
   try
@@ -189,7 +189,7 @@ begin
     end;
 
     ptr := 0;
-    for i := 0 to FProvider.Count - 1 do
+    for i := 0 to FDataProvider.Count - 1 do
     begin
       item := LValues.Items.Add;
       item.Data:= pointer(ptr);
@@ -197,7 +197,7 @@ begin
 
       for k := 0 to FFieldsList.Count - 1 do
       begin
-        curDatum := FProvider.GetDatum(i);
+        curDatum := FDataProvider.GetDatum(i);
         curValue := curDatum.GetPropertyByFieldName(FFieldsList.Strings[k]);
 
         if VarIsNull(curValue) then

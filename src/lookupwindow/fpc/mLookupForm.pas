@@ -18,7 +18,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics,
   Dialogs, ExtCtrls, Buttons, DB,
-  mLookupPanel, mVirtualDatasetDataProvider;
+  mLookupPanel, mVirtualDataSetInterfaces;
 
 resourcestring
   SLookupFormMissingValueCaption = 'Warning';
@@ -43,7 +43,7 @@ type
     procedure OnSelectValue (const aKeyValue: variant; const aDisplayLabel: string);
   public
     { public declarations }
-    procedure Init (const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+    procedure Init (const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
 
     property SelectedValue: variant read FSelectedValue;
     property SelectedDisplayLabel: string read FSelectedDisplayLabel;
@@ -91,9 +91,9 @@ begin
 end;
 
 
-procedure TmLookupFrm.Init(const aProvider : TmDatasetDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+procedure TmLookupFrm.Init(const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
 begin
-  FLookupPanel.Init(aProvider, aFieldNames, aKeyFieldName, aDisplayFieldNames);
+  FLookupPanel.Init(aDataProvider, aFieldNames, aKeyFieldName, aDisplayFieldNames);
 end;
 
 end.

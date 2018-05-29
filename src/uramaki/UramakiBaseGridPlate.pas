@@ -93,7 +93,7 @@ type
     FGridCommandsPopupMenu : TPopupMenu;
 
     // override these:
-    function GetDataProvider : IVDListDataProvider; virtual; abstract;
+    function GetDataProvider : IVDDataProvider; virtual; abstract;
     procedure ReloadData (aFilters : TmFilters); virtual; abstract;
 
     procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);

@@ -24,8 +24,8 @@ uses
   SysUtils, variants, StdCtrls, Buttons,
   oMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
-  mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mVirtualFieldDefs, mNullables,
-  mISO6346Utility, mVirtualDataSetInterfaces, mBooleanDataProvider, mVirtualDatasetDataProvider;
+  mQuickReadOnlyVirtualDataSet, mVirtualFieldDefs, mNullables,
+  mISO6346Utility, mVirtualDataSetInterfaces, mBooleanDataProvider;
 
 resourcestring
   SPropertyColumnTitle = 'Property';
@@ -53,7 +53,7 @@ type
 
   TmEditorLineConfiguration = class
   strict private
-    FDataProvider: TmDatasetDataProvider;
+    FDataProvider: IVDDataProvider;
     FLookupFieldNames : TStringList;
     FDisplayLabelFieldNames: TStringList;
     FAlternativeKeyFieldName : string;
@@ -78,7 +78,7 @@ type
 
     property EditorKind : TmEditorLineKind read FEditorKind write FEditorKind;
     property DataType : TmEditorLineDataType read FDataType write FDataType;
-    property DataProvider : TmDatasetDataProvider read FDataProvider write FDataProvider;
+    property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
 
     property Caption: String read FCaption write FCaption;
     property ReadOnly: boolean read FReadOnly write FReadOnly;

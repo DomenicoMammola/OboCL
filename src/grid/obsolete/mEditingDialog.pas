@@ -52,7 +52,7 @@ type
 
   TmEditorLineDataProvider = class
   strict private
-    FDataProvider: IVDListDataProvider;
+    FDataProvider: IVDDataProvider;
     FVirtualFieldDefs: TmVirtualFieldDefs;
     FKeyFieldName: string;
     FDisplayLabelFieldName: string;
@@ -66,7 +66,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property DataProvider : IVDListDataProvider read FDataProvider write FDataProvider;
+    property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
     property VirtualFieldDefs : TmVirtualFieldDefs read FVirtualFieldDefs;
     property KeyFieldName: string read FKeyFieldName write FKeyFieldName;
     property DisplayLabelFieldName: string read FDisplayLabelFieldName write FDisplayLabelFieldName;

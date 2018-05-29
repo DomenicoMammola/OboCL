@@ -21,8 +21,8 @@ uses
   ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
   ATButtons,
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
-  mUtility, mDateEdit, mVirtualFieldDefs, mVirtualDataSetInterfaces,
-  mFilterPanelDataModule, mVirtualDatasetDataProvider;
+  mUtility, mDateEdit, mDataProviderFieldDefs, mDataProviderInterfaces,
+  mFilterPanelDataModule, mDataProvider;
 
 resourcestring
   SClearFilterCommand = 'Clear';
@@ -174,7 +174,7 @@ type
     FLabel : TLabel;
     FEdit : TEditButton;
     FValueType : TmEditFilterValueType;
-    FDataProvider: TmDatasetDataProvider;
+    FDataProvider: TmDataProvider;
     FKeyFieldName : string;
     FValueFieldName : string;
     FLookupFieldNames : TStringList;
@@ -200,7 +200,7 @@ type
     property OnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields read FOnFillVirtualFieldDefs write FOnFillVirtualFieldDefs;
     property LookupFieldNames : TStringList read FLookupFieldNames;
     property DisplayLabelFieldNames: TStringList read FDisplayLabelFieldNames;
-    property DataProvider : TmDatasetDataProvider read FDataProvider write FDataProvider;
+    property DataProvider : TmDataProvider read FDataProvider write FDataProvider;
   end;
 
   { TmExecuteFilterPanel }
@@ -369,9 +369,6 @@ end;
 procedure TmLookupFilterConditionPanel.OnShowLookup(Sender: TObject);
 var
   lookupFrm: TmLookupFrm;// TmLookupWindow;
-  //tmpDataset: TmVirtualDataset;
-  tmpDatasetProvider: TReadOnlyVirtualDatasetProvider;
-  //tmpDatum: IVDDatum;
   keyFieldName : string;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
 begin
@@ -383,14 +380,8 @@ begin
   if FDisplayLabelFieldNames.Count = 0 then
     raise Exception.Create('[TmLookupFilterConditionPanel] Missing DisplayLabelFieldNames.');
 
-//  if not Assigned(FOnFillVirtualFieldDefs) then
-//    raise Exception.Create('[TmLookupFilterConditionPanel] Missing OnFillVirtualFieldDefs.');
-
   if not Assigned(FDataProvider) then
     raise Exception.Create('[TmLookupFilterConditionPanel] Missing DataProvider.');
-
-//  if FLookupFieldNames.Count = 0 then
-//    raise Exception.Create('[TmLookupFilterConditionPanel] Missing field names.');
 
   lookupFrm := TmLookupFrm.Create(Self);
   try
@@ -421,38 +412,6 @@ begin
   finally
     lookupFrm.Free;
   end;
-  (*
-  lookupFrm := TmLookupWindow.Create(Self);
-  try
-    tmpDatasetProvider := TReadOnlyVirtualDatasetProvider.Create;
-    tmpDataset := TmVirtualDataset.Create(Self);
-    try
-      tmpDataset.DatasetDataProvider := tmpDatasetProvider;
-
-      tmpDatasetProvider.Init(FListDataProvider);
-      FOnFillVirtualFieldDefs(tmpDatasetProvider.VirtualFieldDefs);
-
-      tmpDataset.Active:= true;
-      tmpDataset.Refresh;
-      lookupFrm.Init(tmpDataset, FLookupFieldNames, FKeyFieldName, FKeyFieldName);
-      if lookupFrm.ShowModal = mrOk then
-      begin
-        tmpDatum := FListDataProvider.FindDatumByStringKey(lookupFrm.SelectedDisplayLabel);
-        if Assigned(tmpDatum) then
-        begin
-          FEdit.Text:= VarToStr(tmpDatum.GetPropertyByFieldName(FDescriptionFieldName));
-          FCurrentValue:= tmpDatum.GetPropertyByFieldName(FValueFieldName);
-        end;
-      end;
-    finally
-      tmpDataset.Free;
-      tmpDatasetProvider.Free;
-    end;
-
-  finally
-    lookupFrm.Free;
-  end;
-  *)
 end;
 
 
@@ -503,7 +462,7 @@ begin
   else
   if FValueType = efUniqueIdentifier then
   begin
-    if IsUniqueIdentifier(trim(FCurrentValue)) then
+    if IsUniqueIdentifier(trim(VarToStr(FCurrentValue))) then
       aFilter.Value := trim(FCurrentValue)
     else
       aFilter.Value := null;

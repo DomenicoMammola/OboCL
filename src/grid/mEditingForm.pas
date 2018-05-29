@@ -24,8 +24,8 @@ uses
   SysUtils, variants, StdCtrls, Buttons,
   oMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
-  mQuickReadOnlyVirtualDataSet, mVirtualFieldDefs, mNullables,
-  mISO6346Utility, mVirtualDataSetInterfaces, mBooleanDataProvider;
+  mQuickReadOnlyVirtualDataSet, mDataProviderFieldDefs, mNullables,
+  mISO6346Utility, mDataProviderInterfaces, mBooleanDataProvider;
 
 resourcestring
   SPropertyColumnTitle = 'Property';

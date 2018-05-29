@@ -18,7 +18,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics,
   Dialogs, ExtCtrls, Buttons, DB,
-  mLookupPanel, mVirtualDataSetInterfaces;
+  mLookupPanel, mDataProviderInterfaces;
 
 resourcestring
   SLookupFormMissingValueCaption = 'Warning';

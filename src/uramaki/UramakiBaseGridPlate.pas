@@ -29,7 +29,7 @@ uses
 
   UramakiBase,
   mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid,
-  mQuickReadOnlyVirtualDataSet, mXML, mVirtualDataSetInterfaces, mSummary;
+  mQuickReadOnlyVirtualDataSet, mXML, mDataProviderInterfaces, mSummary;
 
 resourcestring
   SConfigureChildsUpdateModeCaption = 'Update of child widgets';

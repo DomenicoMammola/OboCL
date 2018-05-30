@@ -232,6 +232,7 @@ begin
       FBooleanProvider:= TBooleanDatasetDataProvider.Create;
     FDataProvider := FBooleanProvider;
     FDisplayLabelFieldNames.Add(TBooleanDatum.FLD_VALUE);
+    EditorKind:= ekLookup;
   end
   else
   begin

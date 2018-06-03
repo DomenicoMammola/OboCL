@@ -50,11 +50,13 @@ type
   strict private
     FEventsSubscriptions: TObjectList;
     FCurrentDate: TDateTime;
+    FMinDate: TDateTime;
+    FMaxDate: TDateTime;
     FMouseMoveData: _TmMouseMoveData;
 
     FTimelines : TmTimelines;
     FMainTimelineRef : TmTimeline;
-    FDoubleBufferedBitmap: TBitmap;
+    FDoubleBufferedBitmap: Graphics.TBitmap;
 
     FOnDateChanged: TNotifyEvent;
     FOnBeforeDateChange: TOnDateChangingEvent;
@@ -68,6 +70,8 @@ type
     procedure NotifySubscribers(EventKind: TmTimerulerEventKind; Info: TDateTime);
     procedure SetCurrentDate(Value: TDateTime);
     function CalculateTimelineHeight (Timeline : TmTimeline) : integer;
+    procedure SetMaxDate(AValue: TDateTime);
+    procedure SetMinDate(AValue: TDateTime);
 
     procedure SetOneBucketWidth(AValue: Integer);
     procedure NotifyLayoutChanged(MustInvalidateTimebar : boolean);
@@ -107,6 +111,8 @@ type
 
     property OneBucketWidth: Integer read FOneBucketWidth write SetOneBucketWidth default 30;
     property CurrentDate: TDateTime read FCurrentDate write SetCurrentDate;
+    property MinDate : TDateTime read FMinDate write SetMinDate;
+    property MaxDate : TDateTime read FMaxDate write SetMaxDate;
     property OnDrawTimeline: TOnDrawTimelineEvent read FOnDrawTimeline write FOnDrawTimeline;
     property OnDrawBucket: TOnDrawTimelineBucketEvent read FOnDrawBucket write FOnDrawBucket;
     property ResizingBuckets: boolean read FResizingBuckets;
@@ -149,7 +155,7 @@ begin
   if Assigned(FMainTimelineRef) then
   begin
     SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, @ScrollLines, 0);
-    ScrollCount := -ScrollLines * Message.WheelDelta div {$ifdef fpc}Message.WheelDelta{$else}WHEEL_DELTA{$endif};
+    ScrollCount := -ScrollLines * Message.WheelDelta div {$ifdef fpc}120{$else}WHEEL_DELTA{$endif}; // http://forum.lazarus.freepascal.org/index.php?topic=22722.0
     CurrentDate := FMainTimelineRef.Scale.AddTicks(Self.CurrentDate, ScrollCount);
   end;
 end;
@@ -178,9 +184,7 @@ begin
       FMainTimelineRef := newTimeline;
   end
   else
-  begin
     FMainTimelineRef := newTimeline;
-  end;
   Result := newTimeline;
 end;
 
@@ -195,6 +199,9 @@ end;
 
 procedure TmTimeruler.Rebuild;
 begin
+  FCurrentDate:= FMainTimelineRef.Scale.TruncDate(FCurrentDate);
+  FMinDate:= FMainTimelineRef.Scale.TruncDate(FMinDate);
+  FMaxDate:= FMainTimelineRef.Scale.TruncDate(FMaxDate);
   Self.Invalidate;
   NotifyLayoutChanged(true);
 end;
@@ -225,6 +232,9 @@ begin
     FMainTimelineRef := CopyFrom.FMainTimelineRef;
     Font.Assign(CopyFrom.Font);
     Color := CopyFrom.Color;
+    CurrentDate:= CopyFrom.CurrentDate;
+    MinDate:= CopyFrom.MinDate;
+    MaxDate:= CopyFrom.MaxDate;
     Self.Rebuild;
     if Showing then
       invalidate;
@@ -306,7 +316,7 @@ begin
   inherited;
   ControlStyle:= ControlStyle + [csOpaque] - [csTripleClicks];
 
-  FDoubleBufferedBitmap := TBitmap.Create;
+  FDoubleBufferedBitmap := Graphics.TBitmap.Create;
   {$ifdef fpc}
   DoubleBuffered:= IsDoubleBufferedNeeded;
   {$endif}
@@ -327,6 +337,8 @@ begin
   Color := clBtnFace;
 
   FCurrentDate := Floor(Now);
+  FMinDate:= FCurrentDate - 50;
+  FMaxDate:= FCurrentDate + 50;
 end;
 
 destructor TmTimeruler.Destroy;
@@ -509,25 +521,30 @@ end;
 procedure TmTimeruler.SetCurrentDate(Value: TDateTime);
 var
   Saved: TDateTime;
+  newValue : TDateTime;
 begin
-  Value := FMainTimelineRef.Scale.TruncDate(Value);
-  if FCurrentDate <> Value then
+  newValue := FMainTimelineRef.Scale.TruncDate(Value);
+  if newValue > FMaxDate then
+    newValue := FMaxDate
+  else if newValue < FMinDate then
+    newValue := FMinDate;
+  if FCurrentDate <> newValue then
   begin
-    Saved := Value;
+    Saved := newValue;
 
     if Assigned(FOnBeforeDateChange) then
-      FOnBeforeDateChange(Self, Value);
+      FOnBeforeDateChange(Self, newValue);
 
-    if Saved <> Value then
+    if Saved <> newValue then
     begin
-      Value := FMainTimelineRef.Scale.TruncDate(Value);
-      if FCurrentDate = Value then
+      newValue := FMainTimelineRef.Scale.TruncDate(newValue);
+      if FCurrentDate = newValue then
         Exit;
     end;
     Saved := FCurrentDate;
-    FCurrentDate := Value;
+    FCurrentDate := newValue;
     Invalidate;
-    NotifySubscribers(trCurrentDateChanged, Saved);
+    NotifySubscribers(trCurrentDateChanged, FCurrentDate); //Saved);
 
     if Assigned(FOnDateChanged) then
       FOnDateChanged(Self);
@@ -537,6 +554,18 @@ end;
 function TmTimeruler.CalculateTimelineHeight(Timeline: TmTimeline): integer;
 begin
   Result := trunc((Height / FTimelines.GetFlexTotal) * Timeline.Flex);
+end;
+
+procedure TmTimeruler.SetMaxDate(AValue: TDateTime);
+begin
+  if FMaxDate=AValue then Exit;
+  FMaxDate:=AValue;
+end;
+
+procedure TmTimeruler.SetMinDate(AValue: TDateTime);
+begin
+  if FMinDate=AValue then Exit;
+  FMinDate:=AValue;
 end;
 
 

@@ -6,7 +6,7 @@ object FilterValuesDlg: TFilterValuesDlg
   Caption = 'Filter values'
   ClientHeight = 240
   ClientWidth = 477
-  LCLVersion = '1.8.2.0'
+  LCLVersion = '1.8.4.0'
   object ButtonPanel1: TButtonPanel
     Left = 6
     Height = 26

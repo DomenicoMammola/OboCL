@@ -80,16 +80,24 @@ end;
 procedure TFilterValuesDlg.BtnAddAllClick(Sender: TObject);
 var
   i : integer;
+  OldCursor : TCursor;
 begin
-  ListBoxFilter.Items.BeginUpdate;
+
+  OldCursor := Screen.Cursor;
   try
-    for i := 0 to ListBoxToBeFiltered.Count - 1 do
-    begin
-      if ListBoxFilter.Items.IndexOf(ListBoxToBeFiltered.Items[i]) < 0 then
-        ListBoxFilter.Items.Add(ListBoxToBeFiltered.Items[i]);
+    Screen.Cursor:= crHourGlass;
+    ListBoxFilter.Items.BeginUpdate;
+    try
+      for i := 0 to ListBoxToBeFiltered.Count - 1 do
+      begin
+        if ListBoxFilter.Items.IndexOf(ListBoxToBeFiltered.Items[i]) < 0 then
+          ListBoxFilter.Items.Add(ListBoxToBeFiltered.Items[i]);
+      end;
+    finally
+      ListBoxFilter.Items.EndUpdate;
     end;
   finally
-    ListBoxFilter.Items.EndUpdate;
+    Screen.Cursor := OldCursor;
   end;
 end;
 

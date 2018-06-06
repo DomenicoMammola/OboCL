@@ -18,7 +18,7 @@ interface
 uses
   Classes, Controls, ComCtrls, Graphics, Menus, contnrs, ExtCtrls, Forms,
 
-  oMultiPanelSetup,
+  OMultiPanelSetup,
   mXML, mMaps,
 
   UramakiBase, UramakiEngine, UramakiEngineClasses,

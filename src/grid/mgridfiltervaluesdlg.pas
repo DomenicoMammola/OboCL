@@ -39,6 +39,7 @@ type
     ListFilterEdit: TListFilterEdit;
     procedure BtnAddAllClick(Sender: TObject);
     procedure BtnClearClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure ListBoxFilterClick(Sender: TObject);
     procedure ListBoxToBeFilteredClick(Sender: TObject);
   private
@@ -57,6 +58,11 @@ implementation
 procedure TFilterValuesDlg.BtnClearClick(Sender: TObject);
 begin
   ListBoxFilter.Clear;
+end;
+
+procedure TFilterValuesDlg.FormShow(Sender: TObject);
+begin
+  ListFilterEdit.SetFocus;
 end;
 
 procedure TFilterValuesDlg.ListBoxFilterClick(Sender: TObject);

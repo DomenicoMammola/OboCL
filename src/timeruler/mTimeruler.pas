@@ -7,7 +7,6 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-
 unit mTimeruler;
 
 {$IFDEF FPC}
@@ -122,7 +121,7 @@ type
 
 implementation
 
-uses Math, SysUtils;
+uses Math, SysUtils, Forms;
 
 const
   DELIMITER_CLICKING_AREA : integer = 4;
@@ -135,13 +134,6 @@ begin
   FEventsSubscriptions.Add(newSubscription);
   Result := newSubscription;
 end;
-
-{$ifdef fpc}
-function IsDoubleBufferedNeeded: boolean;
-begin
-  Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;
-end;
-{$endif}
 
 
 {$ifdef fpc}
@@ -166,9 +158,7 @@ var
 begin
   i := FEventsSubscriptions.IndexOf(Subscription);
   if (i >= 0) then
-  begin
     FEventsSubscriptions.Delete(i);
-  end;
 end;
 
 function TmTimeruler.AddTimeline(ScaleClass: TmScaleClass) : TmTimeline;
@@ -321,6 +311,8 @@ begin
   DoubleBuffered:= IsDoubleBufferedNeeded;
   {$endif}
 
+  FDoubleBufferedBitmap.SetSize(max(Screen.Width,3000), max(Screen.Height,2000));
+
   Align := alTop;
 
   FEventsSubscriptions := TObjectList.Create(true);
@@ -427,29 +419,24 @@ procedure TmTimeruler.Paint;
 var
   CurrentTimelineHeight: integer;
   StartDate: TDateTime;
-  FullRect, CurrentRect: TRect;
+  drawingRect, CurrentRect: TRect;
   i, p : integer;
   CurrentTimeline: TmTimeline;
   tmpCanvas: TCanvas;
 begin
   inherited;
-
   if (FTimelines.Count > 0) and Assigned(FMainTimelineRef) then
   begin
     if DoubleBuffered then
-    begin
-      FDoubleBufferedBitmap.Width := Width;
-      FDoubleBufferedBitmap.Height := Height;
-      tmpCanvas := FDoubleBufferedBitmap.Canvas;
-    end
+      tmpCanvas := FDoubleBufferedBitmap.Canvas
     else
       tmpCanvas := Self.Canvas;
-
-    FullRect:= ClientRect; //  FullRect:= Canvas.ClipRect;
+    drawingRect:= ClientRect; // ClientRect; //  FullRect:= Canvas.ClipRect;
+    //DebugLn(IntToStr(FullRect.Left) + ' ' + IntToStr(FullRect.Width));
     tmpCanvas.Lock;
     try
       tmpCanvas.Brush.Color := Color;
-      tmpCanvas.FillRect(FullRect);
+      tmpCanvas.FillRect(drawingRect);
 
       p := 0;
       for i := 0 to FTimelines.Count - 1 do
@@ -457,10 +444,11 @@ begin
         CurrentTimeline := FTimelines[i];
         CurrentTimelineHeight := CalculateTimelineHeight(CurrentTimeline);
 
-        if (P < FullRect.Bottom) and (P + CurrentTimelineHeight > FullRect.Top) then
+        if (P < drawingRect.Bottom) and (P + CurrentTimelineHeight > drawingRect.Top) then
         begin
-          StartDate := CurrentTimeline.Scale.TruncDate(PixelsToDateTime(FullRect.Left));
-          SetRect(CurrentRect, DateTimeToPixels(StartDate), P, FullRect.Right, P + CurrentTimelineHeight);
+          StartDate := CurrentTimeline.Scale.TruncDate(PixelsToDateTime(drawingRect.Left));
+          CurrentRect := drawingRect;
+          SetRect(CurrentRect, DateTimeToPixels(StartDate), P, drawingRect.Right, P + CurrentTimelineHeight);
           if Assigned(FOnDrawTimeline) and CurrentTimeline.OwnerDraw then
             FOnDrawTimeline(Self, tmpCanvas, CurrentTimeline, CurrentRect, StartDate)
           else
@@ -471,8 +459,11 @@ begin
     finally
       tmpCanvas.Unlock;
     end;
-    Canvas.CopyRect(FullRect, FDoubleBufferedBitmap.Canvas, FullRect);
-    Brush.Style := bsClear;
+    if DoubleBuffered then
+    begin
+      Brush.Style := bsClear;
+      Canvas.CopyRect(drawingRect, tmpCanvas, drawingRect);
+    end;
   end;
 end;
 

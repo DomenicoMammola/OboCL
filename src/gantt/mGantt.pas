@@ -25,7 +25,7 @@ uses
   LResources,
   LMessages,
   {$ENDIF}
-  mTimeruler;
+  mTimeruler, mGanttDataProvider;
 
 type
 
@@ -35,8 +35,12 @@ type
   strict private
     FTimeRuler : TmTimeruler;
     FRowHeight : integer;
-    FRowColor : TColor;
+    FVerticalLinesColor : TColor;
+    FDoubleBufferedBitmap: Graphics.TBitmap;
+    FTopRow: integer;
     procedure SetTimeRuler(AValue: TmTimeruler);
+    procedure PaintVerticalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
+    procedure SetTopRow(AValue: integer);
   protected
     procedure Paint; override;
   public
@@ -45,13 +49,17 @@ type
 
     property TimeRuler : TmTimeruler read FTimeRuler write SetTimeRuler;
     property RowHeight : integer read FRowHeight write FRowHeight;
+    property Color;
+    property VerticalLinesColor : TColor read FVerticalLinesColor write FVerticalLinesColor;
+    property TopRow: integer read FTopRow write SetTopRow;
   end;
 
 
 implementation
 
 uses
-  mTimerulerEvents;
+  math, Forms,
+  mTimerulerEvents, mTimerulerGraphics;
 
 type
 
@@ -62,7 +70,7 @@ type
     FGantt : TmGantt;
   public
     procedure LayoutChanged; override;
-    procedure DateChanged(OldDate: TDateTime); override;
+    procedure DateChanged(const OldDate: TDateTime); override;
   end;
 
 { TmGanttTimerulerEventsSubscription }
@@ -72,7 +80,7 @@ begin
   FGantt.Invalidate;
 end;
 
-procedure TmGanttTimerulerEventsSubscription.DateChanged(OldDate: TDateTime);
+procedure TmGanttTimerulerEventsSubscription.DateChanged(const OldDate: TDateTime);
 begin
   FGantt.Invalidate;
 end;
@@ -86,11 +94,38 @@ begin
   (FTimeRuler.SubscribeToEvents(TmGanttTimerulerEventsSubscription) as TmGanttTimerulerEventsSubscription).FGantt := Self;
 end;
 
+procedure TmGantt.PaintVerticalLines(aCanvas: TCanvas; const aDrawingRect : TRect);
+var
+  startDate, endDate, tmpDate : TDateTime;
+  i : integer;
+begin
+  aCanvas.Pen.Color:= FVerticalLinesColor;
+
+  startDate := FTimeRuler.PixelsToDateTime(aDrawingRect.Left);
+  endDate := FTimeRuler.PixelsToDateTime(aDrawingRect.Right);
+
+  tmpDate := FTimeRuler.MainTimeline.Scale.NextBucket(startDate);
+  while tmpDate < endDate do
+  begin
+    i := FTimeRuler.DateTimeToPixels(tmpDate);
+    aCanvas.MoveTo(i, aDrawingRect.Top);
+    aCanvas.LineTo(i, aDrawingRect.Bottom);
+
+    tmpDate := FTimeRuler.MainTimeline.Scale.NextBucket(tmpDate);
+  end;
+end;
+
+procedure TmGantt.SetTopRow(AValue: integer);
+begin
+  if FTopRow = AValue then Exit;
+  FTopRow:= max(0,AValue);
+  Invalidate;
+end;
+
 procedure TmGantt.Paint;
 var
-  drawingRect, actualBarsRect, noBarZoneRect, tmpRect : TRect;
-  startDate, endDate, tmpDate : TDateTime;
-  TopRowIndex, i : integer;
+  drawingRect : TRect;
+  tmpCanvas : TCanvas;
 begin
   if not Assigned(FTimeRuler) then
     exit;
@@ -98,50 +133,49 @@ begin
   if not Assigned(FTimeRuler.MainTimeline) then
     exit;
 
-  drawingRect := Canvas.ClipRect;
-  // drawingRect := ClientRect;
+  drawingRect := ClientRect;
 
-  //TopRowIndex := PixelsToBarIndex(drawingRect.Top);
+  if DoubleBuffered then
+    tmpCanvas := FDoubleBufferedBitmap.Canvas
+  else
+    tmpCanvas := Self.Canvas;
 
-  startDate := FTimeRuler.PixelsToDateTime(drawingRect.Left);
-  endDate := FTimeRuler.PixelsToDateTime(drawingRect.Right);
+  tmpCanvas.Lock;
+  try
+    tmpCanvas.Pen.Mode := pmCopy;
+    tmpCanvas.Brush.Color := Self.Color;
+    tmpCanvas.Brush.Style := bsSolid;
+    tmpCanvas.FillRect(drawingRect);
 
-  actualBarsRect := drawingRect;
-  SetRectEmpty(noBarZoneRect);
+    PaintVerticalLines(tmpCanvas, drawingRect);
 
-  Canvas.Pen.Mode := pmCopy;
-  Canvas.Brush.Color := FRowColor;
-  Canvas.Brush.Style := bsSolid;
-  IntersectRect(tmpRect, drawingRect, actualBarsRect);
-  Canvas.FillRect(tmpRect);
-
-  Canvas.Brush.Color := Self.Color;
-  IntersectRect(tmpRect, drawingRect, noBarZoneRect);
-  Canvas.FillRect(tmpRect);
-
-  Canvas.Pen.Color:= clBlack;
-
-  tmpDate := FTimeRuler.MainTimeline.Scale.NextBucket(startDate);
-  while tmpDate < endDate do
-  begin
-    i := FTimeRuler.DateTimeToPixels(tmpDate);
-    Canvas.MoveTo(i, actualBarsRect.Top);
-    Canvas.LineTo(i, actualBarsRect.Bottom);
-
-    tmpDate := FTimeRuler.MainTimeline.Scale.NextBucket(tmpDate);
+  finally
+    tmpCanvas.Unlock;
   end;
-
+  if DoubleBuffered then
+  begin
+    Brush.Style := bsClear;
+    Canvas.CopyRect(drawingRect, tmpCanvas, drawingRect);
+  end;
 end;
 
 constructor TmGantt.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FRowHeight:= 18;
-  FRowColor := clYellow;
+  FDoubleBufferedBitmap := Graphics.TBitmap.Create;
+  {$ifdef fpc}
+  DoubleBuffered:= IsDoubleBufferedNeeded;
+  {$endif}
+
+  FDoubleBufferedBitmap.SetSize(max(Screen.Width,3000), max(Screen.Height,2000));
+  Self.Color:= clWhite;
+  FVerticalLinesColor:= clDkGray;
 end;
 
 destructor TmGantt.Destroy;
 begin
+  FDoubleBufferedBitmap.Free;
   inherited Destroy;
 end;
 

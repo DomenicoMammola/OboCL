@@ -22,7 +22,7 @@ type
   TmTimerulerEventsSubscription =  class abstract
   public
     procedure LayoutChanged; virtual; abstract;
-    procedure DateChanged(OldDate: TDateTime); virtual; abstract;
+    procedure DateChanged(const OldDate: TDateTime); virtual; abstract;
   end;
 
   TmTimerulerEventsSubscriptionClass = class of TmTimerulerEventsSubscription;

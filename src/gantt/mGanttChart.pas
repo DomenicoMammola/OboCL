@@ -17,7 +17,8 @@ interface
 uses
   Controls, ExtCtrls, Classes,
   ATScrollBar,
-  mGantt, mTimeruler, mTimerulerEvents;
+  mGantt, mGanttHead,
+  mTimeruler, mTimerulerEvents;
 
 type
 
@@ -29,11 +30,12 @@ type
     FGantt : TmGantt;
     FLeftPanel : TCustomPanel;
     FRightPanel : TCustomPanel;
-    FGridWidth : integer;
     FHorizontalScrollbar : TATScroll;
     FVerticalScrollbar : TATScroll;
+    function GetGridWidth: integer;
     procedure OnChangeHorizonalScrollbar (Sender : TObject);
     procedure OnTimerulerDateChanged (Sender : TObject);
+    procedure SetGridWidth(AValue: integer);
   protected
   public
     constructor Create(TheOwner: TComponent); override;
@@ -41,7 +43,8 @@ type
     procedure Rebuild;
 
     property TimeRuler : TmTimeruler read FTimeRuler;
-    property GridWidth : integer read FGridWidth write FGridWidth;
+    property Gantt : TmGantt read FGantt;
+    property GridWidth : integer read GetGridWidth write SetGridWidth;
   end;
 
 
@@ -62,6 +65,11 @@ begin
   end;
 end;
 
+function TmGanttChart.GetGridWidth: integer;
+begin
+  Result := FLeftPanel.Width;
+end;
+
 procedure TmGanttChart.OnTimerulerDateChanged(Sender: TObject);
 begin
   FHorizontalScrollbar.OnChange:= nil;
@@ -72,10 +80,16 @@ begin
   end;
 end;
 
+procedure TmGanttChart.SetGridWidth(AValue: integer);
+begin
+  if AValue = FLeftPanel.Width then
+    exit;
+  FLeftPanel.Width:= AValue;
+end;
+
 constructor TmGanttChart.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FGridWidth := 150;
 
   Self.BorderStyle:= bsNone;
   Self.BevelInner:= bvNone;
@@ -99,7 +113,7 @@ begin
   FLeftPanel.BorderStyle:= bsNone;
   FLeftPanel.BevelInner:= bvNone;
   FLeftPanel.BevelOuter:= bvNone;
-  FLeftPanel.Width:= FGridWidth;
+  FLeftPanel.Width:= 150;
 
   FRightPanel := TPanel.Create(Self);
   FRightPanel.Parent := Self;

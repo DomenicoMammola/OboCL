@@ -86,7 +86,7 @@ begin
   end;
   TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
 
-  if DrawText(ACanvas.Handle, PChar(Text), -1, ARect, Flags) = 0 then
+  if DrawText(ACanvas.Handle, PChar(Text), -1, ARect, TempFlags) = 0 then
     RaiseLastOSError;
   {$endif}
 end;

@@ -40,7 +40,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    function Execute : boolean;
+    function Execute (const aCaption : String = '') : boolean;
 
     property Date : TDate read FCurrentDate write FCurrentDate;
   end;
@@ -76,12 +76,14 @@ begin
   inherited Destroy;
 end;
 
-function TmCalendarDialog.Execute: boolean;
+function TmCalendarDialog.Execute(const aCaption : String = ''): boolean;
 var
   Frm : TmCalendarForm;
 begin
   Frm := TmCalendarForm.Create(nil);
   try
+    if aCaption <> '' then
+      Frm.Caption:= aCaption;
     Frm.Calendar.DateTime:= Self.FCurrentDate;
     if Frm.ShowModal = mrOk then
     begin

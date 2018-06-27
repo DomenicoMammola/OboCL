@@ -25,11 +25,17 @@ procedure LoadGridColumnSettingFromXmlElement (aDestination : TmGridColumnSettin
 procedure SaveGridColumnsSettingToXmlElement (const aSource : TmGridColumnsSettings; aXmlElement : TmXmlElement);
 procedure LoadGridColumnsSettingFromXmlElement (aDestination : TmGridColumnsSettings; aXmlElement : TmXmlElement);
 
+procedure AddErrataCorrigeForFieldName (const aOriginalString, aNewString : String);
+
 
 implementation
 
 uses
-  SysUtils;
+  SysUtils, Classes;
+
+var
+  ErrataCorrigeFieldNamesOriginals : TStringList;
+  ErrataCorrigeFieldNamesReplacements : TStringList;
 
 procedure SaveGridColumnSettingToXmlElement(const aSource: TmGridColumnSettings; aXmlElement: TmXmlElement);
 begin
@@ -77,15 +83,19 @@ end;
 procedure LoadGridColumnsSettingFromXmlElement(aDestination: TmGridColumnsSettings; aXmlElement: TmXmlElement);
 var
   tmpCursor : TmXmlElementCursor;
-  i : integer;
+  i, k : integer;
   op : TmGridColumnSettings;
+  tmpFieldName : String;
 begin
   aDestination.Clear;
   tmpCursor := TmXmlElementCursor.Create(aXmlElement, 'column');
   try
     for i := 0 to tmpCursor.Count - 1 do
     begin
-      op := aDestination.AddSettingsForField(tmpCursor.Elements[i].GetAttribute('fieldName'));
+      tmpFieldName:= tmpCursor.Elements[i].GetAttribute('fieldName');
+      for k := 0 to ErrataCorrigeFieldNamesOriginals.Count - 1 do
+        tmpFieldName:= StringReplace(tmpFieldName, ErrataCorrigeFieldNamesOriginals.Strings[k], ErrataCorrigeFieldNamesReplacements.Strings[k], [rfReplaceAll]);
+      op := aDestination.AddSettingsForField(tmpFieldName);
       LoadGridColumnSettingFromXmlElement(op, tmpCursor.Elements[i]);
     end;
   finally
@@ -93,4 +103,18 @@ begin
   end;
 end;
 
+procedure AddErrataCorrigeForFieldName(const aOriginalString, aNewString: String);
+begin
+  if not Assigned (ErrataCorrigeFieldNamesOriginals) then
+    ErrataCorrigeFieldNamesOriginals := TStringList.Create();
+  if not Assigned(ErrataCorrigeFieldNamesReplacements) then
+    ErrataCorrigeFieldNamesReplacements := TStringList.Create();
+  ErrataCorrigeFieldNamesOriginals.Add(aOriginalString);
+  ErrataCorrigeFieldNamesReplacements.Add(aNewString);
+end;
+
+
+finalization
+  FreeAndNil(ErrataCorrigeFieldNamesOriginals);
+  FreeAndNil(ErrataCorrigeFieldNamesReplacements);
 end.

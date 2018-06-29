@@ -89,6 +89,8 @@ type
     //FToolbar : TToolBar;
     FToolbar : TUramakiToolbar;
     FLastSelectedRow : integer;
+    FLastSelectedRowsCount : integer;
+    FLastSelectedRowsHash : string;
     FFilterPanel : TmFilterPanel;
     FGridCommandsPopupMenu : TPopupMenu;
 
@@ -101,6 +103,7 @@ type
     procedure ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_REFRESHCHILDS;
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
     procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
+    procedure OnCellClick(Column: TColumn);
     procedure InvokeChildsRefresh;
     procedure InvokeChildsClear;
     procedure GetSelectedItems (const aKeyFieldName : string; aList : TList);
@@ -376,25 +379,59 @@ procedure TUramakiBaseGridPlate.SetAutomaticChildsUpdateMode(AValue: TUramakiGri
 begin
   FAutomaticChildsUpdateMode:=AValue;
   if FAutomaticChildsUpdateMode = cuOnChangeSelection then
-    FGrid.OnSelectEditor:= Self.OnSelectEditor
+  begin
+    FGrid.OnCellClick:= Self.OnCellClick;
+    FGrid.OnSelectEditor:= Self.OnSelectEditor;
+  end
   else
+  begin
     FGrid.OnSelectEditor:= nil;
+    FGrid.OnCellClick := nil;
+  end;
 end;
 
 procedure TUramakiBaseGridPlate.DoUpdateChilds(Sender : TObject);
+var
+  newHash : string;
 begin
   if FAutomaticChildsUpdateMode = cuOnChangeSelection then
   begin
-    if FLastSelectedRow <> FGrid.Row then
+    if FGrid.SelectedRows.Count > 1 then
     begin
-      FLastSelectedRow := FGrid.Row;
-      if Assigned(Self.Parent) then
-        InvokeChildsRefresh;
+      newHash:= FGrid.SelectedRows.CalculateHashCode;
+      if newHash <> FLastSelectedRowsHash then
+      begin
+        FLastSelectedRowsHash:= newHash;
+        FLastSelectedRow := FGrid.Row;
+        FLastSelectedRowsCount := FGrid.SelectedRows.Count;
+        if Assigned(Self.Parent) then
+          InvokeChildsRefresh;
+      end;
+    end
+    else begin
+      if (FGrid.SelectedRows.Count = 0) and ((FLastSelectedRow >= 0) or (FLastSelectedRowsCount > 0)) then
+      begin
+        FLastSelectedRow:= -1;
+        FLastSelectedRowsCount:= 0;
+        if Assigned(Self.Parent) then
+          InvokeChildsRefresh;
+      end
+      else
+      begin
+        if FLastSelectedRow <> FGrid.Row then
+        begin
+          FLastSelectedRow := FGrid.Row;
+          FLastSelectedRowsCount := 1;
+          if Assigned(Self.Parent) then
+            InvokeChildsRefresh;
+        end;
+      end;
     end;
   end
   else
   begin
     FLastSelectedRow:= -1;
+    FLastSelectedRowsCount:= 0;
     if Assigned(Self.Parent) then
       InvokeChildsRefresh;
   end;
@@ -520,11 +557,15 @@ end;
 procedure TUramakiBaseGridPlate.ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   FGrid.OnSelectEditor:= nil;
+  FGrid.OnCellClick:= nil;
   try
     EngineMediator.PleaseRefreshMyChilds(Self);
   finally
     if AutomaticChildsUpdateMode = cuOnChangeSelection then
+    begin
       FGrid.OnSelectEditor:= Self.OnSelectEditor;
+      FGrid.OnCellClick := Self.OnCellClick;
+    end;
   end;
 end;
 
@@ -534,6 +575,11 @@ begin
 end;
 
 procedure TUramakiBaseGridPlate.OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
+begin
+  DoUpdateChilds(nil);
+end;
+
+procedure TUramakiBaseGridPlate.OnCellClick(Column: TColumn);
 begin
   DoUpdateChilds(nil);
 end;
@@ -567,6 +613,7 @@ begin
     else
     begin
       FGrid.OnSelectEditor:= nil;
+      FGrid.OnCellClick:= nil;
       try
         tmpBookmark := FDataset.Bookmark;
         try
@@ -582,7 +629,10 @@ begin
         end;
       finally
         if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+        begin
           FGrid.OnSelectEditor:= Self.OnSelectEditor;
+          FGrid.OnCellClick:= Self.OnCellClick;
+        end;
       end;
     end;
   finally
@@ -625,6 +675,8 @@ begin
     Self.EnableControls;
   end;
   FLastSelectedRow := -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   if AutomaticChildsUpdateMode = cuOnChangeSelection then
     InvokeChildsRefresh
   else
@@ -646,6 +698,8 @@ begin
   FGrid.SelectedRows.Clear;
   FGrid.SelectedIndex:= -1;
   FLastSelectedRow := -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   FDataset.Refresh;
 end;
 
@@ -676,6 +730,8 @@ begin
   FGrid.ColumnsHeaderMenuVisible:= true;
 
   FLastSelectedRow:=-1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
 end;
 
@@ -735,6 +791,8 @@ begin
     Self.EnableControls;
   end;
   FLastSelectedRow := -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   InvokeChildsClear;
 end;
 

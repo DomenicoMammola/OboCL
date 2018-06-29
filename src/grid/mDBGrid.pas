@@ -31,8 +31,14 @@ resourcestring
 
 
 type
-  { TmDBGrid }
 
+  { TBookmarkListHelper }
+
+  TBookmarkListHelper = class helper for TBookmarkList
+    function CalculateHashCode : string;
+  end;
+
+  { TmDBGrid }
   TmDBGrid = class(TDBGrid)
   strict private
     // custom bitmaps
@@ -110,8 +116,23 @@ type
 implementation
 
 uses
-  LResources, sysutils,
+  LResources, sysutils, md5,
   mGridFilterValuesDlg, mGridFiltersEditDlg;
+
+{ TBookmarkListHelper }
+
+function TBookmarkListHelper.CalculateHashCode: string;
+var
+  i : integer;
+  tmpBookmark : TBookMark;
+begin
+  Result := '';
+  for i := 0 to Count - 1 do
+  begin
+    tmpBookmark := Items[i];
+    Result := MD5Print( MD5String(Result + MD5Print(MD5Buffer(tmpBookmark, SizeOf(tmpBookmark)))));
+  end;
+end;
 
 { TmDBGrid }
 

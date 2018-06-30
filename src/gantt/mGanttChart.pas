@@ -28,14 +28,14 @@ type
   strict private
     FTimeruler : TmTimeruler;
     FGantt : TmGantt;
-    FLeftPanel : TCustomPanel;
+    FGanttHead : TmGanttHead;
     FRightPanel : TCustomPanel;
     FHorizontalScrollbar : TATScroll;
     FVerticalScrollbar : TATScroll;
-    function GetGridWidth: integer;
+    function GetHeadWidth: integer;
     procedure OnChangeHorizonalScrollbar (Sender : TObject);
     procedure OnTimerulerDateChanged (Sender : TObject);
-    procedure SetGridWidth(AValue: integer);
+    procedure SetHeadWidth(AValue: integer);
   protected
   public
     constructor Create(TheOwner: TComponent); override;
@@ -44,7 +44,7 @@ type
 
     property TimeRuler : TmTimeruler read FTimeRuler;
     property Gantt : TmGantt read FGantt;
-    property GridWidth : integer read GetGridWidth write SetGridWidth;
+    property HeadWidth : integer read GetHeadWidth write SetHeadWidth;
   end;
 
 
@@ -65,9 +65,9 @@ begin
   end;
 end;
 
-function TmGanttChart.GetGridWidth: integer;
+function TmGanttChart.GetHeadWidth: integer;
 begin
-  Result := FLeftPanel.Width;
+  Result := FGanttHead.Width;
 end;
 
 procedure TmGanttChart.OnTimerulerDateChanged(Sender: TObject);
@@ -80,11 +80,11 @@ begin
   end;
 end;
 
-procedure TmGanttChart.SetGridWidth(AValue: integer);
+procedure TmGanttChart.SetHeadWidth(AValue: integer);
 begin
-  if AValue = FLeftPanel.Width then
+  if AValue = FGanttHead.Width then
     exit;
-  FLeftPanel.Width:= AValue;
+  FGanttHead.Width:= AValue;
 end;
 
 constructor TmGanttChart.Create(TheOwner: TComponent);
@@ -107,13 +107,10 @@ begin
   FVerticalScrollbar.Align:= alRight;
   FVerticalScrollbar.Width:= FHorizontalScrollbar.Height;
 
-  FLeftPanel := TCustomPanel.Create(Self);
-  FLeftPanel.Parent := Self;
-  FLeftPanel.Align:= alLeft;
-  FLeftPanel.BorderStyle:= bsNone;
-  FLeftPanel.BevelInner:= bvNone;
-  FLeftPanel.BevelOuter:= bvNone;
-  FLeftPanel.Width:= 150;
+  FGanttHead := TmGanttHead.Create(Self);
+  FGanttHead.Parent := Self;
+  FGanttHead.Align:= alLeft;
+  FGanttHead.Width:= 150;
 
   FRightPanel := TPanel.Create(Self);
   FRightPanel.Parent := Self;

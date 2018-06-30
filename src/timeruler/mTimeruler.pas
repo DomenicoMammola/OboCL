@@ -498,7 +498,7 @@ begin
     DummyRect := ARect;
 
     DummyRect.Left := max(ARect.Left, 0);
-    DummyRect.Right := min(Width, ARect.Right);
+    DummyRect.Right := ARect.Right; // min(Width, ARect.Right);
 
     if Assigned(FOnDrawBucket) and Timeline.OwnerDraw then
       FOnDrawBucket(Self, ACanvas, Timeline, ARect, DummyDate)

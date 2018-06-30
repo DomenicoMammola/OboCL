@@ -25,10 +25,7 @@ type
 
   TmGanttDataProvider = class abstract
   strict private
-    FTopRow : integer;
     FEventsSubscriptions: TObjectList;
-    procedure SetTopRow(AValue: integer);
-    procedure Scrolled;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -36,7 +33,7 @@ type
     function SubscribeToEvents(SubscriberClass: TmGanttDataProviderEventsSubscriptionClass) : TmGanttDataProviderEventsSubscription;
     procedure UnsubscribeFromEvents(Subscription: TmGanttDataProviderEventsSubscription);
   public
-    property TopRow : integer read FTopRow write SetTopRow;
+
   end;
 
 implementation
@@ -45,21 +42,8 @@ uses
 
 { TmGanttDataProvider }
 
-procedure TmGanttDataProvider.SetTopRow(AValue: integer);
-begin
-  if FTopRow = AValue then Exit;
-  FTopRow:= max(0,AValue);
-  Scrolled;
-end;
-
-procedure TmGanttDataProvider.Scrolled;
-begin
-  //
-end;
-
 constructor TmGanttDataProvider.Create;
 begin
-  FTopRow:= 0;
   FEventsSubscriptions:= TObjectList.Create(true);
 end;
 

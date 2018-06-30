@@ -5,5 +5,5 @@ object Form1: TForm1
   Width = 320
   Caption = 'Form1'
   OnCreate = FormCreate
-  LCLVersion = '1.8.4.0'
+  LCLVersion = '1.8.2.0'
 end

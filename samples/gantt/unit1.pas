@@ -6,9 +6,16 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
-  mGanttChart, mTimerulerScales, mTimerulerTimelines;
+  mGanttChart, mTimerulerScales, mTimerulerTimelines, mGanttDataProvider;
 
 type
+
+  { TTestDataProvider }
+
+  TTestDataProvider = class (TmGanttDataProvider)
+  public
+    function RowCount : integer; override;
+  end;
 
   { TForm1 }
 
@@ -26,6 +33,13 @@ var
 implementation
 
 {$R *.lfm}
+
+{ TTestDataProvider }
+
+function TTestDataProvider.RowCount: integer;
+begin
+  Result := 24;
+end;
 
 { TForm1 }
 

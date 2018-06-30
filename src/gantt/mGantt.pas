@@ -34,13 +34,13 @@ type
   TmGantt = class(TCustomControl)
   strict private
     FTimeRuler : TmTimeruler;
-    FRowHeight : integer;
     FVerticalLinesColor : TColor;
     FDoubleBufferedBitmap: Graphics.TBitmap;
     FTopRow: integer;
     procedure SetTimeRuler(AValue: TmTimeruler);
     procedure PaintVerticalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure SetTopRow(AValue: integer);
+    procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
   protected
     procedure Paint; override;
   public
@@ -48,7 +48,6 @@ type
     destructor Destroy; override;
 
     property TimeRuler : TmTimeruler read FTimeRuler write SetTimeRuler;
-    property RowHeight : integer read FRowHeight write FRowHeight;
     property Color;
     property VerticalLinesColor : TColor read FVerticalLinesColor write FVerticalLinesColor;
     property TopRow: integer read FTopRow write SetTopRow;
@@ -122,6 +121,21 @@ begin
   Invalidate;
 end;
 
+procedure TmGantt.DoPaintTo(aCanvas: TCanvas; aRect: TRect);
+begin
+  aCanvas.Lock;
+  try
+    aCanvas.Pen.Mode := pmCopy;
+    aCanvas.Brush.Color := Self.Color;
+    aCanvas.Brush.Style := bsSolid;
+    aCanvas.FillRect(aRect);
+
+    PaintVerticalLines(aCanvas, aRect);
+  finally
+    aCanvas.Unlock;
+  end;
+end;
+
 procedure TmGantt.Paint;
 var
   drawingRect : TRect;
@@ -136,22 +150,15 @@ begin
   drawingRect := ClientRect;
 
   if DoubleBuffered then
-    tmpCanvas := FDoubleBufferedBitmap.Canvas
+  begin
+    tmpCanvas := FDoubleBufferedBitmap.Canvas;
+    tmpCanvas.Font.Assign(Self.Font);
+  end
   else
     tmpCanvas := Self.Canvas;
 
-  tmpCanvas.Lock;
-  try
-    tmpCanvas.Pen.Mode := pmCopy;
-    tmpCanvas.Brush.Color := Self.Color;
-    tmpCanvas.Brush.Style := bsSolid;
-    tmpCanvas.FillRect(drawingRect);
+  DoPaintTo(tmpCanvas, drawingRect);
 
-    PaintVerticalLines(tmpCanvas, drawingRect);
-
-  finally
-    tmpCanvas.Unlock;
-  end;
   if DoubleBuffered then
   begin
     Brush.Style := bsClear;
@@ -162,7 +169,6 @@ end;
 constructor TmGantt.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FRowHeight:= 18;
   FDoubleBufferedBitmap := Graphics.TBitmap.Create;
   {$ifdef fpc}
   DoubleBuffered:= IsDoubleBufferedNeeded;

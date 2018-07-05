@@ -41,6 +41,7 @@ type
 
   TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard);
   TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber);
+  TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
   TmEditingPanel = class;
 
@@ -59,7 +60,7 @@ type
     FAlternativeKeyFieldName : string;
     FBooleanProvider : TBooleanDatasetDataProvider;
     FCaption: String;
-    FReadOnly: boolean;
+    FReadOnly: TmEditorLineReadOnlyMode;
     FMandatory: boolean;
     FAllowFreeTypedText : boolean;
     FChangedValueDestination: TAbstractNullable;
@@ -81,7 +82,7 @@ type
     property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
 
     property Caption: String read FCaption write FCaption;
-    property ReadOnly: boolean read FReadOnly write FReadOnly;
+    property ReadOnly: TmEditorLineReadOnlyMode read FReadOnly write FReadOnly;
     property Mandatory: boolean read FMandatory write FMandatory;
     property AllowFreeTypedText : boolean read FAllowFreeTypedText write FAllowFreeTypedText;
     property ChangedValueDestination: TAbstractNullable read FChangedValueDestination write FChangedValueDestination;
@@ -138,9 +139,6 @@ type
     function CheckMandatoryLines(var aMissingValues: string): boolean;
     procedure CommitChanges;
     procedure SetFocusInEditor;
-  protected
-    procedure SetReadOnly (const aName : string; const aValue : boolean); overload;
-    procedure SetReadOnly (const aValue : boolean); overload;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -250,7 +248,7 @@ begin
   FLookupFieldNames := TStringList.Create;
   FBooleanProvider := nil;
   FCaption:= '';
-  FReadOnly:= false;
+  FReadOnly:= roAllowEditing;
   FMandatory:= false;
   FChangedValueDestination:= nil;
   FEditorKind:= ekSimple;
@@ -416,7 +414,7 @@ begin
     exit;
 
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
-  if (not Assigned(curLine)) or curLine.Configuration.ReadOnly then
+  if (not Assigned(curLine)) or (curLine.Configuration.ReadOnly in [roAllowOnlySetValue, roReadOnly]) then
     exit;
 
   if (curLine.Configuration.EditorKind = ekCalendar) then
@@ -458,7 +456,7 @@ begin
 
   oldActualValue := curLine.ActualValue;
 
-  if curLine.Configuration.ReadOnly then
+  if curLine.Configuration.ReadOnly <> roAllowEditing then
   begin
     NewValue := OldValue;
     exit;
@@ -618,7 +616,7 @@ begin
 
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  if curLine.Configuration.ReadOnly then
+  if curLine.Configuration.ReadOnly <> roAllowEditing then
     exit;
 
   if curLine.Configuration.EditorKind = ekCalendar then
@@ -726,7 +724,7 @@ begin
   Result := false;
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  if curLine.Configuration.ReadOnly then
+  if curLine.Configuration.ReadOnly <> roAllowEditing then
     exit;
 
   if MultiEditMode then
@@ -889,8 +887,8 @@ begin
     curLine.Index:= FValueListEditor.InsertRow(ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory), str, true);
 
     FLinesByRowIndex.Add(curLine.RowIndex, curLine);
-    FValueListEditor.ItemProps[curLine.Index].ReadOnly:= curLine.Configuration.ReadOnly;
-    if (not curLine.Configuration.ReadOnly) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
+    FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
+    if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
       or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard)) then
         FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
   end;
@@ -901,7 +899,7 @@ var
   curLine: TEditorLine;
 begin
   curLine := FLinesByName.Find(aName) as TEditorLine;
-  if Assigned(curLine) then
+  if Assigned(curLine) and (curLine.Configuration.ReadOnly <> roReadOnly) then
   begin
     curLine.Changed := curLine.Changed or (aDisplayValue <> FValueListEditor.Rows[curLine.Index + 1].Strings[1]);
     FValueListEditor.Rows[curLine.Index + 1].Strings[1] := aDisplayValue;
@@ -909,7 +907,7 @@ begin
   end;
 end;
 
-
+(*
 procedure TmEditingPanel.SetReadOnly(const aName: string; const aValue : boolean);
 var
   tmpObj : TObject;
@@ -939,6 +937,7 @@ begin
       tmp.ReadOnly := aValue;
   end;
 end;
+*)
 
 function TmEditingPanel.GetValueFromMemo(const aName: string; const aTrimValue : boolean): string;
 var
@@ -1097,7 +1096,7 @@ begin
   for i:= 0 to FLines.Count - 1 do
   begin
     tmpLine:= FLines.Items[i] as TEditorLine;
-    if Assigned(tmpLine.Configuration.ChangedValueDestination) and (not tmpLine.Configuration.ReadOnly) then
+    if Assigned(tmpLine.Configuration.ChangedValueDestination) and (tmpLine.Configuration.ReadOnly <> roReadOnly) then
     begin
       if (not MultiEditMode) or  (MultiEditMode and tmpLine.Changed) then
       begin

@@ -31,8 +31,8 @@ uses
 
   mDateTimeUtility,
 
-  mTimerulerScales, mTimerulerTimelines, mTimerulerDefs, mTimerulerEvents,
-  mTimerulerGraphics,
+  mTimerulerScales, mTimerulerTimelines, (* mTimerulerDefs, *) mTimerulerEvents,
+  mTimerulerGraphics, mGanttGUIClasses,
 
   Dialogs, Messages;
 type
@@ -51,7 +51,7 @@ type
     FCurrentDate: TDateTime;
     FMinDate: TDateTime;
     FMaxDate: TDateTime;
-    FMouseMoveData: _TmMouseMoveData;
+    FMouseMoveData: TmTimerulerMouseMoveData;
 
     FTimelines : TmTimelines;
     FMainTimelineRef : TmTimeline;
@@ -73,7 +73,7 @@ type
     procedure SetMinDate(AValue: TDateTime);
 
     procedure SetOneBucketWidth(AValue: Integer);
-    procedure NotifyLayoutChanged(MustInvalidateTimebar : boolean);
+    procedure NotifyLayoutChanged(const AMustInvalidateTimebar : boolean);
 
     {$ifdef fpc}
     procedure CMMouseWheel(var Message: TLMMouseEvent); message LM_MOUSEWHEEL;
@@ -84,7 +84,6 @@ type
 
     procedure PaintTimeline(ACanvas: TCanvas; ARect: TRect; StartDate: TDateTime; Timeline: TmTimeline);
     procedure SaveMouseMoveData(X, Y: integer);
-
   protected
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
@@ -114,7 +113,7 @@ type
     property MaxDate : TDateTime read FMaxDate write SetMaxDate;
     property OnDrawTimeline: TOnDrawTimelineEvent read FOnDrawTimeline write FOnDrawTimeline;
     property OnDrawBucket: TOnDrawTimelineBucketEvent read FOnDrawBucket write FOnDrawBucket;
-    property ResizingBuckets: boolean read FResizingBuckets;
+//    property ResizingBuckets: boolean read FResizingBuckets;
     property MainTimeline : TmTimeline read FMainTimelineRef;
   end;
 
@@ -325,7 +324,7 @@ begin
   FResizingBuckets := false;
   FMainTimelineRef:= nil;
 
-  FMouseMoveData := _TmMouseMoveData.Create;
+  FMouseMoveData := TmTimerulerMouseMoveData.Create;
   Color := clBtnFace;
 
   FCurrentDate := Floor(Now);
@@ -344,19 +343,19 @@ end;
 
 
 
-procedure TmTimeruler.NotifyLayoutChanged(MustInvalidateTimebar : boolean);
+procedure TmTimeruler.NotifyLayoutChanged(const AMustInvalidateTimebar : boolean);
 begin
   NotifySubscribers(trLayoutChanged, 0);
   if Assigned(FOnLayoutChanged) then
     FOnLayoutChanged(Self);
-  if MustInvalidateTimebar then
+  if AMustInvalidateTimebar then
     Self.Invalidate();
 end;
 
 
 procedure TmTimeruler.MouseMove(Shift: TShiftState; X, Y: integer);
 var
-  fattore : Double;
+  factor : Double;
 begin
   if FResizingBuckets and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
   begin
@@ -365,10 +364,10 @@ begin
     //DebugLn('x:' + IntToStr(X) + ' bucket:' + IntToStr(FMouseMoveData.DistanceInTicks));
     if (FMouseMoveData.Distance < FMouseMoveData.LastCalculatedOneBucketWidth) then
     begin
-      fattore := 1 / FMouseMoveData.LastCalculatedOneBucketWidth;
+      factor := 1 / FMouseMoveData.LastCalculatedOneBucketWidth;
       FMouseMoveData.LastCalculatedOneBucketWidth := max(5,FMouseMoveData.LastCalculatedOneBucketWidth + (X - ((FMouseMoveData.DistanceInTicks - 1) * OneBucketWidth) - FMouseMoveData.Distance));
       OneBucketWidth := round(FMouseMoveData.LastCalculatedOneBucketWidth);
-      FMouseMoveData.Distance := (FMouseMoveData.LastCalculatedOneBucketWidth * fattore) * FMouseMoveData.Distance;
+      FMouseMoveData.Distance := (FMouseMoveData.LastCalculatedOneBucketWidth * factor) * FMouseMoveData.Distance;
     end
     else
     begin

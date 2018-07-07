@@ -20,7 +20,8 @@ uses
   {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$endif}
   Graphics;
 
-procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
+procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
+procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
 {$ifdef fpc}
 function IsDoubleBufferedNeeded: boolean;
 {$endif}
@@ -38,19 +39,7 @@ begin
 end;
 {$endif}
 
-
-procedure DrawBox(ACanvas: TCanvas; ARect: TRect);
-var
-  lack : integer;
-begin
-  ACanvas.FillRect(ARect);
-  ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
-  ACanvas.Line(ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
-  lack := (ARect.Top - ARect.Bottom) div 4;
-  ACanvas.Line(ARect.Left, ARect.Bottom + lack, ARect.Left, ARect.Top - lack);
-end;
-
-procedure WriteText(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
+procedure WriteText(ACanvas: TCanvas; const ARect: TRect; const AText: string; ATextAlignment: TAlignment);
 var
   TempFlags: cardinal;
   {$ifndef windows}
@@ -61,7 +50,7 @@ begin
   SetBkMode(ACanvas.Handle, TRANSPARENT);
   ACanvas.Font.Size := max(8, (ARect.Bottom - ARect.Top) - 10);
   {$ifndef windows}
-  newText := Text;
+  newText := AText;
   if (ARect.Width < ACanvas.TextWidth('..')) then
     exit;
   tw := ACanvas.TextWidth(newText);
@@ -70,7 +59,7 @@ begin
     newText := Copy(newText, 1, Length(newText) - 3) + '..';
     tw := ACanvas.TextWidth(newText);
   end;
-  case TextAlignment of
+  case ATextAlignment of
     taLeftJustify: xPos := ARect.Left;
     taRightJustify: xPos := ARect.Right - tw;
     taCenter: xPos := ARect.Left + ((ARect.Width - tw) div 2);
@@ -79,25 +68,61 @@ begin
   //DebugLn(IntToStr(xPos) + ' ' + newText + ' ' + IntToStr(ACanvas.Font.Size));
   {$else}
   TempFlags := 0;
-  case TextAlignment of
+  case ATextAlignment of
     taLeftJustify: TempFlags := DT_LEFT;
     taRightJustify: TempFlags := DT_RIGHT;
     taCenter: TempFlags := DT_CENTER;
   end;
   TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
 
-  if DrawText(ACanvas.Handle, PChar(Text), -1, ARect, TempFlags) = 0 then
+  if DrawText(ACanvas.Handle, PChar(AText), -1, ARect, TempFlags) = 0 then
     RaiseLastOSError;
   {$endif}
 end;
 
 
 
-procedure DrawBucketBox(ACanvas: TCanvas; ARect: TRect; const Text: string; TextAlignment: TAlignment);
+procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
+  procedure DrawBox(ACanvas: TCanvas; const ARect: TRect);
+  var
+    lack : integer;
+  begin
+    ACanvas.FillRect(ARect);
+    ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+    ACanvas.Line(ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
+    lack := (ARect.Top - ARect.Bottom) div 4;
+    ACanvas.Line(ARect.Left, ARect.Bottom + lack, ARect.Left, ARect.Top - lack);
+  end;
+var
+  BoxRect : TRect;
 begin
-  DrawBox(ACanvas, ARect);
-  InflateRect(ARect, -2, -2);
-  WriteText(ACanvas, ARect, Text, TextAlignment);
+  BoxRect := ARect;
+  DrawBox(ACanvas, BoxRect);
+  InflateRect(BoxRect, -2, -2);
+  WriteText(ACanvas, BoxRect, AText, ATextAlignment);
 end;
+
+procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
+
+
+  procedure DrawBox;
+  begin
+    ACanvas.FillRect(ARect);
+    ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+    ACanvas.Line(ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
+    ACanvas.Line(ARect.Left, ARect.Bottom, ARect.Left, ARect.Top);
+    ACanvas.Line(ARect.Right-1, ARect.Bottom, ARect.Right-1, ARect.Top);
+    if AIsFirst then
+      ACanvas.Line(ARect.Left, ARect.Top, ARect.Right, ARect.Top);;
+  end;
+var
+  BoxRect : TRect;
+begin
+  BoxRect := ARect;
+  DrawBox;
+  InflateRect(BoxRect, -2, -2);
+  WriteText(ACanvas, BoxRect, AText, ATextAlignment);
+end;
+
 
 end.

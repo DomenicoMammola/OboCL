@@ -21,8 +21,10 @@ type
 
   TForm1 = class(TForm)
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private
     FGanttChart : TmGanttChart;
+    FDataProvider : TTestDataProvider;
   public
 
   end;
@@ -47,6 +49,8 @@ procedure TForm1.FormCreate(Sender: TObject);
 var
   tmp : TmTimeline;
 begin
+  FDataProvider := TTestDataProvider.Create;
+
   FGanttChart := TmGanttChart.Create(Self);
   FGanttChart.Align:= alClient;
   FGanttChart.Parent := Self;
@@ -62,7 +66,14 @@ begin
   FGanttChart.TimeRuler.CurrentDate:= Now;
   FGanttChart.TimeRuler.MinDate:= Now - 100;
   FGanttChart.TimeRuler.MaxDate:= Now + 100;
+  FGanttChart.DataProvider := FDataProvider;
+  FGanttChart.Head.CellsColor:= clMoneyGreen;
   FGanttChart.Rebuild;
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  FDataProvider.Free;
 end;
 
 end.

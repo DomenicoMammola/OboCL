@@ -16,6 +16,9 @@ unit mTimerulerScales;
 
 interface
 
+const
+  DAYS_IN_A_MONTH : double = 30.41666666666667;
+
 type
 
   TmScale = class abstract

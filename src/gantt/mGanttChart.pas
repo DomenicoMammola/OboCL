@@ -18,7 +18,7 @@ uses
   Controls, ExtCtrls, Classes,
   ATScrollBar,
   mGantt, mGanttHead,
-  mTimeruler, mTimerulerEvents;
+  mTimeruler, mGanttDataProvider;
 
 type
 
@@ -32,10 +32,10 @@ type
     FRightPanel : TCustomPanel;
     FHorizontalScrollbar : TATScroll;
     FVerticalScrollbar : TATScroll;
-    function GetHeadWidth: integer;
+    function GetDataProvider: TmGanttDataProvider;
     procedure OnChangeHorizonalScrollbar (Sender : TObject);
     procedure OnTimerulerDateChanged (Sender : TObject);
-    procedure SetHeadWidth(AValue: integer);
+    procedure SetDataProvider(AValue: TmGanttDataProvider);
   protected
   public
     constructor Create(TheOwner: TComponent); override;
@@ -44,7 +44,8 @@ type
 
     property TimeRuler : TmTimeruler read FTimeRuler;
     property Gantt : TmGantt read FGantt;
-    property HeadWidth : integer read GetHeadWidth write SetHeadWidth;
+    property Head : TmGanttHead read FGanttHead;
+    property DataProvider : TmGanttDataProvider read GetDataProvider write SetDataProvider;
   end;
 
 
@@ -65,9 +66,9 @@ begin
   end;
 end;
 
-function TmGanttChart.GetHeadWidth: integer;
+function TmGanttChart.GetDataProvider: TmGanttDataProvider;
 begin
-  Result := FGanttHead.Width;
+  Result := FGanttHead.DataProvider;
 end;
 
 procedure TmGanttChart.OnTimerulerDateChanged(Sender: TObject);
@@ -80,11 +81,9 @@ begin
   end;
 end;
 
-procedure TmGanttChart.SetHeadWidth(AValue: integer);
+procedure TmGanttChart.SetDataProvider(AValue: TmGanttDataProvider);
 begin
-  if AValue = FGanttHead.Width then
-    exit;
-  FGanttHead.Width:= AValue;
+  FGanttHead.DataProvider := AValue;
 end;
 
 constructor TmGanttChart.Create(TheOwner: TComponent);
@@ -123,6 +122,8 @@ begin
   FTimeruler.Parent := FRightPanel;
   FTimeruler.Align:= alTop;
   FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
+
+  FGanttHead.Timeruler := FTimeruler;
 
   FGantt := TmGantt.Create(FRightPanel);
   FGantt.Parent := FRightPanel;

@@ -179,7 +179,7 @@ implementation
 
 uses
   dateutils, SysUtils,
-  mDateTimeUtility, mTimerulerDefs;
+  mDateTimeUtility;
 
 { TmScaleDayNotSaturdaySunday }
 

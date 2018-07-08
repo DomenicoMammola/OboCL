@@ -151,9 +151,7 @@ procedure TmGanttHead.SaveMouseMoveData(X, Y: integer);
 var
   dummy, tempHeight, timerulHeight : integer;
   CurrentPixelTop, CurrentPixelBottom : integer;
-  idxCell : integer;
 begin
-  idxCell:= 0;
   FMouseMoveData.Clear;
   if not PtInRect(ClientRect, Classes.Point(X, Y)) then
     exit;
@@ -167,21 +165,40 @@ begin
 
     tempHeight:= (FDataProvider.RowCount - FTopRow + 1) * RowHeight;
 
-    if (Y >= timerulHeight) and ( Y < tempHeight) then
+    if (Y >= timerulHeight) and ( Y <= tempHeight) then
     begin
       FMouseMoveData.ClickOnCell:= true;
-      idxCell := (Y - timerulHeight) div RowHeight;
+      FMouseMoveData.RowIndex := max(0,(Y - timerulHeight - DELIMITER_CLICKING_AREA))  div RowHeight;
+      {$IFDEF DEBUG}
+      DebugLn('Y:' + IntToStr(Y));
+      DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
+      {$ENDIF}
     end;
 
     if (FMouseMoveData.ClickOnCell) then
     begin
-      CurrentPixelTop := timerulHeight + (idxCell * RowHeight);
+      CurrentPixelTop := timerulHeight + (FMouseMoveData.RowIndex * RowHeight);
       CurrentPixelBottom:= CurrentPixelTop + RowHeight - 1;
-      if (Y >= CurrentPixelBottom - DELIMITER_CLICKING_AREA) and (Y < CurrentPixelBottom + DELIMITER_CLICKING_AREA) then
+      if (abs (Y - CurrentPixelBottom) <= DELIMITER_CLICKING_AREA) then
       begin
         FMouseMoveData.ClickOnCellDelimiter:= true;
         FMouseMoveData.Distance:= Y - CurrentPixelBottom;
+        FMouseMoveData.Origin := CurrentPixelBottom;
+        {$IFDEF DEBUG}
+        DebugLn('SaveMouseMoveData - Distance [REDUCE]:' + IntToStr(FMouseMoveData.Distance));
+        {$ENDIF}
+      end
+      else
+      if ((FMouseMoveData.RowIndex <> 0) or (TopRow > 0)) and (abs (Y - CurrentPixelTop) <= DELIMITER_CLICKING_AREA) then
+      begin
+        FMouseMoveData.ClickOnCellDelimiter:= true;
+        FMouseMoveData.Distance:= Y - CurrentPixelTop;
+        FMouseMoveData.Origin:= CurrentPixelTop;
+        {$IFDEF DEBUG}
+        DebugLn('SaveMouseMoveData - Distance [INCREASE]:' + IntToStr(FMouseMoveData.Distance));
+        {$ENDIF}
       end;
+
     end;
   end;
 end;
@@ -229,7 +246,8 @@ begin
     SaveMouseMoveData(X, Y);
     if FMouseMoveData.ClickOnCellDelimiter then
     begin
-      FMouseMoveData.LastCalculatedOneRowHeight := 0;
+      FMouseMoveData.OriginalRowHeight := Self.RowHeight;
+      FMouseMoveData.CalculatedIncrement := 0;
       // MouseCapture;
       FResizingRows := true;
     end;
@@ -238,12 +256,26 @@ begin
 end;
 
 procedure TmGanttHead.MouseMove(Shift: TShiftState; X, Y: integer);
-var
-  factor : Double;
 begin
   if FResizingRows and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
   begin
-    if (FMouseMoveData.LastCalculatedOneRowHeight = 0) then
+    if (FMouseMoveData.OriginalRowHeight = 0) then
+      FMouseMoveData.OriginalRowHeight := RowHeight;
+    if (FMouseMoveData.CalculatedIncrement = 0) then
+    begin
+      FMouseMoveData.CalculatedIncrement:= 1 / (FMouseMoveData.RowIndex + 1);
+      {$IFDEF DEBUG}
+      DebugLn('Calculated increment:' + FloatToStr(FMouseMoveData.CalculatedIncrement));
+      {$ENDIF}
+    end;
+    //if FMouseMoveData.Distance <> 0 then
+    //begin
+      //FMouseMoveData.LastCalculatedOneRowHeight:= FMouseMoveData.LastCalculatedOneRowHeight + FMouseMoveData.Distance;
+      RowHeight:= FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement);
+      //FMouseMoveData.Distance:= 0;
+      Invalidate;
+    //end;
+(*    if (FMouseMoveData.LastCalculatedOneRowHeight = 0) then
       FMouseMoveData.LastCalculatedOneRowHeight := RowHeight;
     if (FMouseMoveData.Distance < FMouseMoveData.LastCalculatedOneRowHeight) then
     begin
@@ -258,7 +290,9 @@ begin
       RowHeight := round(FMouseMoveData.LastCalculatedOneRowHeight);
       FMouseMoveData.Distance := trunc(FMouseMoveData.LastCalculatedOneRowHeight);
     end;
-    //DebugLn('dopo OneBucketWidth:' + IntToStr(FTimeScalesHeader.OneBucketWidth));
+    end;
+    end;
+    //DebugLn('dopo OneBucketWidth:' + IntToStr(FTimeScalesHeader.OneBucketWidth));*)
   end
   else
   begin

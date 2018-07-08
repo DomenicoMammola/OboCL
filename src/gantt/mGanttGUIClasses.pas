@@ -26,7 +26,10 @@ type
     ClickOnCellDelimiter : boolean;
 
     Distance : integer;
-    LastCalculatedOneRowHeight : double;
+    Origin : integer;
+    OriginalRowHeight : integer;
+    CalculatedIncrement : double;
+    RowIndex : integer;
     constructor Create;
     procedure Clear;
   end;
@@ -79,7 +82,10 @@ end;
 procedure TmGanttHeadMouseMoveData.Clear;
 begin
   Distance := 0;
-  LastCalculatedOneRowHeight := -1;
+  Origin := 0;
+  OriginalRowHeight:= 0;
+  CalculatedIncrement:= 0;
+  RowIndex := 0;
   ClickOnHead := false;
   ClickOnCell := false;
   ClickOnCellDelimiter := false;

@@ -45,6 +45,8 @@ var
   {$ifndef windows}
   xPos, tw : integer;
   newText : string;
+  {$else}
+  tmpRect : TRect;
   {$endif}
 begin
   SetBkMode(ACanvas.Handle, TRANSPARENT);
@@ -75,7 +77,8 @@ begin
   end;
   TempFlags := TempFlags or (DT_VCENTER + DT_SINGLELINE {$ifndef fpc}DT_WORD_ELLIPSIS{$endif});
 
-  if DrawText(ACanvas.Handle, PChar(AText), -1, ARect, TempFlags) = 0 then
+  tmpRect := ARect;
+  if DrawText(ACanvas.Handle, PChar(AText), -1, tmpRect, TempFlags) = 0 then
     RaiseLastOSError;
   {$endif}
 end;

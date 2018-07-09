@@ -25,6 +25,7 @@ uses
   LMessages,
   {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ENDIF}
+  {$IFDEF WINDOWS}Windows,{$ENDIF}
   mGanttDataProvider, mTimeruler, mGanttGUIClasses;
 
 type

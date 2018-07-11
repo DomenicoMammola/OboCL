@@ -186,6 +186,9 @@ type
 implementation
 
 uses
+  {$IFDEF DEBUG}
+  LazLogger,
+  {$ENDIF}
   Dialogs,
   mToast;
 
@@ -198,9 +201,10 @@ type
     Name: String;
     Index: integer;
 
-    ActualValue: variant;
     Changed: boolean;
     Configuration: TmEditorLineConfiguration;
+    ActualValue : variant;
+    OldActualValue : variant;
   public
     constructor Create;
     destructor Destroy; override;
@@ -448,19 +452,25 @@ var
   curLine : TEditorLine;
   tmpDouble : Double;
   errorMessage : String;
-  oldActualValue : variant;
 begin
   NewValue := trim(NewValue);
 
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  oldActualValue := curLine.ActualValue;
-
   if curLine.Configuration.ReadOnly <> roAllowEditing then
   begin
     NewValue := OldValue;
+
+    if (curLine.Configuration.EditorKind  in [ekCalendar, ekDialog, ekWizard, ekLookup]) then
+      curLine.ActualValue:= curLine.OldActualValue;
+
     exit;
   end;
+
+
+  if not (curLine.Configuration.EditorKind  in [ekCalendar, ekDialog, ekWizard, ekLookup]) then
+    curLine.OldActualValue := curLine.ActualValue;
+
 
   if (curLine.Configuration.EditorKind = ekSimple)
     or (curLine.Configuration.EditorKind = ekCalendar)
@@ -591,7 +601,7 @@ begin
   end;
 
   if Assigned(FOnValidateValueEvent) then
-    FOnValidateValueEvent(Self, curLine.Name, OldValue, NewValue, oldActualValue, curLine.ActualValue);
+    FOnValidateValueEvent(Self, curLine.Name, OldValue, NewValue, curLine.OldActualValue, curLine.ActualValue);
 
 
   if NewValue <> OldValue then
@@ -637,6 +647,7 @@ begin
         FValueListEditor.Cells[aCol, aRow] := str;
         aNewDisplayValue := str;
         aNewActualValue := calendarFrm.Date;
+        curLine.OldActualValue:= curLine.ActualValue;
         curLine.ActualValue:= calendarFrm.Date;
         Result := true;
       end;
@@ -653,6 +664,7 @@ begin
         FValueListEditor.Cells[aCol, aRow] := str;
         aNewDisplayValue := str;
         aNewActualValue := tmpValue;
+        curLine.OldActualValue:= curLine.ActualValue;
         curLine.ActualValue:= tmpValue;
         Result := true;
       end;
@@ -667,6 +679,7 @@ begin
         FValueListEditor.Cells[aCol, aRow] := str;
         aNewDisplayValue := str;
         aNewActualValue := tmpValue;
+        curLine.OldActualValue:= curLine.ActualValue;
         curLine.ActualValue:= tmpValue;
         Result := true;
       end;
@@ -707,6 +720,7 @@ begin
         aNewActualValue:= lookupFrm.SelectedValue;
 
         FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
+        curLine.OldActualValue:= curLine.ActualValue;
         curLine.ActualValue:= aNewActualValue;
         Result := true;
       end;
@@ -1102,6 +1116,9 @@ begin
       begin
         tmpLine.Configuration.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
         FSomethingChanged := FSomethingChanged or tmpLine.Configuration.ChangedValueDestination.TagChanged;
+        {$IFDEF DEBUG}
+        DebugLn(VarToStr(tmpLine.ActualValue));
+        {$ENDIF}
       end;
     end;
   end;

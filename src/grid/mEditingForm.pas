@@ -46,7 +46,7 @@ type
   TmEditingPanel = class;
 
   TmOnEditValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aNewDisplayValue: string; const aNewActualValue : variant) of object;
-  TmOnValidateValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant) of object;
+  TmOnValidateValueEvent = procedure (aSender : TmEditingPanel; const aName : string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant; out aErrorMessage : string) of object;
   TmOnShowDialogEvent = function (aSender : TmEditingPanel; const aName: string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant): boolean of object;
   TmOnActivateWizardEvent = function (aSender : TmEditingPanel; const aName: string; const aOldDisplayValue : String; var aNewDisplayValue : String; const aOldActualValue: Variant; var aNewActualValue: variant): boolean of object;
 
@@ -205,6 +205,8 @@ type
     Configuration: TmEditorLineConfiguration;
     ActualValue : variant;
     OldActualValue : variant;
+    OldDisplayValue : TNullableStringRecord;
+    EditorExecuted : boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -276,7 +278,11 @@ begin
   Name:= '';
   Index:= 0;
   ActualValue:= Null;
+  OldActualValue:= Null;
+  EditorExecuted:= false;
+  OldDisplayValue.SetNull;
   Changed:= false;
+  EditorExecuted:= false;
 end;
 
 destructor TEditorLine.Destroy;
@@ -451,7 +457,7 @@ var
   vDate : TDate;
   curLine : TEditorLine;
   tmpDouble : Double;
-  errorMessage : String;
+  errorMessage, RealOldValue : String;
 begin
   NewValue := trim(NewValue);
 
@@ -467,9 +473,16 @@ begin
     exit;
   end;
 
-
-  if not (curLine.Configuration.EditorKind  in [ekCalendar, ekDialog, ekWizard, ekLookup]) then
+  if (not (curLine.Configuration.EditorKind  in [ekCalendar, ekDialog, ekWizard, ekLookup])) or (not curLine.EditorExecuted) then
+  begin
+    RealOldValue := OldValue;
     curLine.OldActualValue := curLine.ActualValue;
+  end
+  else
+  begin
+    RealOldValue := curLine.OldDisplayValue.Value;
+  end;
+  curLine.EditorExecuted := false;
 
 
   if (curLine.Configuration.EditorKind = ekSimple)
@@ -488,7 +501,7 @@ begin
         end
         else
         begin
-          NewValue := OldValue;
+          NewValue := RealOldValue;
           TmToast.ShowText(SErrorNotADate);
         end;
       end
@@ -506,7 +519,7 @@ begin
         end
         else
         begin
-          NewValue := OldValue;
+          NewValue := RealOldValue;
           TmToast.ShowText(SErrorNotATime);
         end;
       end
@@ -518,7 +531,7 @@ begin
       begin
         if not IsNumeric(NewValue, false) then
         begin
-          NewValue := OldValue;
+          NewValue := RealOldValue;
           TmToast.ShowText(SErrorNotANumber);
         end
         else
@@ -544,7 +557,7 @@ begin
         end
         else
         begin
-          NewValue := OldValue;
+          NewValue := RealOldValue;
           TmToast.ShowText(SErrorNotANumber);
         end;
       end
@@ -570,7 +583,7 @@ begin
         NewValue := Uppercase(NewValue);
         if not mISO6346Utility.IsContainerCodeValid(NewValue, errorMessage) then
         begin
-          NewValue := OldValue;
+          NewValue := RealOldValue;
           TmToast.ShowText(errorMessage);
         end
         else
@@ -589,7 +602,7 @@ begin
         NewValue := Uppercase(NewValue);
         if not mISO6346Utility.IsMRNCodeValid(NewValue, errorMessage) then
         begin
-          NewValue := OldValue;
+          NewValue := RealOldValue;
           TmToast.ShowText(errorMessage);
         end
         else
@@ -601,7 +614,11 @@ begin
   end;
 
   if Assigned(FOnValidateValueEvent) then
-    FOnValidateValueEvent(Self, curLine.Name, OldValue, NewValue, curLine.OldActualValue, curLine.ActualValue);
+  begin
+    FOnValidateValueEvent(Self, curLine.Name, RealOldValue, NewValue, curLine.OldActualValue, curLine.ActualValue, errorMessage);
+    if errorMessage <> '' then
+      TmToast.ShowText(errorMessage);
+  end;
 
 
   if NewValue <> OldValue then
@@ -609,7 +626,7 @@ begin
     if Assigned(FOnEditValueEvent) then
       FOnEditValueEvent(Self, curLine.Name, NewValue, curLine.ActualValue);
 
-    curLine.Changed := curLine.Changed or (NewValue <> OldValue);
+    curLine.Changed := curLine.Changed or (NewValue <> RealOldValue);
   end;
 end;
 
@@ -628,6 +645,8 @@ begin
 
   if curLine.Configuration.ReadOnly <> roAllowEditing then
     exit;
+
+  curLine.OldDisplayValue.SetValue(FValueListEditor.Cells[aCol, aRow]);
 
   if curLine.Configuration.EditorKind = ekCalendar then
   begin
@@ -729,6 +748,8 @@ begin
       lookupFrm.Free;
     end;
   end;
+
+  curLine.EditorExecuted:= Result;
 end;
 
 function TmEditingPanel.OnValueListEditorClearValue(const aCol, aRow: integer): boolean;
@@ -855,6 +876,7 @@ begin
       raise Exception.Create('Nullable destination not set for field ' + curLine.Name);
 
     curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
+    curLine.OldActualValue:= curLine.ActualValue;
 
 
     if (curLine.Configuration.DataType = dtFloat) and (curLine.Configuration.ChangedValueDestination is TNullableDouble) then

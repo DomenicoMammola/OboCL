@@ -246,12 +246,16 @@ implementation
 
 uses
   SysUtils, LResources, Forms,
-  mQuickReadOnlyVirtualDataSet, mLookupForm, mVirtualDataSet, mCheckListForm,
+  mQuickReadOnlyVirtualDataSet, mLookupForm, mCheckListForm,
   mDoubleList, mGraphicsUtility;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
+  {$IFDEF LINUX}
+  DEFAULT_HEIGHT = 45;
+  {$ELSE}
   DEFAULT_HEIGHT = 40;
+  {$ENDIF}
 
 { TmCheckListFilterConditionPanel }
 
@@ -1085,6 +1089,7 @@ begin
   Result.Caption := '';
   Result.WordWrap:= true;
   Result.Alignment:= taCenter;
+  Result.Font.Size := Round((- Graphics.GetFontData(Result.Font.Handle).Height * 72 / Result.Font.PixelsPerInch));
 end;
 
 function TmFilterConditionPanel.CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;

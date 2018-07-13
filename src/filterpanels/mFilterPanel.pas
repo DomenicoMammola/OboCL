@@ -291,6 +291,7 @@ begin
   FEdit.Align := alBottom;
   FEdit.Text := '';
   FEdit.DirectInput:= false;
+  FEdit.Flat:= true;
 //  FEdit.OnEditingDone:= Self.OnEditValueChanged;
   FEdit.ButtonCaption:='...';
   FEdit.OnButtonClick:= Self.OnShowValuesList;
@@ -431,6 +432,7 @@ begin
   FEdit.OnEditingDone:= Self.OnEditValueChanged;
   FEdit.ButtonCaption:='...';
   FEdit.OnButtonClick:= Self.OnShowLookup;
+  FEdit.Flat:= true;
   FLabel := Self.CreateStandardLabel;
   FValueType:= efString;
   CreateStandardFilterMenu(FLabel, true);
@@ -963,11 +965,13 @@ begin
   FDateEditMin.Parent := FBottomPanel;
   FBottomPanel.Height:= FDateEditMin.Height;
   FDateEditMin.Align:= alClient;
+  FDateEditMin.Flat:= true;
   FDateEditMax := TmDateEdit.Create(Self);
   FDateEditMax.Parent := FBottomPanel;
   FDateEditMax.Align:= alRight;
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
+  FDateEditMax.Flat:= false;
   FLabel := Self.CreateStandardLabel;
   CreateStandardFilterMenu(FLabel, true);
 end;

@@ -15,7 +15,7 @@ unit mGanttHead;
 
 interface
 uses
-  Classes, Controls, Graphics,
+  Classes, Controls, Graphics, contnrs,
   {$IFDEF FPC}
   InterfaceBase,
   LCLIntf,
@@ -26,14 +26,18 @@ uses
   {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ENDIF}
   {$IFDEF WINDOWS}Windows,{$ENDIF}
-  mGanttDataProvider, mTimeruler, mGanttGUIClasses;
+  mGanttDataProvider, mTimeruler, mGanttGUIClasses, mGanttEvents;
 
 type
+
+  TmGanttHeadEventKind = (tghLayoutChanged, tghScrolled);
+
 
   { TmGanttHead }
 
   TmGanttHead = class(TCustomControl)
   strict private
+    FEventsSubscriptions: TObjectList;
     FDoubleBufferedBitmap: Graphics.TBitmap;
     FRowHeight : integer;
     FDataProvider : TmGanttDataProvider;
@@ -43,8 +47,10 @@ type
     FResizingRows : boolean;
     FMouseMoveData : TmGanttHeadMouseMoveData;
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
+    procedure SetRowHeight(AValue: integer);
     procedure SetTopRow(AValue: integer);
-    procedure Scrolled;
+    procedure NotifyScrolled(const AMustInvalidateHead : boolean);
+    procedure NotifySubscribers(EventKind: TmGanttHeadEventKind);
     procedure NotifyLayoutChanged(const AMustInvalidateHead : boolean);
     procedure SaveMouseMoveData(X, Y: integer);
   protected
@@ -55,10 +61,12 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    function SubscribeToEvents(SubscriberClass: TmGanttHeadEventsSubscriptionClass) : TmGanttHeadEventsSubscription;
+    procedure UnsubscribeFromEvents(Subscription: TmGanttHeadEventsSubscription);
   public
     property DataProvider : TmGanttDataProvider read FDataProvider write FDataProvider;
     property Timeruler : TmTimeruler read FTimeruler write FTimeruler;
-    property RowHeight : integer read FRowHeight write FRowHeight;
+    property RowHeight : integer read FRowHeight write SetRowHeight;
     property Color;
     property CellsColor : TColor read FCellsColor write FCellsColor;
     property TopRow : integer read FTopRow write SetTopRow;
@@ -130,20 +138,44 @@ begin
   end;
 end;
 
+procedure TmGanttHead.SetRowHeight(AValue: integer);
+begin
+  if FRowHeight=AValue then Exit;
+  FRowHeight:=AValue;
+end;
+
 procedure TmGanttHead.SetTopRow(AValue: integer);
 begin
   if FTopRow=AValue then Exit;
   FTopRow:= max(0,AValue);
-  Scrolled;
+  NotifyScrolled(true);
 end;
 
-procedure TmGanttHead.Scrolled;
+procedure TmGanttHead.NotifyScrolled(const AMustInvalidateHead : boolean);
 begin
-  Self.Invalidate;
+  Self.NotifySubscribers(tghScrolled);
+  if AMustInvalidateHead then
+    Self.Invalidate;
+end;
+
+procedure TmGanttHead.NotifySubscribers(EventKind: TmGanttHeadEventKind);
+var
+  f : integer;
+begin
+  for f := 0 to FEventsSubscriptions.Count - 1 do
+  begin
+    case EventKind of
+      tghLayoutChanged:
+        (FEventsSubscriptions.Items[f] as TmGanttHeadEventsSubscription).LayoutChanged;
+      tghScrolled:
+        (FEventsSubscriptions.Items[f] as TmGanttHeadEventsSubscription).Scrolled;
+    end;
+  end;
 end;
 
 procedure TmGanttHead.NotifyLayoutChanged(const AMustInvalidateHead: boolean);
 begin
+  Self.NotifySubscribers(tghLayoutChanged);
   if AMustInvalidateHead then
     Self.Invalidate;
 end;
@@ -272,7 +304,7 @@ begin
     //if FMouseMoveData.Distance <> 0 then
     //begin
       //FMouseMoveData.LastCalculatedOneRowHeight:= FMouseMoveData.LastCalculatedOneRowHeight + FMouseMoveData.Distance;
-      RowHeight:= FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement);
+      RowHeight:= max(5, FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement));
       //FMouseMoveData.Distance:= 0;
       Invalidate;
     //end;
@@ -321,14 +353,35 @@ begin
   FCellsColor:= clWhite;
   FMouseMoveData := TmGanttHeadMouseMoveData.Create;
 
+  FEventsSubscriptions := TObjectList.Create(true);
+
   FDoubleBufferedBitmap.SetSize(max(Screen.Width,3000), max(Screen.Height,2000));
 end;
 
 destructor TmGanttHead.Destroy;
 begin
+  FEventsSubscriptions.Free;
   FDoubleBufferedBitmap.Free;
   FMouseMoveData.Free;
   inherited Destroy;
+end;
+
+function TmGanttHead.SubscribeToEvents(SubscriberClass: TmGanttHeadEventsSubscriptionClass): TmGanttHeadEventsSubscription;
+var
+  newSubscription : TmGanttHeadEventsSubscription;
+begin
+  newSubscription := SubscriberClass.Create();
+  FEventsSubscriptions.Add(newSubscription);
+  Result := newSubscription;
+end;
+
+procedure TmGanttHead.UnsubscribeFromEvents(Subscription: TmGanttHeadEventsSubscription);
+var
+  i : integer;
+begin
+  i := FEventsSubscriptions.IndexOf(Subscription);
+  if (i >= 0) then
+    FEventsSubscriptions.Delete(i);
 end;
 
 end.

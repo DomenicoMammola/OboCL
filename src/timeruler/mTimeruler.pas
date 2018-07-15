@@ -31,7 +31,7 @@ uses
 
   mDateTimeUtility,
 
-  mTimerulerScales, mTimerulerTimelines, (* mTimerulerDefs, *) mTimerulerEvents,
+  mTimerulerScales, mTimerulerTimelines, mGanttEvents,
   mTimerulerGraphics, mGanttGUIClasses,
 
   Dialogs, Messages;
@@ -334,7 +334,7 @@ end;
 
 destructor TmTimeruler.Destroy;
 begin
-  FEventsSubscriptions.Destroy;
+  FEventsSubscriptions.Free;
   FTimelines.Free;
   FMouseMoveData.Free;
   FDoubleBufferedBitmap.Free;

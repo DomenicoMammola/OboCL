@@ -16,16 +16,7 @@ unit mTimerulerEvents;
 
 interface
 
-type
-  { TmTimerulerEventsSubscription }
 
-  TmTimerulerEventsSubscription =  class abstract
-  public
-    procedure LayoutChanged; virtual; abstract;
-    procedure DateChanged(const OldDate: TDateTime); virtual; abstract;
-  end;
-
-  TmTimerulerEventsSubscriptionClass = class of TmTimerulerEventsSubscription;
 
 implementation
 

@@ -58,7 +58,7 @@ implementation
 
 uses
   math, Forms,
-  mTimerulerEvents, mTimerulerGraphics;
+  mGanttEvents, mTimerulerGraphics;
 
 type
 

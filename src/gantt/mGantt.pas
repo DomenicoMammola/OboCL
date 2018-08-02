@@ -25,7 +25,7 @@ uses
   LResources,
   LMessages,
   {$ENDIF}
-  mTimeruler, mGanttDataProvider;
+  mTimeruler, mGanttDataProvider, mGanttHead;
 
 type
 
@@ -34,11 +34,15 @@ type
   TmGantt = class(TCustomControl)
   strict private
     FTimeRuler : TmTimeruler;
+    FHead : TmGanttHead;
     FVerticalLinesColor : TColor;
+    FHorizontalLinesColor : TColor;
     FDoubleBufferedBitmap: Graphics.TBitmap;
     FTopRow: integer;
+    procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
     procedure PaintVerticalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
+    procedure PaintHorizontalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure SetTopRow(AValue: integer);
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
   protected
@@ -48,8 +52,10 @@ type
     destructor Destroy; override;
 
     property TimeRuler : TmTimeruler read FTimeRuler write SetTimeRuler;
+    property Head : TmGanttHead read FHead write SetGanttHead;
     property Color;
     property VerticalLinesColor : TColor read FVerticalLinesColor write FVerticalLinesColor;
+    property HorizontalLinesColor : TColor read FHorizontalLinesColor write FHorizontalLinesColor;
     property TopRow: integer read FTopRow write SetTopRow;
   end;
 
@@ -72,6 +78,28 @@ type
     procedure DateChanged(const OldDate: TDateTime); override;
   end;
 
+  { TmGanttGanttHeadEventsSubscription }
+
+  TmGanttGanttHeadEventsSubscription = class (TmGanttHeadEventsSubscription)
+  private
+    FGantt : TmGantt;
+  public
+    procedure LayoutChanged; override;
+    procedure Scrolled; override;
+  end;
+
+{ TmGanttGanttHeadEventsSubscription }
+
+procedure TmGanttGanttHeadEventsSubscription.LayoutChanged;
+begin
+  FGantt.Invalidate;
+end;
+
+procedure TmGanttGanttHeadEventsSubscription.Scrolled;
+begin
+  FGantt.Invalidate;
+end;
+
 { TmGanttTimerulerEventsSubscription }
 
 procedure TmGanttTimerulerEventsSubscription.LayoutChanged;
@@ -91,6 +119,13 @@ begin
   if FTimeRuler=AValue then Exit;
   FTimeRuler := AValue;
   (FTimeRuler.SubscribeToEvents(TmGanttTimerulerEventsSubscription) as TmGanttTimerulerEventsSubscription).FGantt := Self;
+end;
+
+procedure TmGantt.SetGanttHead(AValue: TmGanttHead);
+begin
+  if FHead = AValue then Exit;
+  FHead := AValue;
+  (FHead.SubscribeToEvents(TmGanttGanttHeadEventsSubscription) as TmGanttGanttHeadEventsSubscription).FGantt := Self;
 end;
 
 procedure TmGantt.PaintVerticalLines(aCanvas: TCanvas; const aDrawingRect : TRect);
@@ -114,6 +149,30 @@ begin
   end;
 end;
 
+procedure TmGantt.PaintHorizontalLines(aCanvas: TCanvas; const aDrawingRect: TRect);
+var
+  startPixel : integer;
+  i, k, limit : integer;
+begin
+  if (not Assigned(FHead.DataProvider)) or (FHead.DataProvider.RowCount = 0) then
+    exit;
+
+  aCanvas.Pen.Color:= FHorizontalLinesColor;
+
+  limit := FHead.DataProvider.RowCount - FHead.TopRow;
+
+  i := aDrawingRect.Top + FHead.RowHeight -1;
+  k := 0;
+  while (i < aDrawingRect.Bottom) and (k < limit) do
+  begin
+    aCanvas.MoveTo(aDrawingRect.Left, i);
+    aCanvas.LineTo(aDrawingRect.Right, i);
+
+    i := i + FHead.RowHeight;
+    inc(k);
+  end;
+end;
+
 procedure TmGantt.SetTopRow(AValue: integer);
 begin
   if FTopRow = AValue then Exit;
@@ -131,6 +190,7 @@ begin
     aCanvas.FillRect(aRect);
 
     PaintVerticalLines(aCanvas, aRect);
+    PaintHorizontalLines(aCanvas, aRect);
   finally
     aCanvas.Unlock;
   end;
@@ -177,6 +237,7 @@ begin
   FDoubleBufferedBitmap.SetSize(max(Screen.Width,3000), max(Screen.Height,2000));
   Self.Color:= clWhite;
   FVerticalLinesColor:= clDkGray;
+  FHorizontalLinesColor:= clLtGray;
 end;
 
 destructor TmGantt.Destroy;

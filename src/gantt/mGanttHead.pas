@@ -306,7 +306,8 @@ begin
       //FMouseMoveData.LastCalculatedOneRowHeight:= FMouseMoveData.LastCalculatedOneRowHeight + FMouseMoveData.Distance;
       RowHeight:= max(5, FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement));
       //FMouseMoveData.Distance:= 0;
-      Invalidate;
+      //Invalidate;
+      NotifyLayoutChanged(true);
     //end;
 (*    if (FMouseMoveData.LastCalculatedOneRowHeight = 0) then
       FMouseMoveData.LastCalculatedOneRowHeight := RowHeight;

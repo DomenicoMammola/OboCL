@@ -34,6 +34,7 @@ type
     FVerticalScrollbar : TATScroll;
     function GetDataProvider: TmGanttDataProvider;
     procedure OnChangeHorizonalScrollbar (Sender : TObject);
+    procedure OnChangeVerticalScrollbar (Sender : TObject);
     procedure OnTimerulerDateChanged (Sender : TObject);
     procedure SetDataProvider(AValue: TmGanttDataProvider);
   protected
@@ -64,6 +65,11 @@ begin
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
   end;
+end;
+
+procedure TmGanttChart.OnChangeVerticalScrollbar(Sender: TObject);
+begin
+  FGanttHead.TopRow:= (Sender as TATScroll).Position;
 end;
 
 function TmGanttChart.GetDataProvider: TmGanttDataProvider;
@@ -105,6 +111,7 @@ begin
   FVerticalScrollbar.Parent := Self;
   FVerticalScrollbar.Align:= alRight;
   FVerticalScrollbar.Width:= FHorizontalScrollbar.Height;
+  FVerticalScrollbar.OnChange:= Self.OnChangeVerticalScrollbar;
 
   FGanttHead := TmGanttHead.Create(Self);
   FGanttHead.Parent := Self;
@@ -128,6 +135,7 @@ begin
   FGantt := TmGantt.Create(FRightPanel);
   FGantt.Parent := FRightPanel;
   FGantt.TimeRuler := FTimeruler;
+  FGantt.Head := FGanttHead;
   FGantt.Align := alClient;
 end;
 
@@ -140,13 +148,18 @@ procedure TmGanttChart.Rebuild;
 begin
   FTimeruler.OnDateChanged:= nil;
   FHorizontalScrollbar.OnChange:= nil;
+  FVerticalScrollbar.OnChange:= nil;
   try
     FTimeRuler.Rebuild;
     FHorizontalScrollbar.Min:= 1;
     FHorizontalScrollbar.Max:= FTimeRuler.MainTimeline.Scale.TicksBetween(FTimeRuler.MinDate, FTimeRuler.MaxDate);
     FHorizontalScrollbar.Position:= FTimeruler.MainTimeline.Scale.TicksBetween(FTimeruler.MinDate, FTimeruler.CurrentDate);
+    FVerticalScrollbar.Min := 0;
+    FVerticalScrollbar.Max:= FGanttHead.DataProvider.RowCount - 1;
+    FVerticalScrollbar.Position:= FGanttHead.TopRow;
   finally
-    FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;;
+    FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
+    FVerticalScrollbar.OnChange:= Self.OnChangeVerticalScrollbar;
     FHorizontalScrollbar.OnChange:= Self.OnChangeHorizonalScrollbar;
   end;
 end;

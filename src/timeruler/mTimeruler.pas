@@ -191,7 +191,7 @@ begin
   FCurrentDate:= FMainTimelineRef.Scale.TruncDate(FCurrentDate);
   FMinDate:= FMainTimelineRef.Scale.TruncDate(FMinDate);
   FMaxDate:= FMainTimelineRef.Scale.TruncDate(FMaxDate);
-  Self.Invalidate;
+  // Self.Invalidate;
   NotifyLayoutChanged(true);
 end;
 
@@ -366,15 +366,17 @@ begin
     begin
       factor := 1 / FMouseMoveData.LastCalculatedOneBucketWidth;
       FMouseMoveData.LastCalculatedOneBucketWidth := max(5,FMouseMoveData.LastCalculatedOneBucketWidth + (X - ((FMouseMoveData.DistanceInTicks - 1) * OneBucketWidth) - FMouseMoveData.Distance));
-      OneBucketWidth := round(FMouseMoveData.LastCalculatedOneBucketWidth);
+      FOneBucketWidth := round(FMouseMoveData.LastCalculatedOneBucketWidth);
       FMouseMoveData.Distance := (FMouseMoveData.LastCalculatedOneBucketWidth * factor) * FMouseMoveData.Distance;
     end
     else
     begin
       FMouseMoveData.LastCalculatedOneBucketWidth := max(5, X/ FMouseMoveData.DistanceInTicks );
-      OneBucketWidth := round(FMouseMoveData.LastCalculatedOneBucketWidth);
+      FOneBucketWidth := round(FMouseMoveData.LastCalculatedOneBucketWidth);
       FMouseMoveData.Distance := FMouseMoveData.LastCalculatedOneBucketWidth;
     end;
+    // Self.Invalidate;
+    NotifyLayoutChanged(true);
     //DebugLn('dopo OneBucketWidth:' + IntToStr(FTimeScalesHeader.OneBucketWidth));
   end
   else

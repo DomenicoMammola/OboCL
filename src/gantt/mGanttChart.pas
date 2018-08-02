@@ -53,7 +53,7 @@ type
 implementation
 
 uses
-  Forms;
+  Forms, Math;
 
 { TmGanttChart }
 
@@ -61,7 +61,7 @@ procedure TmGanttChart.OnChangeHorizonalScrollbar(Sender: TObject);
 begin
   FTimeruler.OnDateChanged:= nil;
   try
-    FTimeRuler.CurrentDate:= FTimeRuler.MainTimeline.Scale.AddTicks(FTimeRuler.MinDate, (Sender as TATScroll).Position);
+    FTimeRuler.CurrentDate:= min(FTimeruler.MaxDate, max(FTimeruler.MinDate, FTimeRuler.MainTimeline.Scale.AddTicks(FTimeRuler.MinDate, (Sender as TATScroll).Position)));
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
   end;
@@ -151,12 +151,14 @@ begin
   FVerticalScrollbar.OnChange:= nil;
   try
     FTimeRuler.Rebuild;
-    FHorizontalScrollbar.Min:= 1;
+    FHorizontalScrollbar.Min:= 0;
     FHorizontalScrollbar.Max:= FTimeRuler.MainTimeline.Scale.TicksBetween(FTimeRuler.MinDate, FTimeRuler.MaxDate);
     FHorizontalScrollbar.Position:= FTimeruler.MainTimeline.Scale.TicksBetween(FTimeruler.MinDate, FTimeruler.CurrentDate);
+    //FHorizontalScrollbar.PageSize:= 1;
     FVerticalScrollbar.Min := 0;
-    FVerticalScrollbar.Max:= FGanttHead.DataProvider.RowCount - 1;
+    FVerticalScrollbar.Max:= FGanttHead.DataProvider.RowCount;
     FVerticalScrollbar.Position:= FGanttHead.TopRow;
+    FVerticalScrollbar.PageSize:= 1;
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
     FVerticalScrollbar.OnChange:= Self.OnChangeVerticalScrollbar;

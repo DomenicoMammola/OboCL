@@ -375,7 +375,6 @@ begin
       FOneBucketWidth := round(FMouseMoveData.LastCalculatedOneBucketWidth);
       FMouseMoveData.Distance := FMouseMoveData.LastCalculatedOneBucketWidth;
     end;
-    // Self.Invalidate;
     NotifyLayoutChanged(true);
     //DebugLn('dopo OneBucketWidth:' + IntToStr(FTimeScalesHeader.OneBucketWidth));
   end

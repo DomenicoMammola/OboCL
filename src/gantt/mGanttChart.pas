@@ -17,6 +17,9 @@ interface
 uses
   Controls, ExtCtrls, Classes,
   ATScrollBar,
+  {$IFDEF FPC}
+  {$IFDEF DEBUG}LazLogger,{$ENDIF}
+  {$ENDIF}
   mGantt, mGanttHead,
   mTimeruler, mGanttDataProvider;
 
@@ -32,11 +35,13 @@ type
     FRightPanel : TCustomPanel;
     FHorizontalScrollbar : TATScroll;
     FVerticalScrollbar : TATScroll;
+    FHorizontalScrollbarRelativeIncrement : double;
     function GetDataProvider: TmGanttDataProvider;
     procedure OnChangeHorizonalScrollbar (Sender : TObject);
     procedure OnChangeVerticalScrollbar (Sender : TObject);
     procedure OnTimerulerDateChanged (Sender : TObject);
     procedure SetDataProvider(AValue: TmGanttDataProvider);
+    procedure AlignHorizontalScrollbarWithTimeruler;
   protected
   public
     constructor Create(TheOwner: TComponent); override;
@@ -53,7 +58,7 @@ type
 implementation
 
 uses
-  Forms, Math;
+  Forms, Math, sysutils;
 
 { TmGanttChart }
 
@@ -61,7 +66,10 @@ procedure TmGanttChart.OnChangeHorizonalScrollbar(Sender: TObject);
 begin
   FTimeruler.OnDateChanged:= nil;
   try
-    FTimeRuler.CurrentDate:= min(FTimeruler.MaxDate, max(FTimeruler.MinDate, FTimeRuler.MainTimeline.Scale.AddTicks(FTimeRuler.MinDate, (Sender as TATScroll).Position)));
+    {$IFDEF DEBUG}
+    DebugLn('OnChangeHorizontalScrollbar - position:' + IntToStr((Sender as TATScroll).Position));
+    {$ENDIF}
+    FTimeRuler.CurrentDate:= FTimeruler.MinDate + (Sender as TATScroll).Position * FHorizontalScrollbarRelativeIncrement;
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
   end;
@@ -81,7 +89,7 @@ procedure TmGanttChart.OnTimerulerDateChanged(Sender: TObject);
 begin
   FHorizontalScrollbar.OnChange:= nil;
   try
-    FHorizontalScrollbar.Position := FTimeRuler.MainTimeline.Scale.TicksBetween(FTimeruler.MinDate, FTimeruler.CurrentDate);
+    AlignHorizontalScrollbarWithTimeruler;
   finally
     FHorizontalScrollbar.OnChange:= OnChangeHorizonalScrollbar;
   end;
@@ -90,6 +98,11 @@ end;
 procedure TmGanttChart.SetDataProvider(AValue: TmGanttDataProvider);
 begin
   FGanttHead.DataProvider := AValue;
+end;
+
+procedure TmGanttChart.AlignHorizontalScrollbarWithTimeruler;
+begin
+  FHorizontalScrollbar.Position:= FTimeruler.MainTimeline.Scale.TicksBetween(FTimeruler.MinDate, FTimeruler.CurrentDate);
 end;
 
 constructor TmGanttChart.Create(TheOwner: TComponent);
@@ -104,6 +117,7 @@ begin
   FHorizontalScrollbar.Parent := Self;
   FHorizontalScrollbar.Align:= alBottom;
   FHorizontalScrollbar.Kind:= sbHorizontal;
+  FHorizontalScrollbar.PageSize:= 1;
   FHorizontalScrollbar.OnChange:= Self.OnChangeHorizonalScrollbar;
 
   FVerticalScrollbar := TATScroll.Create(Self);
@@ -152,9 +166,10 @@ begin
   try
     FTimeRuler.Rebuild;
     FHorizontalScrollbar.Min:= 0;
-    FHorizontalScrollbar.Max:= FTimeRuler.MainTimeline.Scale.TicksBetween(FTimeRuler.MinDate, FTimeRuler.MaxDate);
-    FHorizontalScrollbar.Position:= FTimeruler.MainTimeline.Scale.TicksBetween(FTimeruler.MinDate, FTimeruler.CurrentDate);
-    //FHorizontalScrollbar.PageSize:= 1;
+    FHorizontalScrollbar.Max:= FTimeruler.MainTimeline.Scale.TicksBetween(FTimeruler.MinDate, FTimeruler.MaxDate) + 1;
+    FHorizontalScrollbarRelativeIncrement := FTimeruler.MainTimeline.Scale.AddTicks(0, 1);
+    AlignHorizontalScrollbarWithTimeruler;
+    FHorizontalScrollbar.PageSize:= 1;
     FVerticalScrollbar.Min := 0;
     FVerticalScrollbar.Max:= FGanttHead.DataProvider.RowCount;
     FVerticalScrollbar.Position:= FGanttHead.TopRow;

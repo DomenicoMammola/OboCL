@@ -64,8 +64,8 @@ begin
   tmp.Color:= clSkyBlue;
   tmp.Flex:=4;
   FGanttChart.TimeRuler.CurrentDate:= Now;
-  FGanttChart.TimeRuler.MinDate:= Now - 100;
-  FGanttChart.TimeRuler.MaxDate:= Now + 100;
+  FGanttChart.TimeRuler.MinDate:= EncodeDate(2018,1,1);
+  FGanttChart.TimeRuler.MaxDate:= EncodeDate(2018,12,31);
   FGanttChart.DataProvider := FDataProvider;
   FGanttChart.Head.CellsColor:= clMoneyGreen;
   FGanttChart.Rebuild;

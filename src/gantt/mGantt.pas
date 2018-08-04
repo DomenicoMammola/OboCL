@@ -29,6 +29,8 @@ uses
 
 type
 
+  TmGanttRowDrawingAction = procedure (aCanvas : TCanvas; const aDrawingRect : TRect) of object;
+
   { TmGantt }
 
   TmGantt = class(TCustomControl)
@@ -45,6 +47,8 @@ type
     procedure PaintHorizontalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure SetTopRow(AValue: integer);
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
+    procedure DoForEveryRow(aCanvas: TCanvas; const aDrawingRect : TRect; aDrawingAction : TmGanttRowDrawingAction);
+    procedure DrawRowBottomLine(aCanvas : TCanvas; const aDrawingRect : TRect);
   protected
     procedure Paint; override;
   public
@@ -150,27 +154,12 @@ begin
 end;
 
 procedure TmGantt.PaintHorizontalLines(aCanvas: TCanvas; const aDrawingRect: TRect);
-var
-  startPixel : integer;
-  i, k, limit : integer;
 begin
   if (not Assigned(FHead.DataProvider)) or (FHead.DataProvider.RowCount = 0) then
     exit;
 
   aCanvas.Pen.Color:= FHorizontalLinesColor;
-
-  limit := FHead.DataProvider.RowCount - FHead.TopRow;
-
-  i := aDrawingRect.Top + FHead.RowHeight -1;
-  k := 0;
-  while (i < aDrawingRect.Bottom) and (k < limit) do
-  begin
-    aCanvas.MoveTo(aDrawingRect.Left, i);
-    aCanvas.LineTo(aDrawingRect.Right, i);
-
-    i := i + FHead.RowHeight;
-    inc(k);
-  end;
+  DoForEveryRow(aCanvas, aDrawingRect, Self.DrawRowBottomLine);
 end;
 
 procedure TmGantt.SetTopRow(AValue: integer);
@@ -191,9 +180,37 @@ begin
 
     PaintVerticalLines(aCanvas, aRect);
     PaintHorizontalLines(aCanvas, aRect);
+
   finally
     aCanvas.Unlock;
   end;
+end;
+
+procedure TmGantt.DoForEveryRow(aCanvas: TCanvas; const aDrawingRect: TRect; aDrawingAction: TmGanttRowDrawingAction);
+var
+  i, k, limit : integer;
+  rowRect : TRect;
+begin
+  limit := FHead.DataProvider.RowCount - FHead.TopRow;
+
+  rowRect := aDrawingRect;
+  rowRect.Bottom:= aDrawingRect.Top + FHead.RowHeight -1;
+  k := 0;
+  while (rowRect.Bottom < aDrawingRect.Bottom) and (k < limit) do
+  begin
+    aDrawingAction(aCanvas, rowRect);
+
+    rowRect.Top := rowRect.Bottom + 1;
+    rowRect.Bottom := rowRect.Bottom + FHead.RowHeight;
+    inc(k);
+  end;
+
+end;
+
+procedure TmGantt.DrawRowBottomLine(aCanvas: TCanvas; const aDrawingRect: TRect);
+begin
+  aCanvas.MoveTo(aDrawingRect.Left, aDrawingRect.Bottom);
+  aCanvas.LineTo(aDrawingRect.Right, aDrawingRect.Bottom);
 end;
 
 procedure TmGantt.Paint;

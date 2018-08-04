@@ -29,7 +29,7 @@ uses
 
 type
 
-  TmGanttRowDrawingAction = procedure (aCanvas : TCanvas; const aDrawingRect : TRect) of object;
+  TmGanttRowDrawingAction = procedure (aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer) of object;
 
   { TmGantt }
 
@@ -41,14 +41,18 @@ type
     FHorizontalLinesColor : TColor;
     FDoubleBufferedBitmap: Graphics.TBitmap;
     FTopRow: integer;
+    FCurrentDrawingStartDate, FCurrentDrawingEndDate : TDateTime;
+
     procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
     procedure PaintVerticalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure PaintHorizontalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
+    procedure PaintBars (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure SetTopRow(AValue: integer);
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
     procedure DoForEveryRow(aCanvas: TCanvas; const aDrawingRect : TRect; aDrawingAction : TmGanttRowDrawingAction);
-    procedure DrawRowBottomLine(aCanvas : TCanvas; const aDrawingRect : TRect);
+    procedure DrawRowBottomLine(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
+    procedure DrawRowBars(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
   protected
     procedure Paint; override;
   public
@@ -162,6 +166,13 @@ begin
   DoForEveryRow(aCanvas, aDrawingRect, Self.DrawRowBottomLine);
 end;
 
+procedure TmGantt.PaintBars(aCanvas: TCanvas; const aDrawingRect: TRect);
+begin
+  FCurrentDrawingStartDate := FTimeRuler.MainTimeline.Scale.TruncDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Left));
+  FCurrentDrawingEndDate := FTimeRuler.MainTimeline.Scale.TruncDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Right));
+  DoForEveryRow(aCanvas, aDrawingRect, DrawRowBars);
+end;
+
 procedure TmGantt.SetTopRow(AValue: integer);
 begin
   if FTopRow = AValue then Exit;
@@ -181,6 +192,7 @@ begin
     PaintVerticalLines(aCanvas, aRect);
     PaintHorizontalLines(aCanvas, aRect);
 
+    PaintBars(aCanvas, aRect);
   finally
     aCanvas.Unlock;
   end;
@@ -198,7 +210,7 @@ begin
   k := 0;
   while (rowRect.Bottom < aDrawingRect.Bottom) and (k < limit) do
   begin
-    aDrawingAction(aCanvas, rowRect);
+    aDrawingAction(aCanvas, rowRect, FHead.TopRow + k);
 
     rowRect.Top := rowRect.Bottom + 1;
     rowRect.Bottom := rowRect.Bottom + FHead.RowHeight;
@@ -207,10 +219,35 @@ begin
 
 end;
 
-procedure TmGantt.DrawRowBottomLine(aCanvas: TCanvas; const aDrawingRect: TRect);
+procedure TmGantt.DrawRowBottomLine(aCanvas: TCanvas; const aDrawingRect: TRect; const aRowIndex : integer);
 begin
   aCanvas.MoveTo(aDrawingRect.Left, aDrawingRect.Bottom);
   aCanvas.LineTo(aDrawingRect.Right, aDrawingRect.Bottom);
+end;
+
+procedure TmGantt.DrawRowBars(aCanvas: TCanvas; const aDrawingRect: TRect; const aRowIndex: integer);
+var
+  bars : TList;
+  i : integer;
+  currentBar : TmGanttBarDatum;
+begin
+  if not Assigned(FHead) then
+    exit;
+  if not Assigned(FHead.DataProvider) then
+    exit;
+
+  bars := TList.Create;
+  try
+    FHead.DataProvider.GetGanttBars(aRowIndex, FCurrentDrawingStartDate, FCurrentDrawingEndDate, bars);
+    for i := 0 to bars.Count -1 do
+    begin
+      currentBar := TmGanttBarDatum(bars.Items[i]);
+
+
+    end;
+  finally
+    bars.Free;
+  end;
 end;
 
 procedure TmGantt.Paint;

@@ -15,6 +15,7 @@ type
   TTestDataProvider = class (TmGanttDataProvider)
   public
     function RowCount : integer; override;
+    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); override;
   end;
 
   { TForm1 }
@@ -41,6 +42,11 @@ implementation
 function TTestDataProvider.RowCount: integer;
 begin
   Result := 24;
+end;
+
+procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TList);
+begin
+
 end;
 
 { TForm1 }

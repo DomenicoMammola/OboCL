@@ -16,10 +16,20 @@ unit mGanttDataProvider;
 interface
 
 uses
-  contnrs,
+  contnrs, Graphics, Classes,
   mGanttEvents;
 
 type
+  TmGanttBarDatum = class
+  strict private
+    FStartTime : TDateTime;
+    FEndTime : TDateTime;
+    FColor : TColor;
+  public
+    property StartTime: TDateTime read FStartTime write FStartTime;
+    property EndTime: TDateTime read FEndTime write FEndTime;
+    property Color : TColor read FColor write FColor;
+  end;
 
   { TmGanttDataProvider }
 
@@ -30,10 +40,9 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     function RowCount : integer; virtual; abstract;
+    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); virtual; abstract;
     function SubscribeToEvents(SubscriberClass: TmGanttDataProviderEventsSubscriptionClass) : TmGanttDataProviderEventsSubscription;
     procedure UnsubscribeFromEvents(Subscription: TmGanttDataProviderEventsSubscription);
-  public
-
   end;
 
 implementation

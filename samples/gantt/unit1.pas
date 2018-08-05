@@ -5,15 +5,20 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
-  mGanttChart, mTimerulerScales, mTimerulerTimelines, mGanttDataProvider;
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, contnrs,
+  mGanttChart, mTimerulerScales, mTimerulerTimelines, mGanttDataProvider, mDateTimeUtility;
 
 type
 
   { TTestDataProvider }
 
   TTestDataProvider = class (TmGanttDataProvider)
+  private
+    FBars : TObjectList;
   public
+    constructor Create; override;
+    destructor Destroy; override;
+
     function RowCount : integer; override;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); override;
   end;
@@ -39,14 +44,42 @@ implementation
 
 { TTestDataProvider }
 
+constructor TTestDataProvider.Create;
+var
+  i : integer;
+  tmp : TmGanttBarDatum;
+begin
+  inherited;
+  FBars := TObjectList.Create(true);
+  for i := 0 to 23 do
+  begin
+    tmp := TmGanttBarDatum.Create;
+    tmp.StartTime:= EncodeDate(2018, 1, i + 1);
+    tmp.EndTime:= tmp.StartTime + Random(100) / 10;
+    tmp.Color:= clYellow;
+    FBars.Add(tmp);
+  end;
+end;
+
+destructor TTestDataProvider.Destroy;
+begin
+  FBars.Free;
+  inherited Destroy;
+end;
+
 function TTestDataProvider.RowCount: integer;
 begin
-  Result := 24;
+  Result := FBars.Count;
 end;
 
 procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TList);
+var
+  curBar : TmGanttBarDatum;
 begin
-
+  aGanttBars.Clear;
+  curBar := FBars.Items[aRowIndex] as TmGanttBarDatum;
+  if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
+    aGanttBars.Add(curBar);
 end;
 
 { TForm1 }

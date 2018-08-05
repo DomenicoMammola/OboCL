@@ -18,10 +18,12 @@ interface
 uses
   Classes,
   {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$endif}
-  Graphics;
+  Graphics,
+  mGanttDataProvider;
 
 procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
+procedure DrawBar(ACanvas: TCanvas; const ARect: TRect; aBar : TmGanttBarDatum);
 {$ifdef fpc}
 function IsDoubleBufferedNeeded: boolean;
 {$endif}
@@ -33,6 +35,15 @@ uses
   mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF} {$IFDEF FPC},graphutil{$ENDIF};
 
 {$ifdef fpc}
+
+procedure DrawBar(ACanvas: TCanvas; const ARect: TRect; aBar: TmGanttBarDatum);
+begin
+  ACanvas.Brush.Color:= aBar.Color;
+  ACanvas.FillRect(ARect);
+  ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+  ACanvas.Rectangle(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom);
+end;
+
 function IsDoubleBufferedNeeded: boolean;
 begin
   Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;

@@ -230,6 +230,7 @@ var
   bars : TList;
   i : integer;
   currentBar : TmGanttBarDatum;
+  barRect : TRect;
 begin
   if not Assigned(FHead) then
     exit;
@@ -242,8 +243,11 @@ begin
     for i := 0 to bars.Count -1 do
     begin
       currentBar := TmGanttBarDatum(bars.Items[i]);
-
-
+      barRect.Left := FTimeRuler.DateTimeToPixels(currentBar.StartTime);
+      barRect.Right := FTimeRuler.DateTimeToPixels(currentBar.EndTime);
+      barRect.Top := trunc(aDrawingRect.Height * 0.1) + aDrawingRect.Top;
+      barRect.Bottom := aDrawingRect.Bottom - trunc(aDrawingRect.Height * 0.1);
+      DrawBar(aCanvas, barRect, currentBar);
     end;
   finally
     bars.Free;

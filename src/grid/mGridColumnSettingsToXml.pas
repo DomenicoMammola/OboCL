@@ -104,13 +104,24 @@ begin
 end;
 
 procedure AddErrataCorrigeForFieldName(const aOriginalString, aNewString: String);
+var
+  i : integer;
 begin
   if not Assigned (ErrataCorrigeFieldNamesOriginals) then
     ErrataCorrigeFieldNamesOriginals := TStringList.Create();
   if not Assigned(ErrataCorrigeFieldNamesReplacements) then
     ErrataCorrigeFieldNamesReplacements := TStringList.Create();
-  ErrataCorrigeFieldNamesOriginals.Add(aOriginalString);
-  ErrataCorrigeFieldNamesReplacements.Add(aNewString);
+  i := ErrataCorrigeFieldNamesOriginals.IndexOf(aOriginalString);
+  if i >= 0 then
+  begin
+    if ErrataCorrigeFieldNamesReplacements.Strings[i] <> aNewString then
+      raise Exception.Create('Two different aliases for [' + aOriginalString + ']');
+  end
+  else
+  begin
+    ErrataCorrigeFieldNamesOriginals.Add(aOriginalString);
+    ErrataCorrigeFieldNamesReplacements.Add(aNewString);
+  end;
 end;
 
 

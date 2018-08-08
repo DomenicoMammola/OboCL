@@ -42,6 +42,8 @@ type
     destructor Destroy; override;
     function Execute (const aCaption : String = '') : boolean;
 
+    class function ExecuteDialog (const aCaption: String; var aDate : TDate) : boolean;
+
     property Date : TDate read FCurrentDate write FCurrentDate;
   end;
 
@@ -94,6 +96,20 @@ begin
       Result := false;
   finally
     Frm.Free;
+  end;
+end;
+
+class function TmCalendarDialog.ExecuteDialog(const aCaption: String; var aDate: TDate): boolean;
+var
+  dlg : TmCalendarDialog;
+begin
+  dlg := TmCalendarDialog.Create;
+  try
+    Result := dlg.Execute(aCaption);
+    if Result then
+      aDate := dlg.Date;
+  finally
+    dlg.Free;
   end;
 end;
 

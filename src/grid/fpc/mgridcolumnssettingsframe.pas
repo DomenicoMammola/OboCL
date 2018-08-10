@@ -15,16 +15,20 @@ unit mGridColumnsSettingsFrame;
 interface
 
 uses
-  Classes, SysUtils, BufDataset, db, memds, FileUtil, Forms, Controls, DBGrids,
-  Menus,
+  Classes, SysUtils, BufDataset, FileUtil, Forms, Controls,
+  Menus, ExtCtrls, StdCtrls, EditBtn,
 
-  mGridColumnSettings;
+  OMultiPanel, oMultiPanelSetup,
+
+  mGridColumnSettings, mUtility;
 
 resourcestring
-  SNameFieldLabel = 'Name';
-  SVisibleFieldLabel = 'Visible';
-  SLabelFieldLabel = 'Label';
-  SFormatFieldLabel = 'Format';
+  SLabelHiddenCols = 'Hidden columns';
+  SLabelVisibleCols = 'Visible columns';
+  SLabelProperties = 'Properties of column';
+  SLabelLabel = 'Label:';
+  SLabelFormat = 'Display format:';
+  SButtonFind = 'Find..';
   SHideAllCommand = 'Hide all';
 
 type
@@ -32,17 +36,38 @@ type
   { TGridColumnsSettingsFrame }
 
   TGridColumnsSettingsFrame = class(TFrame)
-    DataSourceColSettings: TDataSource;
-    ColSettingsDataset: TMemDataset;
-  private
-    const FLD_FIELDNAME = 'CSDFFieldName';
-    const FLD_VISIBLE = 'CSDFVisible';
-    const FLD_LABEL = 'CSDFDisplayLabel';
-    const FLD_FORMAT = 'CSDFDisplayFormat';
-  private
+  strict private
     FSettings : TmGridColumnsSettings;
-    FColSettingsGrid: TDBGrid;
-    FGridMenu: TPopupMenu;
+    FRootPanel : TOMultiPanel;
+    FHiddenColsPanel, FVisibleColsPanel, FPropertiesPanel,
+      FLabelPanel, FFormatPanel: TPanel;
+    FHiddenColFindBtn, FVisibleColFindBtn : TEditButton;
+    FLabelHidden, FLabelVisible, FPropertiesLabel: TLabel;
+    FListBoxHiddenColumns, FListBoxVisibleColumns : TListBox;
+    FLELabel, FLEFormat: TLabeledEdit;
+    FVisibleColsMenu : TPopupMenu;
+
+    FModifiedSettings : TmGridColumnsSettings;
+    FCurrentProperties: TmGridColumnSettings;
+    procedure ClearProperties;
+    procedure CreateHiddenColsPanel;
+    procedure CreateVisibleColsPanel;
+    procedure CreatePropertiesPanel;
+    procedure LBHiddenColumnsDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+
+    procedure LBVisibleColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure LBVisibleColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+    procedure LBVisibleColumnsSelectionChange(Sender: TObject; User: boolean);
+    procedure LBVisibleColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
+
+    procedure LBHiddenColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure LBHiddenColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+    procedure LBHiddenColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
+
+    procedure LEFormatEditingDone(Sender: TObject);
+    procedure LELabelEditingDone(Sender: TObject);
+    procedure OnFindHiddenCol(Sender: TObject);
+    procedure OnFindVisibleCol(Sender: TObject);
     procedure OnHideAllFields(Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -61,74 +86,339 @@ uses
 
 { TGridColumnsSettingsFrame }
 
-procedure TGridColumnsSettingsFrame.OnHideAllFields(Sender: TObject);
-var
-  curBookmark: TBookMark;
+procedure TGridColumnsSettingsFrame.LBVisibleColumnsSelectionChange(Sender: TObject; User: boolean);
 begin
-  ColSettingsDataset.DisableControls;
-  try
-    curBookmark := ColSettingsDataset.Bookmark;
-
-    ColSettingsDataset.First;
-    while not ColSettingsDataset.EOF do
-    begin
-      ColSettingsDataset.Edit;
-      ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean:= false;
-      ColSettingsDataset.Post;
-      ColSettingsDataset.Next;
-    end;
-    ColSettingsDataset.GotoBookmark(curBookmark);
-  finally
-    ColSettingsDataset.EnableControls;
+  ClearProperties;
+  if (FListBoxVisibleColumns.SelCount = 1) and (FListBoxVisibleColumns.ItemIndex >= 0) then
+  begin
+    FCurrentProperties:= FListBoxVisibleColumns.Items.Objects[FListBoxVisibleColumns.ItemIndex] as TmGridColumnSettings;
+    FLELabel.Text:= FCurrentProperties.DisplayLabel.AsString;
+    FLEFormat.Text:= FCurrentProperties.DisplayFormat.AsString;
   end;
 end;
 
-constructor TGridColumnsSettingsFrame.Create(TheOwner: TComponent);
+procedure TGridColumnsSettingsFrame.LBHiddenColumnsDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+begin
+
+end;
+
+procedure TGridColumnsSettingsFrame.LBVisibleColumnsDragDrop(Sender,Source: TObject; X, Y: Integer);
 var
-  tmpMenuItem: TMenuItem;
+  dest, prev : integer;
+  old: String;
+  oldObj : TObject;
+  pt : TPoint;
+begin
+  if Source = FListBoxVisibleColumns then
+  begin
+    prev := FListBoxVisibleColumns.ItemIndex;
+    pt.x:= X;
+    pt.y:= Y;
+    dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
+    old := FListBoxVisibleColumns.Items[prev];
+    oldObj := FListBoxVisibleColumns.Items.Objects[prev];
+
+    if dest >= 0 then
+    begin
+      FListBoxVisibleColumns.DeleteSelected;
+      if dest < prev then
+        FListBoxVisibleColumns.Items.InsertObject(dest, old, oldObj)
+      else
+        FListBoxVisibleColumns.Items.InsertObject(dest - 1, old, oldObj);
+    end;
+  end
+  else if Source = FListBoxHiddenColumns then
+  begin
+    prev := FListBoxHiddenColumns.ItemIndex;
+    pt.x:= X;
+    pt.y:= Y;
+    dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
+    old := FListBoxHiddenColumns.Items[prev];
+    oldObj := FListBoxHiddenColumns.Items.Objects[prev];
+
+    FListBoxHiddenColumns.DeleteSelected;
+    if dest >= 0 then
+      FListBoxVisibleColumns.Items.InsertObject(dest, old, oldObj)
+    else
+      FListBoxVisibleColumns.AddItem(old, oldObj);
+  end;
+end;
+
+procedure TGridColumnsSettingsFrame.LBVisibleColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+begin
+  Accept := (Source = FListBoxVisibleColumns) or (Source = FListBoxHiddenColumns);
+end;
+
+procedure TGridColumnsSettingsFrame.LBVisibleColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
+begin
+  //
+end;
+
+procedure TGridColumnsSettingsFrame.LBHiddenColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
+var
+  dest, prev : integer;
+  old: String;
+  oldObj : TObject;
+  pt : TPoint;
+begin
+  prev := FListBoxVisibleColumns.ItemIndex;
+  pt.x:= X;
+  pt.y:= Y;
+  dest := FListBoxHiddenColumns.ItemAtPos(pt, true);
+  old := FListBoxVisibleColumns.Items[prev];
+  oldObj := FListBoxVisibleColumns.Items.Objects[prev];
+
+  FListBoxVisibleColumns.DeleteSelected;
+  if dest >= 0 then
+    FListBoxHiddenColumns.Items.InsertObject(dest, old, oldObj)
+  else
+    FListBoxHiddenColumns.AddItem(old, oldObj);
+end;
+
+procedure TGridColumnsSettingsFrame.LBHiddenColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+begin
+  Accept := (Source = FListBoxVisibleColumns);
+end;
+
+procedure TGridColumnsSettingsFrame.LBHiddenColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
+begin
+  //
+end;
+
+procedure TGridColumnsSettingsFrame.LEFormatEditingDone(Sender: TObject);
+begin
+  if Assigned(FCurrentProperties) then
+  begin
+    if Trim(FLEFormat.Text) <> '' then
+      FCurrentProperties.DisplayFormat.Value:= Trim(FLEFormat.Text)
+    else
+      FCurrentProperties.DisplayFormat.IsNull:= true;
+  end;
+end;
+
+procedure TGridColumnsSettingsFrame.LELabelEditingDone(Sender: TObject);
+begin
+  if Assigned(FCurrentProperties) then
+  begin
+    if Trim(FLELabel.Text) <> '' then
+      FCurrentProperties.DisplayLabel.Value:= Trim(FLELabel.Text)
+    else
+      FCurrentProperties.DisplayLabel.IsNull:= true;
+  end;
+end;
+
+procedure TGridColumnsSettingsFrame.OnFindHiddenCol(Sender: TObject);
+var
+  start, i: integer;
+begin
+  if FHiddenColFindBtn.Text = '' then
+    exit;
+
+  if (FListBoxHiddenColumns.ItemIndex >= 0) then
+    start := FListBoxHiddenColumns.ItemIndex
+  else
+    start := 0;
+  for i := start + 1 to FListBoxHiddenColumns.Count - 1 do
+  begin
+    if Pos(Uppercase(FHiddenColFindBtn.Text), Uppercase(FListBoxHiddenColumns.Items[i])) > 0 then
+    begin
+      FListBoxHiddenColumns.ItemIndex:= i;
+      exit;
+    end;
+  end;
+  for i := 0 to start do
+  begin
+    if Pos(Uppercase(FHiddenColFindBtn.Text), Uppercase(FListBoxHiddenColumns.Items[i])) > 0 then
+    begin
+      FListBoxHiddenColumns.ItemIndex:= i;
+      exit;
+    end;
+  end;
+end;
+
+procedure TGridColumnsSettingsFrame.OnFindVisibleCol(Sender: TObject);
+var
+  start, i: integer;
+begin
+  if FVisibleColFindBtn.Text = '' then
+    exit;
+
+  if (FListBoxVisibleColumns.ItemIndex >= 0) then
+    start := FListBoxVisibleColumns.ItemIndex
+  else
+    start := 0;
+  for i := start + 1 to FListBoxVisibleColumns.Count - 1 do
+  begin
+    if Pos(Uppercase(FVisibleColFindBtn.Text), Uppercase(FListBoxVisibleColumns.Items[i])) > 0 then
+    begin
+      FListBoxVisibleColumns.ItemIndex:= i;
+      exit;
+    end;
+  end;
+  for i := 0 to start do
+  begin
+    if Pos(Uppercase(FVisibleColFindBtn.Text), Uppercase(FListBoxVisibleColumns.Items[i])) > 0 then
+    begin
+      FListBoxVisibleColumns.ItemIndex:= i;
+      exit;
+    end;
+  end;
+end;
+
+procedure TGridColumnsSettingsFrame.OnHideAllFields(Sender: TObject);
+var
+  i : integer;
+  op : TmGridColumnSettings;
+begin
+  for i := FListBoxVisibleColumns.Count - 1 downto 0 do
+  begin
+    op := FListBoxVisibleColumns.Items.Objects[i] as TmGridColumnSettings;
+    FListBoxHiddenColumns.Items.InsertObject(0, FListBoxVisibleColumns.Items[i], op);
+  end;
+  FListBoxVisibleColumns.Clear;
+end;
+
+procedure TGridColumnsSettingsFrame.CreateHiddenColsPanel;
+begin
+  FHiddenColsPanel.BevelOuter:= bvNone;
+
+  FHiddenColFindBtn:= TEditButton.Create(FHiddenColsPanel);
+  FHiddenColFindBtn.Parent:= FHiddenColsPanel;
+  FHiddenColFindBtn.ButtonWidth:= 50;
+  FHiddenColFindBtn.Align:= alTop;
+  FHiddenColFindBtn.OnButtonClick:= @OnFindHiddenCol;
+  FHiddenColFindBtn.ButtonCaption:= SButtonFind;
+
+  FLabelHidden:= TLabel.Create(FHiddenColsPanel);
+  FLabelHidden.Parent:= FHiddenColsPanel;
+  FLabelHidden.Alignment:= taCenter;
+  FLabelHidden.Align:= alTop;
+  FLabelHidden.Caption:= SLabelHiddenCols;
+
+  FListBoxHiddenColumns:= TListBox.Create(FHiddenColsPanel);
+  FListBoxHiddenColumns.Parent:= FHiddenColsPanel;
+  FListBoxHiddenColumns.Align:= alClient;
+  FListBoxHiddenColumns.OnDrawItem:= @Self.LBHiddenColumnsDrawItem;
+  FListBoxHiddenColumns.DragMode:= dmAutomatic;
+  FListBoxHiddenColumns.OnDragDrop:= @LBHiddenColumnsDragDrop;
+  FListBoxHiddenColumns.OnDragOver:= @LBHiddenColumnsDragOver;
+  FListBoxHiddenColumns.OnStartDrag:= @LBHiddenColumnsStartDrag;
+end;
+
+procedure TGridColumnsSettingsFrame.CreateVisibleColsPanel;
+var
+  tmpMenuItem : TMenuItem;
+begin
+  FVisibleColsPanel.BevelOuter:= bvNone;
+
+  FVisibleColFindBtn:= TEditButton.Create(FVisibleColsPanel);
+  FVisibleColFindBtn.Parent:= FVisibleColsPanel;
+  FVisibleColFindBtn.ButtonWidth:= 50;
+  FVisibleColFindBtn.Align:= alTop;
+  FVisibleColFindBtn.OnButtonClick:= @OnFindVisibleCol;
+  FVisibleColFindBtn.ButtonCaption:= SButtonFind;
+
+  FLabelVisible:= TLabel.Create(FVisibleColsPanel);
+  FLabelVisible.Parent:= FVisibleColsPanel;
+  FLabelVisible.Alignment:= taCenter;
+  FLabelVisible.Align:= alTop;
+  FLabelVisible.Caption:= SLabelVisibleCols;
+
+  FListBoxVisibleColumns:= TListBox.Create(FVisibleColsPanel);
+  FListBoxVisibleColumns.Parent:= FVisibleColsPanel;
+  FListBoxVisibleColumns.Align:= alClient;
+  FListBoxVisibleColumns.DragMode:= dmAutomatic;
+  FListBoxVisibleColumns.OnDragDrop:= @LBVisibleColumnsDragDrop;
+  FListBoxVisibleColumns.OnDragOver:= @LBVisibleColumnsDragOver;
+  FListBoxVisibleColumns.OnSelectionChange:= @LBVisibleColumnsSelectionChange;
+  FListBoxVisibleColumns.OnStartDrag:= @LBVisibleColumnsStartDrag;
+
+  FVisibleColsMenu := TPopupMenu.Create(FListBoxVisibleColumns);
+  FListBoxVisibleColumns.PopupMenu := FVisibleColsMenu;
+  tmpMenuItem := TMenuItem.Create(FVisibleColsMenu);
+  FVisibleColsMenu.Items.Add(tmpMenuItem);
+  tmpMenuItem.Caption:= SHideAllCommand;
+  tmpMenuItem.OnClick:= @OnHideAllFields;
+
+end;
+
+procedure TGridColumnsSettingsFrame.CreatePropertiesPanel;
+begin
+  FPropertiesPanel.BevelOuter := bvNone;
+
+  FFormatPanel:= TPanel.Create(FPropertiesPanel);
+  FFormatPanel.Parent:= FPropertiesPanel;
+  FFormatPanel.Height:= 40;
+  FFormatPanel.Align:= alTop;
+  FFormatPanel.BevelOuter:= bvNone;
+
+  FLabelPanel:= TPanel.Create(FPropertiesPanel);
+  FLabelPanel.Parent:= FPropertiesPanel;
+  FLabelPanel.Height:= 40;
+  FLabelPanel.Align:= alTop;
+  FLabelPanel.BevelOuter:= bvNone;
+
+  FPropertiesLabel:= TLabel.Create(FPropertiesPanel);
+  FPropertiesLabel.Parent:= FPropertiesPanel;
+  FPropertiesLabel.Alignment:= taCenter;
+  FPropertiesLabel.Align:= alTop;
+  FPropertiesLabel.Caption:= SLabelProperties;
+
+  FLEFormat:= TLabeledEdit.Create(FFormatPanel);
+  FLEFormat.Parent:= FFormatPanel;
+  FLEFormat.EditLabel.Caption:= SLabelFormat;
+  FLEFormat.OnEditingDone:= @LEFormatEditingDone;
+  FLEFormat.Align:= alBottom;
+
+  FLELabel:= TLabeledEdit.Create(FLabelPanel);
+  FLELabel.Parent:= FLabelPanel;
+  FLELabel.EditLabel.Caption:= SLabelLabel;
+  FLELabel.OnEditingDone:= @LELabelEditingDone;
+  FLELabel.Align:= alBottom;
+
+end;
+
+procedure TGridColumnsSettingsFrame.ClearProperties;
+begin
+  FCurrentProperties:= nil;
+  FLELabel.Text:= '';
+  FLEFormat.Text:= '';
+end;
+
+constructor TGridColumnsSettingsFrame.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FColSettingsGrid:= TmDBGrid.Create(Self);
-  FColSettingsGrid.Parent := Self;
-  FColSettingsGrid.Align:= alClient;
+  FModifiedSettings := TmGridColumnsSettings.Create();
 
-  FColSettingsGrid.Options:= [dgEditing,dgTitles,dgIndicator,dgColumnResize,dgColumnMove,dgColLines,dgRowLines,dgTabs,dgAlwaysShowSelection,dgConfirmDelete,dgCancelOnExit];
-  FColSettingsGrid.OptionsExtra:=[dgeAutoColumns,dgeCheckboxColumn];
-//  FColSettingsGrid.Color:= clWindow;
-  with FColSettingsGrid.Columns.Add do
-  begin
-    ReadOnly := True;
-    Title.Caption := SNameFieldLabel;
-    Width := 250;
-    FieldName := FLD_FIELDNAME;
-  end;
-  with FColSettingsGrid.Columns.Add do
-  begin
-    Title.Caption := SVisibleFieldLabel;
-    FieldName := FLD_VISIBLE;
-  end;
-  with FColSettingsGrid.Columns.Add do
-  begin
-    Title.Caption := SLabelFieldLabel;
-    Width := 250;
-    FieldName := FLD_LABEL;
-  end;
-  with FColSettingsGrid.Columns.Add do
-  begin
-    Title.Caption := SFormatFieldLabel;
-    FieldName := FLD_FORMAT;
-  end;
-  FColSettingsGrid.DataSource := DataSourceColSettings;
-  FGridMenu := TPopupMenu.Create(FColSettingsGrid);
-  FColSettingsGrid.PopupMenu := FGridMenu;
-  tmpMenuItem := TMenuItem.Create(FGridMenu);
-  FGridMenu.Items.Add(tmpMenuItem);
-  tmpMenuItem.Caption:= SHideAllCommand;
-  tmpMenuItem.OnClick:= @Self.OnHideAllFields;
+  FRootPanel := TOMultiPanel.Create(Self);
+  FRootPanel.Parent := Self;
+  FRootPanel.PanelType:= ptHorizontal;
+  FRootPanel.Align:= alClient;
+
+  FHiddenColsPanel := TPanel.Create(FRootPanel);
+  FHiddenColsPanel.Parent := FRootPanel;
+  FRootPanel.PanelCollection.AddControl(FHiddenColsPanel);
+
+  FVisibleColsPanel := TPanel.Create(FRootPanel);
+  FVisibleColsPanel.Parent := FRootPanel;
+  FRootPanel.PanelCollection.AddControl(FVisibleColsPanel);
+
+  FPropertiesPanel := TPanel.Create(FRootPanel);
+  FPropertiesPanel.Parent := FRootPanel;
+  FRootPanel.PanelCollection.AddControl(FPropertiesPanel);
+
+  CreateHiddenColsPanel;
+  CreateVisibleColsPanel;
+  CreatePropertiesPanel;
+
+  FRootPanel.PanelCollection.Items[2].Position:= 1;
+  FRootPanel.PanelCollection.Items[1].Position:= 0.8;
+  FRootPanel.PanelCollection.Items[0].Position:= 0.4;
 end;
 
 destructor TGridColumnsSettingsFrame.Destroy;
 begin
+  FModifiedSettings.Free;
   inherited Destroy;
 end;
 
@@ -136,38 +426,70 @@ procedure TGridColumnsSettingsFrame.Init(aSettings: TmGridColumnsSettings);
 var
   i : integer;
   op : TmGridColumnSettings;
-  tmp : string;
+  k : string;
+  tmpList : TStringList;
 begin
+
   FSettings := aSettings;
-  ColSettingsDataset.DisableControls;
+  FModifiedSettings.Assign(aSettings);
+  tmpList := TStringList.Create;
   try
-    for i := 0 to aSettings.Count -1 do
+    tmpList.Sorted:= true;
+
+    for i := 0 to FModifiedSettings.Count -1 do
     begin
-      op := aSettings.Get(i);
-      ColSettingsDataset.Append;
-      tmp := op.FieldName;
-      ColSettingsDataset.FieldByName(FLD_FIELDNAME).AsString := tmp;
-      if op.DisplayLabel.NotNull then
-        ColSettingsDataset.FieldByName(FLD_LABEL).AsString := op.DisplayLabel.Value;
-      if op.DisplayFormat.NotNull then
-        ColSettingsDataset.FieldByName(FLD_FORMAT).AsString:= op.DisplayFormat.Value;
-      if op.Visible.NotNull then
-        ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean:= op.Visible.Value;
-      ColSettingsDataset.Post;
+      op := FModifiedSettings.Get(i);
+      if op.Visible.NotNull and op.Visible.Value then
+      begin
+        if op.SortOrder.IsNull then
+          k := '99999'
+        else
+          k := AddZerosFront(op.SortOrder.Value, 5);
+        tmpList.AddObject(k, op);
+      end
+      else
+        FListBoxHiddenColumns.AddItem(op.DisplayLabel.AsString + ' ['+ op.FieldName + ']', op);
+    end;
+    for i := 0 to tmpList.Count - 1 do
+    begin
+      op := tmpList.Objects[i] as TmGridColumnSettings;
+      FListBoxVisibleColumns.AddItem(op.DisplayLabel.AsString + ' ['+ op.FieldName + ']', op);
     end;
   finally
-    ColSettingsDataset.EnableControls;
+    tmpList.Free;
   end;
-  ColSettingsDataset.First;
+
 end;
 
 procedure TGridColumnsSettingsFrame.UpdateSettings;
 var
-  op : TmGridColumnSettings;
+  source, dest : TmGridColumnSettings;
+  i : integer;
+  newWidth : integer;
 begin
-  if Assigned(FSettings) then
+  for i := 0 to FListBoxHiddenColumns.Count - 1 do
   begin
-    ColSettingsDataset.DisableControls;
+    source := TmGridColumnSettings(FListBoxHiddenColumns.Items.Objects[i]);
+    dest := FSettings.GetSettingsForField(source.FieldName);
+    dest.Assign(source);
+    dest.Visible.Value:= false;
+  end;
+  for i := 0 to FListBoxVisibleColumns.Count - 1 do
+  begin
+    source := TmGridColumnSettings(FListBoxVisibleColumns.Items.Objects[i]);
+    dest := FSettings.GetSettingsForField(source.FieldName);
+    if not dest.Visible.AsBoolean then
+      newWidth:= 100
+    else
+      newWidth := source.Width.AsInteger;
+    dest.Assign(source);
+    dest.Visible.Value:= true;
+    dest.Width.Value:= newWidth;
+    dest.SortOrder.Value:= i;
+  end;
+
+
+(*    ColSettingsDataset.DisableControls;
     try
       ColSettingsDataset.First;
       while not ColSettingsDataset.EOF do
@@ -199,7 +521,7 @@ begin
     finally
       ColSettingsDataset.EnableControls;
     end;
-  end;
+  end;*)
 end;
 
 end.

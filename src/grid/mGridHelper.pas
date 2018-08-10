@@ -249,6 +249,7 @@ end;
 function TmDBGridHelper.EditSettings : boolean;
 var
   frm : TGridSettingsForm;
+  OldCursor : TCursor;
 begin
   Result := false;
   FDBGrid.ReadSettings(FSettings);
@@ -257,7 +258,13 @@ begin
     frm.Init(FSettings);
     if frm.ShowModal = mrOk then
     begin
-      FDBGrid.ApplySettings(FSettings);
+      OldCursor:= Screen.Cursor;
+      try
+        Screen.Cursor:= crHourGlass;
+        FDBGrid.ApplySettings(FSettings);
+      finally
+        Screen.Cursor:= OldCursor;
+      end;
       Result := true;
     end;
   finally

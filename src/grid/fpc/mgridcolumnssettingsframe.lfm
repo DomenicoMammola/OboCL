@@ -6,34 +6,4 @@ object GridColumnsSettingsFrame: TGridColumnsSettingsFrame
   TabOrder = 0
   DesignLeft = 1912
   DesignTop = 354
-  object DataSourceColSettings: TDataSource
-    DataSet = ColSettingsDataset
-    left = 496
-    top = 32
-  end
-  object ColSettingsDataset: TMemDataset
-    Active = True
-    FieldDefs = <    
-      item
-        Name = 'CSDFFieldName'
-        DataType = ftString
-        Size = 300
-      end    
-      item
-        Name = 'CSDFDisplayLabel'
-        DataType = ftString
-        Size = 300
-      end    
-      item
-        Name = 'CSDFDisplayFormat'
-        DataType = ftString
-        Size = 50
-      end    
-      item
-        Name = 'CSDFVisible'
-        DataType = ftBoolean
-      end>
-    left = 432
-    top = 133
-  end
 end

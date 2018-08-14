@@ -93,8 +93,11 @@ begin
     for i := 0 to tmpCursor.Count - 1 do
     begin
       tmpFieldName:= tmpCursor.Elements[i].GetAttribute('fieldName');
-      for k := 0 to ErrataCorrigeFieldNamesOriginals.Count - 1 do
-        tmpFieldName:= StringReplace(tmpFieldName, ErrataCorrigeFieldNamesOriginals.Strings[k], ErrataCorrigeFieldNamesReplacements.Strings[k], [rfReplaceAll]);
+      if Assigned(ErrataCorrigeFieldNamesOriginals) then
+      begin
+        for k := 0 to ErrataCorrigeFieldNamesOriginals.Count - 1 do
+          tmpFieldName:= StringReplace(tmpFieldName, ErrataCorrigeFieldNamesOriginals.Strings[k], ErrataCorrigeFieldNamesReplacements.Strings[k], [rfReplaceAll]);
+      end;
       op := aDestination.AddSettingsForField(tmpFieldName);
       LoadGridColumnSettingFromXmlElement(op, tmpCursor.Elements[i]);
     end;

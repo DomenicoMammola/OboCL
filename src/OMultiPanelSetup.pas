@@ -1,12 +1,17 @@
 // This is part of the Obo Component Library
 //
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// -----------------------------------------------------------------------------
 //
-// This software is distributed without any warranty.
+// ATTRIBUTION: Melander Blog http://melander.dk/articles/splitter
 //
-// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+// -----------------------------------------------------------------------------
+// TSplitter enhanced with grab bar
+// The original author is Anders Melander, anders@melander.dk, http://melander.dk
+// Copyright © 2008 Anders Melander
+// -----------------------------------------------------------------------------
+// License:
+// Creative Commons Attribution-Share Alike 3.0 Unported
+// http://creativecommons.org/licenses/by-sa/3.0/
 unit OMultiPanelSetup;
 
 {$IFDEF FPC}

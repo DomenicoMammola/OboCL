@@ -207,41 +207,49 @@ var
   doc : TmXmlDocument;
   cursor : TmXmlElementCursor;
   tmp : TUramakiDesktopLayoutConfContainerItem;
+  OldCursor : TCursor;
 begin
-  doc := TmXmlDocument.Create;
+  OldCursor := Screen.Cursor;
   try
-    doc.LoadFromStream(aStream);
-
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'livingPlates');
+    Screen.Cursor := crHourGlass;
+    doc := TmXmlDocument.Create;
     try
-      FEngine.LoadLivingPlatesFromXMLElement(cursor.Elements[0]);
-    finally
-      cursor.Free;
-    end;
+      doc.LoadFromStream(aStream);
 
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'layout');
-    try
-      tmp := TUramakiDesktopLayoutConfContainerItem.Create;
+      cursor := TmXmlElementCursor.Create(doc.RootElement, 'livingPlates');
       try
-        tmp.LoadFromXMLElement(cursor.Elements[0]);
-        FContainer.ImportFromConfItem(tmp, Self.DoLinkLayoutItemToPlate);
+        FEngine.LoadLivingPlatesFromXMLElement(cursor.Elements[0]);
       finally
-        tmp.Free;
+        cursor.Free;
       end;
-    finally
-      cursor.Free;
-    end;
 
-    cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
-    try
-      if Cursor.Count > 0 then
-        FEngine.LoadPlatesFromXMLElement(Cursor.Elements[0]);
+      cursor := TmXmlElementCursor.Create(doc.RootElement, 'layout');
+      try
+        tmp := TUramakiDesktopLayoutConfContainerItem.Create;
+        try
+          tmp.LoadFromXMLElement(cursor.Elements[0]);
+          FContainer.ImportFromConfItem(tmp, Self.DoLinkLayoutItemToPlate);
+        finally
+          tmp.Free;
+        end;
+      finally
+        cursor.Free;
+      end;
+
+      cursor := TmXmlElementCursor.Create(doc.RootElement, 'plates');
+      try
+        if Cursor.Count > 0 then
+          FEngine.LoadPlatesFromXMLElement(Cursor.Elements[0]);
+      finally
+        cursor.Free;
+      end;
+
     finally
-      cursor.Free;
+      doc.Free;
     end;
 
   finally
-    doc.Free;
+    Screen.Cursor := OldCursor;
   end;
 end;
 

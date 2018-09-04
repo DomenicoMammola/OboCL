@@ -5,8 +5,9 @@ unit mformulafieldsconfigurationframe;
 interface
 
 uses
-  Classes, SysUtils, BufDataset, db, memds, FileUtil, Forms, Controls, DBGrids, Grids,
+  Classes, SysUtils, BufDataset, FileUtil, Forms, Controls, DBGrids, Grids,
   StdCtrls, ExtCtrls,Dialogs,
+  SynEdit,
   mVirtualDatasetFormulas;
 
 resourcestring
@@ -28,12 +29,17 @@ type
     procedure AddButtonClick(Sender: TObject);
     procedure RemoveButtonClick(Sender: TObject);
   private
-    FDataSource: TDataSource;
-    FDataset: TMemDataset;
-    FGrid : TDBGrid;
+    const IDX_NAME = 0;
+    const IDX_TYPE = 1;
+    const IDX_SIZE = 2;
+    const IDX_FORMULA = 3;
+  private
+    FGrid : TStringGrid;
+    FFormulaPanel : TPanel;
     FFormulas : TmFormulaFields;
-    procedure OnSelectEditor (Sender: TObject; Column: TColumn; var Editor: TWinControl);
-    procedure OnEditButtonClick (Sender : TObject);
+    FEditor : TSynEdit;
+    procedure OnSelectEditor (Sender: TObject; aCol, aRow: Integer; var Editor: TWinControl);
+    procedure OnEditButtonClick (Sender: TObject; aCol, aRow: Integer);
     procedure OnEditingDone(Sender : TObject);
   public
     { public declarations }
@@ -41,13 +47,13 @@ type
     function Check : boolean;
     procedure Init (aFormulas : TmFormulaFields);
     procedure UpdateFormulaFields;
-
   end;
 
 implementation
 
 uses
-  mDBGrid;
+  Graphics,
+  mUtility, mMathUtility;
 
 {$R *.lfm}
 
@@ -55,34 +61,23 @@ uses
 
 procedure TFormulaFieldsConfFrame.AddButtonClick(Sender: TObject);
 begin
-  FDataset.DisableControls;
-  try
-    FDataset.Append;
-    FDataset.FieldByName('FldName').AsString := 'NEWFIELD';
-    FDataset.FieldByName('FldType').AsString := 'DOUBLE';
-    FDataset.FieldByName('FldFormula').AsString := '1';
-    FDataset.Post;
-  finally
-    FDataset.EnableControls;
-  end;
+  FGrid.InsertRowWithValues(FGrid.RowCount, ['NEWFIELD', 'DOUBLE', '', '1']);
 end;
 
 procedure TFormulaFieldsConfFrame.RemoveButtonClick(Sender: TObject);
 begin
-  if FDataset.IsEmpty then
+  if FGrid.RowCount = 0 then
     exit;
 
-  FDataset.DisableControls;
-  try
-    FDataset.Delete;
-  finally
-    FDataset.EnableControls;
+  if FGrid.Row >= 0 then
+  begin
+    FGrid.DeleteRow(FGrid.Row);
   end;
 end;
 
-procedure TFormulaFieldsConfFrame.OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
+procedure TFormulaFieldsConfFrame.OnSelectEditor (Sender: TObject; aCol, aRow: Integer; var Editor: TWinControl);
 begin
-  if Column.FieldName = 'FldType' then
+  if aCol = IDX_TYPE then
   begin
     if (Editor is TCustomComboBox) then
     begin
@@ -92,88 +87,71 @@ begin
   end;
 end;
 
-procedure TFormulaFieldsConfFrame.OnEditButtonClick(Sender: TObject);
+procedure TFormulaFieldsConfFrame.OnEditButtonClick(Sender: TObject; aCol, aRow: Integer);
 begin
-  if FGrid.SelectedColumn.FieldName = 'FldFormula' then
+  if FGrid.SelectedColumn.Index = IDX_FORMULA then
   begin
     // todo
+    FEditor.Text:= FGrid.Cells[aCol, aRow];
   end;
 end;
 
 procedure TFormulaFieldsConfFrame.OnEditingDone(Sender: TObject);
+var
+  newSize : integer;
 begin
-  if FGrid.SelectedColumn.FieldName = 'FldName' then
+  if FGrid.SelectedColumn.Index = IDX_NAME then
   begin
-    FDataset.Edit;
-    FDataset.FieldByName('FldName').AsString := StringReplace(Uppercase(Trim(FDataset.FieldByName('FldName').AsString)), ' ', '_', [rfReplaceAll]);
-    FDataset.Post;
+    FGrid.Cells[IDX_NAME, FGrid.Row] := StringReplace(UpperCase(Trim(FGrid.Cells[IDX_NAME, FGrid.Row])), ' ', '_', [rfReplaceAll]);
   end
   else
-  if (FGrid.SelectedColumn.FieldName = 'FldSize') or (FGrid.SelectedColumn.FieldName = 'FldType') then
+  if (FGrid.SelectedColumn.Index = IDX_SIZE) or (FGrid.SelectedColumn.Index = IDX_TYPE) then
   begin
-    if (FDataset.FieldByName('FldType').AsString = 'DOUBLE') or (FDataset.FieldByName('FldType').AsString = 'DATE') then
+    if (FGrid.Cells[IDX_TYPE, FGrid.Row] = 'DOUBLE') or (FGrid.Cells[IDX_TYPE, FGrid.Row] = 'DATE') then
     begin
-      FDataset.Edit;
-      FDataset.FieldByName('FldSize').Clear;
-      FDataset.Post;
+      FGrid.Cells[IDX_SIZE, FGrid.Row] := '';
+    end
+    else
+    begin
+      if (not TryToConvertToInteger(FGrid.Cells[IDX_SIZE, FGrid.Row], newSize)) or (newSize <= 0) or (newSize > 1000) then
+        FGrid.Cells[IDX_SIZE, FGrid.Row] := '';
     end;
   end;
-
 end;
 
 constructor TFormulaFieldsConfFrame.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
-  FDataSource := TDataSource.Create(Self);
-  FDataset := TMemDataset.Create(Self);
 
-  with FDataset.FieldDefs.AddFieldDef do
-  begin
-    Name := 'FldName';
-    DataType:= ftString;
-    Size := 100;
-  end;
-  with FDataset.FieldDefs.AddFieldDef do
-  begin
-    Name := 'FldType';
-    DataType:= ftString;
-    Size := 20;
-  end;
-  with FDataset.FieldDefs.AddFieldDef do
-  begin
-    Name := 'FldSize';
-    DataType:= ftInteger;
-  end;
-  with FDataset.FieldDefs.AddFieldDef do
-  begin
-    Name := 'FldFormula';
-    DataType:= ftString;
-    Size := 500;
-  end;
-  FDataset.Active:= true;
+  FFormulaPanel := TPanel.Create(Self);
+  FFormulaPanel.Parent := Self;
+  FFormulaPanel.Align:= alBottom;
 
-  FDatasource.DataSet := FDataset;
+  FEditor := TSynEdit.Create(FFormulaPanel);
+  FEditor.Parent := FFormulaPanel;
+  FEditor.Align:= alClient;
 
-  FGrid:= TmDBGrid.Create(Self);
+  FGrid:= TStringGrid.Create(Self);
   FGrid.Parent := Self;
   FGrid.Align:= alClient;
 
-  FGrid.Options:= [dgEditing,dgTitles,dgIndicator,dgColumnResize,dgColumnMove,dgColLines,dgRowLines,dgTabs,dgAlwaysShowSelection,dgConfirmDelete,dgCancelOnExit];
-  FGrid.OptionsExtra:=[dgeAutoColumns,dgeCheckboxColumn];
+  FGrid.Options := [goEditing,goTabs, goVertLine, goHorzLine, goDblClickAutoSize];
+  FGrid.FixedCols:= 0;
+  FGrid.RowCount:= 0;
+  FGrid.AlternateColor:= clMoneyGreen;
+
   FGrid.OnSelectEditor:= @OnSelectEditor;
-  FGrid.OnEditButtonClick:= @OnEditButtonClick;
+  FGrid.OnButtonClick:= @OnEditButtonClick;
   FGrid.OnEditingDone:=@OnEditingDone;
   with FGrid.Columns.Add do
   begin
     // ReadOnly := True;
     Title.Caption := 'Name';
     Width := 250;
-    FieldName := 'FldName';
   end;
   with FGrid.Columns.Add do
   begin
     Title.Caption := 'Type';
-    FieldName := 'FldType';
     Width := 100;
     ButtonStyle:= cbsPickList;
   end;
@@ -181,74 +159,66 @@ begin
   begin
     Title.Caption := 'Size';
     Width := 70;
-    FieldName := 'FldSize';
   end;
   with FGrid.Columns.Add do
   begin
     Title.Caption := 'Formula';
-    FieldName := 'FldFormula';
     Width := 250;
     ButtonStyle:= cbsEllipsis;
   end;
-  FGrid.DataSource := FDataSource;
+  FGrid.RowCount:= 1;
 end;
 
 function TFormulaFieldsConfFrame.Check: boolean;
 var
   tmpString, tmpType : String;
   tmpNames : TStringList;
+  i, newSize : integer;
 begin
   tmpNames := TStringList.Create;
   try
-    FDataset.DisableControls;
-    try
-      FDataset.First;
-      while not FDataset.Eof do
+    for i := 1 to FGrid.RowCount - 1 do
+    begin
+      tmpString := Uppercase(Trim(FGrid.Cells[IDX_NAME, i]));
+      if tmpString  = '' then
       begin
-        tmpString := Uppercase(Trim(FDataset.FieldByName('FldName').AsString));
-        if tmpString  = '' then
-        begin
-          MessageDlg(SErrorMessageCaption, SErrorEmptyName, mtInformation, [mbOK], 0);
-          Result := false;
-          exit;
-        end;
-        if tmpNames.IndexOf(tmpString) >= 0 then
-        begin
-          MessageDlg(SErrorMessageCaption, SErrorDuplicateName, mtInformation, [mbOK], 0);
-          Result := false;
-          exit;
-        end;
-
-        tmpType := Uppercase(Trim(FDataset.FieldByName('FldType').AsString));
-        if (tmpType <> 'DOUBLE') and (tmpType <> 'STRING') and (tmpType <> 'DATE') then
-        begin
-          MessageDlg(SErrorMessageCaption, SErrorWrongType, mtInformation, [mbOK], 0);
-          Result := false;
-          exit;
-        end;
-        if tmpType = 'STRING' then
-        begin
-          if (FDataset.FieldByName('FldSize').IsNull) or (FDataset.FieldByName('FldSize').AsInteger <= 0) or (FDataset.FieldByName('FldSize').AsInteger > 1000) then
-          begin
-            MessageDlg(SErrorMessageCaption, SErrorWrongSize,mtInformation, [mbOK], 0);
-            Result := false;
-            exit;
-          end;
-        end;
-
-        if (FDataset.FieldByName('FldFormula').IsNull) or (trim(FDataset.FieldByName('FldFormula').AsString) = '') then
-        begin
-          MessageDlg(SErrorMessageCaption, SErrorWrongFormula, mtInformation, [mbOK], 0);
-          Result := false;
-          exit;
-        end;
-
-        tmpNames.Add(tmpString);
-
-        FDataset.Next;
+        MessageDlg(SErrorMessageCaption, SErrorEmptyName, mtInformation, [mbOK], 0);
+        Result := false;
+        exit;
       end;
-    finally
-      FDataset.EnableControls;
+      if tmpNames.IndexOf(tmpString) >= 0 then
+      begin
+        MessageDlg(SErrorMessageCaption, SErrorDuplicateName, mtInformation, [mbOK], 0);
+        Result := false;
+        exit;
+      end;
+
+      tmpType := Uppercase(Trim(FGrid.Cells[IDX_TYPE, i]));
+      if (tmpType <> 'DOUBLE') and (tmpType <> 'STRING') and (tmpType <> 'DATE') then
+      begin
+        MessageDlg(SErrorMessageCaption, SErrorWrongType, mtInformation, [mbOK], 0);
+        Result := false;
+        exit;
+      end;
+      if tmpType = 'STRING' then
+      begin
+        if (not (TryToConvertToInteger(FGrid.Cells[IDX_SIZE, i], newSize))) or (newSize <= 0) or (newSize > 1000) then
+        begin
+          MessageDlg(SErrorMessageCaption, SErrorWrongSize,mtInformation, [mbOK], 0);
+          Result := false;
+          exit;
+        end;
+      end;
+
+      if (trim(FGrid.Cells[IDX_FORMULA, i]) = '') then
+      begin
+        MessageDlg(SErrorMessageCaption, SErrorWrongFormula, mtInformation, [mbOK], 0);
+        Result := false;
+        exit;
+      end;
+
+      tmpNames.Add(tmpString);
+
     end;
   finally
     tmpNames.Free;
@@ -260,27 +230,21 @@ procedure TFormulaFieldsConfFrame.Init(aFormulas: TmFormulaFields);
 var
   i : integer;
 begin
-  FDataset.DisableControls;
-  try
-    FDataset.Clear(false);
-    for i := 0 to aFormulas.Count - 1 do
+  for i := 0 to aFormulas.Count - 1 do
+  begin
+    FGrid.InsertColRow(false, i + 1);
+    FGrid.Cells[IDX_NAME, i + 1] := aFormulas.Get(i).Name;
+    if aFormulas.Get(i).DataType = fftString then
     begin
-      FDataset.Append;
-      FDataset.FieldByName('FldName').AsString := aFormulas.Get(i).Name;
-      if aFormulas.Get(i).DataType = fftString then
-      begin
-        FDataset.FieldByName('FldType').AsString := 'STRING';
-        FDataset.FieldByName('FldSize').AsInteger:= aFormulas.Get(i).Size;
-      end
-      else if aFormulas.Get(i).DataType = fftFloat then
-        FDataset.FieldByName('FldType').AsString := 'DOUBLE'
-      else
-        FDataset.FieldByName('FldType').AsString := 'DATE';
-      FDataset.FieldByName('FldFormula').AsString := aFormulas.Get(i).Formula;
-      FDataset.Post;
-    end;
-  finally
-    FDataset.EnableControls;
+      FGrid.Cells[IDX_TYPE, i + 1] := 'STRING';
+      FGrid.Cells[IDX_SIZE, i + 1] := IntToStr(aFormulas.Get(i).Size);
+    end
+    else if aFormulas.Get(i).DataType = fftFloat then
+      FGrid.Cells[IDX_TYPE, i + 1] := 'DOUBLE'
+    else
+      FGrid.Cells[IDX_TYPE, i + 1] := 'DATE';
+    FGrid.Cells[IDX_FORMULA, i + 1] := aFormulas.Get(i).Formula;
+    FGrid.Objects[IDX_NAME, i+1] := aFormulas.Get(i);
   end;
   FFormulas := aFormulas;
 end;
@@ -297,50 +261,42 @@ begin
   begin
     tmpNames := TStringList.Create;
     try
-      FDataset.DisableControls;
-      try
-        FDataset.First;
-        while not FDataset.Eof do
+      for i := 1 to FGrid.RowCount - 1 do
+      begin
+        tmpString := UpperCase(Trim(FGrid.Cells[IDX_NAME, i]));
+        tmpNames.Add(tmpString);
+
+        tmpFormula := FFormulas.FindByName(tmpString);
+        if not Assigned(tmpFormula) then
+          tmpFormula := FFormulas.Add;
+        tmpFormula.Name:= tmpString;
+        if FGrid.Cells[IDX_TYPE, i] = 'DOUBLE' then
+          tmpFormula.DataType:= fftFloat
+        else if FGrid.Cells[IDX_TYPE, i] = 'DATE' then
+          tmpFormula.DataType:= fftDateTime
+        else
         begin
-          tmpString := UpperCase(Trim(FDataset.FieldByName('FldName').AsString));
-          tmpNames.Add(tmpString);
-
-          tmpFormula := FFormulas.FindByName(tmpString);
-          if not Assigned(tmpFormula) then
-            tmpFormula := FFormulas.Add;
-          tmpFormula.Name:= tmpString;
-          if FDataset.FieldByName('FldType').AsString = 'DOUBLE' then
-            tmpFormula.DataType:= fftFloat
-          else if FDataset.FieldByName('FldType').AsString = 'DATE' then
-            tmpFormula.DataType:= fftDateTime
-          else
-          begin
-            tmpFormula.DataType:= fftString;
-            tmpFormula.Size:= FDataset.FieldByName('FldSize').AsInteger;
-          end;
-
-          tmpFormula.Formula:= trim(FDataset.FieldByName('FldFormula').AsString);
-
-          FDataset.Next;
+          tmpFormula.DataType:= fftString;
+          tmpFormula.Size:= StrToInt(FGrid.Cells[IDX_SIZE, i]);
         end;
 
-        tmpToBeDeleted := TStringList.Create;
-        try
-          for i := 0 to FFormulas.Count - 1 do
-          begin
-            if tmpNames.IndexOf(FFormulas.Get(i).Name) < 0 then
-              tmpToBeDeleted.Add(FFormulas.Get(i).Name);
-          end;
-          for i := 0 to tmpToBeDeleted.Count - 1 do
-          begin
-            FFormulas.Delete(tmpToBeDeleted.Strings[i]);
-          end;
+        tmpFormula.Formula:= trim(FGrid.Cells[IDX_FORMULA, i]);
+      end;
 
-        finally
-          tmpToBeDeleted.Free;
+      tmpToBeDeleted := TStringList.Create;
+      try
+        for i := 0 to FFormulas.Count - 1 do
+        begin
+          if tmpNames.IndexOf(FFormulas.Get(i).Name) < 0 then
+            tmpToBeDeleted.Add(FFormulas.Get(i).Name);
         end;
+        for i := 0 to tmpToBeDeleted.Count - 1 do
+        begin
+          FFormulas.Delete(tmpToBeDeleted.Strings[i]);
+        end;
+
       finally
-        FDataset.EnableControls;
+        tmpToBeDeleted.Free;
       end;
     finally
       tmpNames.Free;

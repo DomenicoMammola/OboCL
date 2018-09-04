@@ -53,7 +53,7 @@ type
     procedure CreateHiddenColsPanel;
     procedure CreateVisibleColsPanel;
     procedure CreatePropertiesPanel;
-    procedure LBHiddenColumnsDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+    procedure LBDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
 
     procedure LBVisibleColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure LBVisibleColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
@@ -69,6 +69,7 @@ type
     procedure OnFindHiddenCol(Sender: TObject);
     procedure OnFindVisibleCol(Sender: TObject);
     procedure OnHideAllFields(Sender : TObject);
+    function GetLBLine(const aColSettings: TmGridColumnSettings) : String;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -80,6 +81,7 @@ type
 implementation
 
 uses
+  Graphics, LCLType,
   mDBGrid;
 
 {$R *.lfm}
@@ -97,9 +99,38 @@ begin
   end;
 end;
 
-procedure TGridColumnsSettingsFrame.LBHiddenColumnsDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+procedure TGridColumnsSettingsFrame.LBDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+var
+  aColor: TColor;
+  tmpListBox : TListBox;
+  tmpProperties : TmGridColumnSettings;
 begin
+  tmpListBox := Control as TListBox;
+  if odSelected in State then
+  begin
+    if tmpListBox.Focused then
+      tmpListBox.Canvas.Brush.Color := clHighlight
+    else
+      tmpListBox.Canvas.Brush.Color := clGray;
+    tmpListBox.Canvas.Font.Color := clHighlightText;
+  end
+  else
+  begin
+    if (Index mod 2 = 0) then
+      aColor:= clWhite
+    else
+      aColor := clMoneyGreen;
+    tmpListBox.Canvas.Brush.Color:=aColor;
+  end;
 
+  tmpListBox.Canvas.FillRect(ARect);
+  if Assigned(tmpListBox.Items.Objects[index]) then
+  begin
+    tmpProperties:= tmpListBox.Items.Objects[index] as TmGridColumnSettings;
+    tmpListBox.Canvas.TextRect(ARect, 2, ARect.Top+2, GetLBLine(tmpProperties));
+  end
+  else
+    tmpListBox.Canvas.TextRect(ARect, 2, ARect.Top+2, tmpListBox.Items[Index]);
 end;
 
 procedure TGridColumnsSettingsFrame.LBVisibleColumnsDragDrop(Sender,Source: TObject; X, Y: Integer);
@@ -112,6 +143,8 @@ begin
   if Source = FListBoxVisibleColumns then
   begin
     prev := FListBoxVisibleColumns.ItemIndex;
+    if prev < 0 then
+      exit;
     pt.x:= X;
     pt.y:= Y;
     dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
@@ -130,6 +163,8 @@ begin
   else if Source = FListBoxHiddenColumns then
   begin
     prev := FListBoxHiddenColumns.ItemIndex;
+    if prev < 0 then
+      exit;
     pt.x:= X;
     pt.y:= Y;
     dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
@@ -142,6 +177,7 @@ begin
     else
       FListBoxVisibleColumns.AddItem(old, oldObj);
   end;
+  LBVisibleColumnsSelectionChange(nil, true);
 end;
 
 procedure TGridColumnsSettingsFrame.LBVisibleColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
@@ -162,6 +198,8 @@ var
   pt : TPoint;
 begin
   prev := FListBoxVisibleColumns.ItemIndex;
+  if prev < 0 then
+    exit;
   pt.x:= X;
   pt.y:= Y;
   dest := FListBoxHiddenColumns.ItemAtPos(pt, true);
@@ -173,6 +211,7 @@ begin
     FListBoxHiddenColumns.Items.InsertObject(dest, old, oldObj)
   else
     FListBoxHiddenColumns.AddItem(old, oldObj);
+  LBVisibleColumnsSelectionChange(nil, true);
 end;
 
 procedure TGridColumnsSettingsFrame.LBHiddenColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
@@ -204,6 +243,7 @@ begin
       FCurrentProperties.DisplayLabel.Value:= Trim(FLELabel.Text)
     else
       FCurrentProperties.DisplayLabel.IsNull:= true;
+    FListBoxVisibleColumns.Invalidate;
   end;
 end;
 
@@ -278,6 +318,11 @@ begin
   FListBoxVisibleColumns.Clear;
 end;
 
+function TGridColumnsSettingsFrame.GetLBLine(const aColSettings: TmGridColumnSettings): String;
+begin
+  Result := aColSettings.DisplayLabel.AsString + ' ['+ aColSettings.FieldName + ']';
+end;
+
 procedure TGridColumnsSettingsFrame.CreateHiddenColsPanel;
 begin
   FHiddenColsPanel.BevelOuter:= bvNone;
@@ -298,11 +343,13 @@ begin
   FListBoxHiddenColumns:= TListBox.Create(FHiddenColsPanel);
   FListBoxHiddenColumns.Parent:= FHiddenColsPanel;
   FListBoxHiddenColumns.Align:= alClient;
-  FListBoxHiddenColumns.OnDrawItem:= @Self.LBHiddenColumnsDrawItem;
   FListBoxHiddenColumns.DragMode:= dmAutomatic;
   FListBoxHiddenColumns.OnDragDrop:= @LBHiddenColumnsDragDrop;
   FListBoxHiddenColumns.OnDragOver:= @LBHiddenColumnsDragOver;
   FListBoxHiddenColumns.OnStartDrag:= @LBHiddenColumnsStartDrag;
+  FListBoxHiddenColumns.OnDrawItem:= @Self.LBDrawItem;
+  FListBoxHiddenColumns.Style:= lbOwnerDrawFixed;
+  FListBoxHiddenColumns.ItemHeight:= 20;
 end;
 
 procedure TGridColumnsSettingsFrame.CreateVisibleColsPanel;
@@ -332,6 +379,9 @@ begin
   FListBoxVisibleColumns.OnDragOver:= @LBVisibleColumnsDragOver;
   FListBoxVisibleColumns.OnSelectionChange:= @LBVisibleColumnsSelectionChange;
   FListBoxVisibleColumns.OnStartDrag:= @LBVisibleColumnsStartDrag;
+  FListBoxVisibleColumns.OnDrawItem:= @Self.LBDrawItem;
+  FListBoxVisibleColumns.Style:= lbOwnerDrawFixed;
+  FListBoxVisibleColumns.ItemHeight:= 20;
 
   FVisibleColsMenu := TPopupMenu.Create(FListBoxVisibleColumns);
   FListBoxVisibleColumns.PopupMenu := FVisibleColsMenu;
@@ -339,7 +389,6 @@ begin
   FVisibleColsMenu.Items.Add(tmpMenuItem);
   tmpMenuItem.Caption:= SHideAllCommand;
   tmpMenuItem.OnClick:= @OnHideAllFields;
-
 end;
 
 procedure TGridColumnsSettingsFrame.CreatePropertiesPanel;
@@ -448,12 +497,12 @@ begin
         tmpList.AddObject(k, op);
       end
       else
-        FListBoxHiddenColumns.AddItem(op.DisplayLabel.AsString + ' ['+ op.FieldName + ']', op);
+        FListBoxHiddenColumns.AddItem(GetLBLine(op), op);
     end;
     for i := 0 to tmpList.Count - 1 do
     begin
       op := tmpList.Objects[i] as TmGridColumnSettings;
-      FListBoxVisibleColumns.AddItem(op.DisplayLabel.AsString + ' ['+ op.FieldName + ']', op);
+      FListBoxVisibleColumns.AddItem(GetLBLine(op), op);
     end;
   finally
     tmpList.Free;
@@ -487,41 +536,6 @@ begin
     dest.Width.Value:= newWidth;
     dest.SortOrder.Value:= i;
   end;
-
-
-(*    ColSettingsDataset.DisableControls;
-    try
-      ColSettingsDataset.First;
-      while not ColSettingsDataset.EOF do
-      begin
-        op := FSettings.GetSettingsForField(ColSettingsDataset.FieldByName(FLD_FIELDNAME).AsString);
-
-        if (ColSettingsDataset.FieldByName(FLD_LABEL).IsNull) then
-          op.DisplayLabel.IsNull:= true
-        else
-          op.DisplayLabel.Value:= ColSettingsDataset.FieldByName(FLD_LABEL).AsString;
-
-        if (ColSettingsDataset.FieldByName(FLD_FORMAT).IsNull) then
-          op.DisplayFormat.IsNull:= true
-        else
-          op.DisplayFormat.Value := ColSettingsDataset.FieldByName(FLD_FORMAT).AsString;
-
-        if (ColSettingsDataset.FieldByName(FLD_VISIBLE).IsNull) then
-          op.Visible.IsNull:= true
-        else
-        begin
-          if (op.Visible.IsNull or (not op.Visible.Value)) and ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean then
-            op.Width.Value := 100;
-          op.Visible.Value:= ColSettingsDataset.FieldByName(FLD_VISIBLE).AsBoolean;
-        end;
-
-
-        ColSettingsDataset.Next;
-      end;
-    finally
-      ColSettingsDataset.EnableControls;
-    end;
-  end;*)
 end;
 
 end.

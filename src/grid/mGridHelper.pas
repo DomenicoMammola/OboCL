@@ -283,7 +283,7 @@ var
 begin
   frm := TFormulaFieldsConfigurationForm.Create(nil);
   try
-    frm.Init(FFormulaFields);
+    frm.Init(FFormulaFields, FDBGrid.DataSource.DataSet.Fields);
     if frm.ShowModal = mrOk then
     begin
       FDBGrid.ReadSettings(FSettings);

@@ -16,7 +16,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
-  Buttons,
+  Buttons, DB,
   mformulafieldsconfigurationframe,
   mVirtualDatasetFormulas;
 
@@ -33,7 +33,7 @@ type
   private
     FFormulaFieldsFrame: TFormulaFieldsConfFrame;
   public
-    procedure Init (aFormulaFields: TmFormulaFields);
+    procedure Init (aFormulaFields: TmFormulaFields; const aFields: TFields);
   end;
 
 
@@ -56,12 +56,12 @@ begin
   Self.ModalResult:= mrOk;
 end;
 
-procedure TFormulaFieldsConfigurationForm.Init(aFormulaFields: TmFormulaFields);
+procedure TFormulaFieldsConfigurationForm.Init(aFormulaFields: TmFormulaFields; const aFields: TFields);
 begin
   FFormulaFieldsFrame := TFormulaFieldsConfFrame.Create(Self);
   FFormulaFieldsFrame.Parent := Self;
   FFormulaFieldsFrame.Align:= alClient;
-  FFormulaFieldsFrame.Init(aFormulaFields);
+  FFormulaFieldsFrame.Init(aFormulaFields, aFields);
 end;
 
 end.

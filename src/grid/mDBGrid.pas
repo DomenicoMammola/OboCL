@@ -17,7 +17,7 @@ unit mDBGrid;
 interface
 
 uses
-  db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, contnrs, variants, Grids, ExtCtrls,
+  db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, variants, Grids, ExtCtrls,
   mGridColumnSettings, mXML, mSortConditions, mGridIcons,
   mDatasetInterfaces, mSystemColumns, mFilter, mFilterOperators, mCellDecorations,
   mSummary, KAParser, mMaps;

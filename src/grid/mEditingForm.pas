@@ -135,6 +135,10 @@ type
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
+    procedure CheckDate (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
+    procedure CheckTime (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
+    procedure CheckInteger (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
+    procedure CheckFloat (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant; const aLineConfiguration : TmEditorLineConfiguration);
   private
     function CheckMandatoryLines(var aMissingValues: string): boolean;
     procedure CommitChanges;
@@ -204,9 +208,9 @@ type
     Changed: boolean;
     Configuration: TmEditorLineConfiguration;
     ActualValue : variant;
-    OldActualValue : variant;
-    OldDisplayValue : TNullableStringRecord;
-    EditorExecuted : boolean;
+    //OldActualValue : variant;
+    //OldDisplayValue : TNullableStringRecord;
+    //EditorExecuted : boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -278,11 +282,7 @@ begin
   Name:= '';
   Index:= 0;
   ActualValue:= Null;
-  OldActualValue:= Null;
-  EditorExecuted:= false;
-  OldDisplayValue.SetNull;
   Changed:= false;
-  EditorExecuted:= false;
 end;
 
 destructor TEditorLine.Destroy;
@@ -454,116 +454,38 @@ end;
 
 procedure TmEditingPanel.OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
 var
-  vDate : TDate;
   curLine : TEditorLine;
-  tmpDouble : Double;
-  errorMessage, RealOldValue : String;
+  errorMessage : String;
+  OldActualValue : variant;
 begin
-  NewValue := trim(NewValue);
-
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  if curLine.Configuration.ReadOnly <> roAllowEditing then
+  if curLine.Configuration.ReadOnly = roAllowEditing then
+    NewValue := Trim(NewValue)
+  else
   begin
     NewValue := OldValue;
-
-    if (curLine.Configuration.EditorKind  in [ekCalendar, ekDialog, ekWizard, ekLookup]) then
-      curLine.ActualValue:= curLine.OldActualValue;
-
     exit;
   end;
 
-  if (not (curLine.Configuration.EditorKind  in [ekCalendar, ekDialog, ekWizard, ekLookup])) or (not curLine.EditorExecuted) then
-  begin
-    RealOldValue := OldValue;
-    curLine.OldActualValue := curLine.ActualValue;
-  end
-  else
-  begin
-    RealOldValue := curLine.OldDisplayValue.Value;
-  end;
-  curLine.EditorExecuted := false;
+  if NewValue = OldValue then
+    exit;
 
+  OldActualValue := curLine.ActualValue;
 
   if (curLine.Configuration.EditorKind = ekSimple)
     or (curLine.Configuration.EditorKind = ekCalendar)
     or (curLine.Configuration.AllowFreeTypedText) then
   begin
     if curLine.Configuration.DataType = dtDate then
-    begin
-      vDate := 0;
-      if NewValue <> '' then
-      begin
-        if TryToUnderstandDateString(NewValue, vDate) then
-        begin
-          NewValue := DateToStr(vDate);
-          curLine.ActualValue := vDate;
-        end
-        else
-        begin
-          NewValue := RealOldValue;
-          TmToast.ShowText(SErrorNotADate);
-        end;
-      end
-      else
-        curLine.ActualValue:= null;
-    end else if curLine.Configuration.DataType = dtTime then
-    begin
-      vDate := 0;
-      if NewValue <> '' then
-      begin
-        if TryToUnderstandTimeString(NewValue, vDate) then
-        begin
-          NewValue := TimeToStr(vDate);
-          curLine.ActualValue := vDate;
-        end
-        else
-        begin
-          NewValue := RealOldValue;
-          TmToast.ShowText(SErrorNotATime);
-        end;
-      end
-      else
-        curLine.ActualValue:= null;
-    end else if curLine.Configuration.DataType = dtInteger then
-    begin
-      if NewValue <> '' then
-      begin
-        if not IsNumeric(NewValue, false) then
-        begin
-          NewValue := RealOldValue;
-          TmToast.ShowText(SErrorNotANumber);
-        end
-        else
-        begin
-          curLine.ActualValue:= StrToInt(NewValue);
-        end;
-      end
-      else
-        curLine.ActualValue:= null;
-    end else if (curLine.Configuration.DataType = dtFloat) then
-    begin
-      if NewValue <> '' then
-      begin
-        if TryToConvertToDouble(NewValue, tmpDouble) then
-        begin
-          if curLine.Configuration.FractionalPartDigits > 0 then
-            tmpDouble := RoundToExt(tmpDouble, curLine.Configuration.RoundingMethod, curLine.Configuration.FractionalPartDigits);
-          if curLine.Configuration.DisplayFormat <> '' then
-            NewValue := FormatFloat(curLine.Configuration.DisplayFormat, tmpDouble)
-          else
-            NewValue := FloatToStr(tmpDouble);
-          curLine.ActualValue:= tmpDouble;
-        end
-        else
-        begin
-          NewValue := RealOldValue;
-          TmToast.ShowText(SErrorNotANumber);
-        end;
-      end
-      else
-        curLine.ActualValue:= null;
-    end else if curLine.Configuration.DataType = dtUppercaseText then
+      CheckDate (OldValue, NewValue, curLine.ActualValue)
+    else if curLine.Configuration.DataType = dtTime then
+      CheckTime (OldValue, NewValue, curLine.ActualValue)
+    else if curLine.Configuration.DataType = dtInteger then
+      CheckInteger (OldValue, NewValue, curLine.ActualValue)
+    else if (curLine.Configuration.DataType = dtFloat) then
+      CheckFloat (OldValue, NewValue, curLine.ActualValue, curLine.Configuration)
+    else if curLine.Configuration.DataType = dtUppercaseText then
     begin
       NewValue := Uppercase(NewValue);
       if NewValue <> '' then
@@ -583,7 +505,7 @@ begin
         NewValue := Uppercase(NewValue);
         if not mISO6346Utility.IsContainerCodeValid(NewValue, errorMessage) then
         begin
-          NewValue := RealOldValue;
+          NewValue := OldValue;
           TmToast.ShowText(errorMessage);
         end
         else
@@ -602,7 +524,7 @@ begin
         NewValue := Uppercase(NewValue);
         if not mISO6346Utility.IsMRNCodeValid(NewValue, errorMessage) then
         begin
-          NewValue := RealOldValue;
+          NewValue := OldValue;
           TmToast.ShowText(errorMessage);
         end
         else
@@ -611,33 +533,35 @@ begin
         end;
       end;
     end;
-  end;
+  end
+  else
+    exit;
 
   if Assigned(FOnValidateValueEvent) then
   begin
-    FOnValidateValueEvent(Self, curLine.Name, RealOldValue, NewValue, curLine.OldActualValue, curLine.ActualValue, errorMessage);
+    FOnValidateValueEvent(Self, curLine.Name, OldValue, NewValue, OldActualValue, curLine.ActualValue, errorMessage);
     if errorMessage <> '' then
       TmToast.ShowText(errorMessage);
   end;
 
-
   if NewValue <> OldValue then
   begin
+    curLine.Changed := true;
+
     if Assigned(FOnEditValueEvent) then
       FOnEditValueEvent(Self, curLine.Name, NewValue, curLine.ActualValue);
-
-    curLine.Changed := curLine.Changed or (NewValue <> RealOldValue);
   end;
 end;
 
 function TmEditingPanel.OnGetValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
-  str, keyFieldName : String;
+  keyFieldName, errorMessage : String;
   curLine : TEditorLine;
   lookupFrm : TmLookupFrm;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
-  tmpValue : Variant;
+  OldStringValue : string;
+  OldActualValue : Variant;
 begin
   Result := false;
 
@@ -646,27 +570,24 @@ begin
   if curLine.Configuration.ReadOnly <> roAllowEditing then
     exit;
 
-  curLine.OldDisplayValue.SetValue(FValueListEditor.Cells[aCol, aRow]);
+  OldStringValue := FValueListEditor.Cells[aCol, aRow];
+  OldActualValue := curLine.ActualValue;
 
   if curLine.Configuration.EditorKind = ekCalendar then
   begin
     calendarFrm := TmCalendarDialog.Create;
     try
-      if FValueListEditor.Cells[aCol, aRow] <> '' then
+      if OldStringValue <> '' then
       begin
         try
-          calendarFrm.Date := StrToDate(FValueListEditor.Cells[aCol, aRow]);
+          calendarFrm.Date := StrToDate(OldStringValue);
         except
           // ignored
         end;
       end;
       if calendarFrm.Execute then
       begin
-        str := DateToStr(calendarFrm.Date);
-        FValueListEditor.Cells[aCol, aRow] := str;
-        aNewDisplayValue := str;
-        aNewActualValue := calendarFrm.Date;
-        curLine.OldActualValue:= curLine.ActualValue;
+        aNewDisplayValue := DateToStr(calendarFrm.Date);
         curLine.ActualValue:= calendarFrm.Date;
         Result := true;
       end;
@@ -677,32 +598,12 @@ begin
   else if (curLine.Configuration.EditorKind = ekDialog) then
   begin
     if Assigned(FOnShowDialogEvent) then
-    begin
-      if FOnShowDialogEvent(Self, curLine.Name, FValueListEditor.Cells[aCol, aRow], str, curLine.ActualValue, tmpValue) then
-      begin
-        FValueListEditor.Cells[aCol, aRow] := str;
-        aNewDisplayValue := str;
-        aNewActualValue := tmpValue;
-        curLine.OldActualValue:= curLine.ActualValue;
-        curLine.ActualValue:= tmpValue;
-        Result := true;
-      end;
-    end;
+      Result := FOnShowDialogEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
   end
   else if (curLine.Configuration.EditorKind = ekWizard) then
   begin
     if Assigned(FOnActivateWizardEvent) then
-    begin
-      if FOnActivateWizardEvent(Self, curLine.Name, FValueListEditor.Cells[aCol, aRow], str, curLine.ActualValue, tmpValue) then
-      begin
-        FValueListEditor.Cells[aCol, aRow] := str;
-        aNewDisplayValue := str;
-        aNewActualValue := tmpValue;
-        curLine.OldActualValue:= curLine.ActualValue;
-        curLine.ActualValue:= tmpValue;
-        Result := true;
-      end;
-    end;
+      Result := FOnActivateWizardEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
   end
   else if (curLine.Configuration.EditorKind = ekLookup) then
   begin
@@ -736,20 +637,39 @@ begin
       if lookupFrm.ShowModal = mrOk then
       begin
         aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
-        aNewActualValue:= lookupFrm.SelectedValue;
+        curLine.ActualValue:= lookupFrm.SelectedValue;
 
-        FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
-        curLine.OldActualValue:= curLine.ActualValue;
-        curLine.ActualValue:= aNewActualValue;
         Result := true;
       end;
-
     finally
       lookupFrm.Free;
     end;
   end;
 
-  curLine.EditorExecuted:= Result;
+  if Result then
+  begin
+    if Assigned(FOnValidateValueEvent) then
+    begin
+      FOnValidateValueEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue, errorMessage);
+      if errorMessage <> '' then
+        TmToast.ShowText(errorMessage);
+    end;
+
+    if aNewDisplayValue <> OldStringValue then
+    begin
+      curLine.Changed := true;
+
+      FValueListEditor.OnValidateEntry := nil;
+      try
+        FValueListEditor.Cells[aCol, aRow] := aNewDisplayValue;
+      finally
+        FValueListEditor.OnValidateEntry := Self.OnValueListEditorValidateEntry;
+      end;
+
+      if Assigned(FOnEditValueEvent) then
+        FOnEditValueEvent(Self, curLine.Name, aNewDisplayValue, curLine.ActualValue);
+    end;
+  end;
 end;
 
 function TmEditingPanel.OnValueListEditorClearValue(const aCol, aRow: integer): boolean;
@@ -876,8 +796,6 @@ begin
       raise Exception.Create('Nullable destination not set for field ' + curLine.Name);
 
     curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
-    curLine.OldActualValue:= curLine.ActualValue;
-
 
     if (curLine.Configuration.DataType = dtFloat) and (curLine.Configuration.ChangedValueDestination is TNullableDouble) then
     begin
@@ -994,6 +912,92 @@ begin
   s := StringReplace(Result, Chr(13), '', [rfReplaceAll]);
   if Length(s) = 0 then
     Result := '';
+end;
+
+procedure TmEditingPanel.CheckDate(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant);
+var
+  vDate : TDate;
+begin
+  vDate := 0;
+  if aNewStringValue <> '' then
+  begin
+    if TryToUnderstandDateString(aNewStringValue, vDate) then
+    begin
+      aNewStringValue := DateToStr(vDate);
+      aActualValue := vDate;
+    end
+    else
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotADate);
+    end;
+  end
+  else
+    aActualValue := null;
+end;
+
+procedure TmEditingPanel.CheckTime(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant);
+var
+  vDate : TDateTime;
+begin
+  vDate := 0;
+  if aNewStringValue <> '' then
+  begin
+    if TryToUnderstandTimeString(aNewStringValue, vDate) then
+    begin
+      aNewStringValue := TimeToStr(vDate);
+      aActualValue := vDate;
+    end
+    else
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotATime);
+    end;
+  end
+  else
+    aActualValue:= null;
+end;
+
+procedure TmEditingPanel.CheckInteger(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant);
+begin
+  if aNewStringValue <> '' then
+  begin
+    if not IsNumeric(aNewStringValue, false) then
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotANumber);
+    end
+    else
+      aActualValue:= StrToInt(aNewStringValue);
+  end
+  else
+    aActualValue:= null;
+end;
+
+procedure TmEditingPanel.CheckFloat(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant; const aLineConfiguration : TmEditorLineConfiguration);
+var
+  tmpDouble : double;
+begin
+  if aNewStringValue <> '' then
+  begin
+    if TryToConvertToDouble(aNewStringValue, tmpDouble) then
+    begin
+      if aLineConfiguration.FractionalPartDigits > 0 then
+        tmpDouble := RoundToExt(tmpDouble, aLineConfiguration.RoundingMethod, aLineConfiguration.FractionalPartDigits);
+      if aLineConfiguration.DisplayFormat <> '' then
+        aNewStringValue := FormatFloat(aLineConfiguration.DisplayFormat, tmpDouble)
+      else
+        aNewStringValue := FloatToStr(tmpDouble);
+      aActualValue:= tmpDouble;
+    end
+    else
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotANumber);
+    end;
+  end
+  else
+    aActualValue := null;
 end;
 
 constructor TmEditingPanel.Create(TheOwner: TComponent);

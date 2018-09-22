@@ -51,7 +51,7 @@ begin
   FDesktopManager.Init(Self);
   FDesktopManager.AddTransformer(FTransformer);
   FDesktopManager.AddPublisher(FPublisher);
-  FDesktopManager.FillAddRootWidgetMenu(MI_Add);
+  FDesktopManager.FillAddWidgetMenu(MI_Add, NULL_URAMAKI_ID, GUID_NULL);
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);

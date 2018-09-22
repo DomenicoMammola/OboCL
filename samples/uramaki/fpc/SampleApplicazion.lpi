@@ -14,9 +14,6 @@
     <i18n>
       <EnableI18N LFM="False"/>
     </i18n>
-    <VersionInfo>
-      <StringTable ProductVersion=""/>
-    </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
     </BuildModes>
@@ -56,7 +53,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\src\uramaki;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\OXML\units;..\..\..\thirdparties\omultipanel;..\..\..\thirdparties\ATButtons\atbuttons;..\..\..\thirdparties\ATTabs\src"/>
+      <OtherUnitFiles Value="..\..\..\src;..\..\..\src\dialogs;..\..\..\src\uramaki;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\OXML\units;..\..\..\thirdparties\Mommon\thirdparties\StrHashMap;..\..\..\thirdparties\omultipanel;..\..\..\thirdparties\ATButtons\atbuttons;..\..\..\thirdparties\ATTabs\attabs"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>

@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Controls, ExtCtrls, StdCtrls,
-  UramakiBase, UramakiDesktopBase;
+  UramakiBase, UramakiDesktopGUI;
 
 type
 

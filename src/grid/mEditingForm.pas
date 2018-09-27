@@ -124,6 +124,7 @@ type
     FMultiEditMode : boolean;
     FSomethingChanged : boolean;
     FCommitted : boolean;
+    FLastEditorUsed : string;
 
     function GetAlternateColor: TColor;
     procedure SetAlternateColor(AValue: TColor);
@@ -193,6 +194,7 @@ uses
   {$IFDEF DEBUG}
   LazLogger,
   {$ENDIF}
+  LCLType,
   Dialogs,
   mToast;
 
@@ -201,6 +203,7 @@ type
   { TEditorLine }
 
   TEditorLine = class
+
   private
     Name: String;
     Index: integer;
@@ -208,6 +211,7 @@ type
     Changed: boolean;
     Configuration: TmEditorLineConfiguration;
     ActualValue : variant;
+
     //OldActualValue : variant;
     //OldDisplayValue : TNullableStringRecord;
     //EditorExecuted : boolean;
@@ -216,6 +220,7 @@ type
     destructor Destroy; override;
 
     function RowIndex : integer;
+    procedure SetActualValue(AValue: variant);
   end;
 
   TEditorMemo = class
@@ -274,6 +279,11 @@ begin
   FDisplayLabelFieldNames.Free;
   FreeAndNil(FBooleanProvider);
   inherited Destroy;
+end;
+
+procedure TEditorLine.SetActualValue(AValue: variant);
+begin
+  ActualValue:=AValue;
 end;
 
 constructor TEditorLine.Create;
@@ -473,6 +483,9 @@ begin
 
   OldActualValue := curLine.ActualValue;
 
+  if (curLine.Name = FLastEditorUsed) and (not curLine.Configuration.AllowFreeTypedText) then
+    exit;
+
   if (curLine.Configuration.EditorKind = ekSimple)
     or (curLine.Configuration.EditorKind = ekCalendar)
     or (curLine.Configuration.AllowFreeTypedText) then
@@ -535,7 +548,10 @@ begin
     end;
   end
   else
+  begin
     exit;
+  end;
+
 
   if Assigned(FOnValidateValueEvent) then
   begin
@@ -598,12 +614,18 @@ begin
   else if (curLine.Configuration.EditorKind = ekDialog) then
   begin
     if Assigned(FOnShowDialogEvent) then
+    begin
+      FLastEditorUsed:= curLine.Name;
       Result := FOnShowDialogEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
+    end;
   end
   else if (curLine.Configuration.EditorKind = ekWizard) then
   begin
     if Assigned(FOnActivateWizardEvent) then
+    begin
+      FLastEditorUsed:= curLine.Name;
       Result := FOnActivateWizardEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
+    end;
   end
   else if (curLine.Configuration.EditorKind = ekLookup) then
   begin
@@ -638,6 +660,8 @@ begin
       begin
         aNewDisplayValue:= lookupFrm.SelectedDisplayLabel;
         curLine.ActualValue:= lookupFrm.SelectedValue;
+
+        FLastEditorUsed:= curLine.Name;
 
         Result := true;
       end;
@@ -1003,6 +1027,8 @@ end;
 constructor TmEditingPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+  FLastEditorUsed:= '';
+
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.BorderStyle:= bsNone;

@@ -353,7 +353,7 @@ constructor TmEditingForm.CreateNew(AOwner: TComponent; Num: Integer = 0);
 begin
   inherited CreateNew(AOwner, Num);
 
-  Self.Height:= 550;
+  Self.Height:= trunc (Screen.Height * 0.80);
   Self.Width:= 800;
   //Self.BorderStyle:= bsDialog;
   Self.OnShow:= FormShow;

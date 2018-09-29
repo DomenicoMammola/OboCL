@@ -58,6 +58,12 @@ begin
     tmp.EndTime:= tmp.StartTime + Random(100) / 10;
     tmp.Color:= clYellow;
     FBars.Add(tmp);
+
+    tmp := TmGanttBarDatum.Create;
+    tmp.StartTime:= EncodeDate(2018, 1, (i * 2) + 1);
+    tmp.EndTime:= tmp.StartTime + Random(100) / 10;
+    tmp.Color:= clYellow;
+    FBars.Add(tmp);
   end;
 end;
 
@@ -78,6 +84,9 @@ var
 begin
   aGanttBars.Clear;
   curBar := FBars.Items[aRowIndex] as TmGanttBarDatum;
+  if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
+    aGanttBars.Add(curBar);
+  curBar := FBars.Items[aRowIndex * 2 - 1] as TmGanttBarDatum;
   if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
     aGanttBars.Add(curBar);
 end;

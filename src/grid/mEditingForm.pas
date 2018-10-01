@@ -150,7 +150,8 @@ type
 
     function AddLine(const aName : String): TmEditorLineConfiguration;
 
-    procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
+    procedure AddMemo (const aName : string; const aCaption : string; const aDefaultValue : string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil;
+      const aReadOnly : TmEditorLineReadOnlyMode = roAllowEditing);
 
     function GetValue(const aName : string) : Variant;
     procedure SetValue(const aName : string; const aDisplayValue: String; const aActualValue: variant);
@@ -182,6 +183,7 @@ type
     procedure OkBtnClick(Sender: TObject);
   public
     constructor CreateNew(AOwner: TComponent; Num: Integer = 0); override;
+    procedure SetReadOnly;
   public
     property EditingPanel: TmEditingPanel read FEditingPanel;
   end;
@@ -397,6 +399,11 @@ begin
   FEditingPanel.Parent := Self;
   FEditingPanel.Align:= alClient;
 
+end;
+
+procedure TmEditingForm.SetReadOnly;
+begin
+  FOkBtn.Visible:= false;
 end;
 
 { TmEditingPanel }
@@ -725,7 +732,8 @@ begin
     Result := aCaption;
 end;
 
-procedure TmEditingPanel.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string; const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil);
+procedure TmEditingPanel.AddMemo(const aName: string; const aCaption: string;const aDefaultValue: string;
+    const aMemoHeightPercent : double; const aChangedValueDestination : TAbstractNullable = nil; const aReadOnly : TmEditorLineReadOnlyMode = roAllowEditing);
 var
   tmpPanel1, tmpPanel2 : TPanel;
   tmpMemo : TMemo;
@@ -760,6 +768,7 @@ begin
   tmpEditorMemo.Name:= aName;
   tmpEditorMemo.Memo := tmpMemo;
   tmpEditorMemo.ChangedValueDestination := aChangedValueDestination;
+  tmpEditorMemo.Memo.ReadOnly := (aReadOnly <> roAllowEditing);
 
   FMemos.Add(tmpEditorMemo);
   FMemosByName.Add(aName, tmpEditorMemo);

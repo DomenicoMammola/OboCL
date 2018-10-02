@@ -6,6 +6,7 @@ object FilterValuesDlg: TFilterValuesDlg
   Caption = 'Filter values'
   ClientHeight = 240
   ClientWidth = 477
+  OnCreate = FormCreate
   OnShow = FormShow
   LCLVersion = '1.8.4.0'
   object ButtonPanel1: TButtonPanel
@@ -56,6 +57,7 @@ object FilterValuesDlg: TFilterValuesDlg
         Width = 469
         Align = alClient
         ItemHeight = 0
+        PopupMenu = PopupMenuValues
         TabOrder = 1
       end
     end
@@ -92,6 +94,7 @@ object FilterValuesDlg: TFilterValuesDlg
           Align = alClient
           ItemHeight = 0
           OnClick = ListBoxToBeFilteredClick
+          PopupMenu = PopupMenuValues
           TabOrder = 1
         end
       end
@@ -153,6 +156,14 @@ object FilterValuesDlg: TFilterValuesDlg
           TabOrder = 1
         end
       end
+    end
+  end
+  object PopupMenuValues: TPopupMenu
+    left = 296
+    top = 122
+    object MI_ExportValues: TMenuItem
+      Caption = 'Export values..'
+      OnClick = MI_ExportValuesClick
     end
   end
 end

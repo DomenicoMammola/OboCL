@@ -15,7 +15,12 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel,
-  CheckLst, ExtCtrls, ComCtrls, StdCtrls, ListFilterEdit;
+  CheckLst, ExtCtrls, ComCtrls, StdCtrls, Menus, ListFilterEdit;
+
+resourcestring
+  SExportValuesMenuCaption = 'Export values...';
+  SWarningFileExists = 'File exists';
+  SAskOverwriteFile = 'File already exists. Overwrite it?';
 
 type
 
@@ -28,10 +33,12 @@ type
     ListBoxToBeFiltered: TListBox;
     ListBoxFilter: TListBox;
     ListFilterEditAdvanced: TListFilterEdit;
+    MI_ExportValues: TMenuItem;
     PageControlFilter: TPageControl;
     PanelTop: TPanel;
     PanelRight: TPanel;
     PanelLeft: TPanel;
+    PopupMenuValues: TPopupMenu;
     Splitter1: TSplitter;
     TSAdvanced: TTabSheet;
     TSSimple: TTabSheet;
@@ -39,9 +46,11 @@ type
     ListFilterEdit: TListFilterEdit;
     procedure BtnAddAllClick(Sender: TObject);
     procedure BtnClearClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ListBoxFilterClick(Sender: TObject);
     procedure ListBoxToBeFilteredClick(Sender: TObject);
+    procedure MI_ExportValuesClick(Sender: TObject);
   private
     { private declarations }
   public
@@ -51,6 +60,7 @@ type
 
 implementation
 
+
 {$R *.lfm}
 
 { TFilterValuesDlg }
@@ -58,6 +68,11 @@ implementation
 procedure TFilterValuesDlg.BtnClearClick(Sender: TObject);
 begin
   ListBoxFilter.Clear;
+end;
+
+procedure TFilterValuesDlg.FormCreate(Sender: TObject);
+begin
+  MI_ExportValues.Caption:= SExportValuesMenuCaption;
 end;
 
 procedure TFilterValuesDlg.FormShow(Sender: TObject);
@@ -80,6 +95,42 @@ begin
     tmp := ListBoxToBeFiltered.Items[ListBoxToBeFiltered.ItemIndex];
     if ListBoxFilter.Items.IndexOf(tmp) < 0 then
       ListBoxFilter.Items.Append(tmp);
+  end;
+end;
+
+procedure TFilterValuesDlg.MI_ExportValuesClick(Sender: TObject);
+var
+  dlg : TSaveDialog;
+  tmpList : TStringList;
+  i : integer;
+begin
+  dlg := TSaveDialog.Create(Self);
+  try
+    dlg.DefaultExt:= 'txt';
+    dlg.Filter:='Text file|*.txt';
+
+    if dlg.Execute then
+    begin
+      if (not FileExists(dlg.FileName)) or (MessageDlg(SWarningFileExists, SAskOverwriteFile, mtConfirmation, mbYesNo, 0) = mrYes) then
+      begin
+        tmpList := TStringList.Create;
+        try
+          if PageControlFilter.ActivePageIndex = 0 then
+          begin
+            for i := 0 to ValuesListBox.Count - 1 do
+              tmpList.Append(ValuesListBox.Items[i]);
+          end
+          else
+            tmpList.AddStrings(ListBoxToBeFiltered.Items);
+
+          tmpList.SaveToFile(dlg.FileName);
+        finally
+          tmpList.Free;
+        end;
+      end;
+    end;
+  finally
+    dlg.Free;
   end;
 end;
 

@@ -111,7 +111,7 @@ implementation
 
 uses
   SysUtils,
-  mGraphicsUtility, mMemoDialog;
+  mGraphicsUtility, mMemoDialog, mMagnificationFactor;
 
 { TUramakiDesktopPanel }
 
@@ -144,9 +144,9 @@ begin
   FTabs.OptShowXButtons:= atbxShowNone;
   FTabs.OptMouseDoubleClickClose:= false;
   FTabs.OptShowEntireColor:= true;
-  FTabs.Height:= ScaleForDPI(24);
-  FTabs.OptTabHeight:= ScaleForDPI(18);
-  FTabs.OptTabWidthNormal:= ScaleForDPI(200);
+  FTabs.Height:= ScaleForDPI(ScaleForMagnification(24));
+  FTabs.OptTabHeight:= ScaleForDPI(ScaleForMagnification(18));
+  FTabs.OptTabWidthNormal:= ScaleForDPI(ScaleForMagnification(200));
   FTabs.ColorBg:= clMenu;
   FTabs.OptMouseDragEnabled:= false; //enable drag-drop
   FTabs.OptMouseDragOutEnabled:= false; //also enable drag-drop to another controls
@@ -160,7 +160,7 @@ begin
   FUpdatingLabel := TLabel.Create(Self);
   FUpdatingLabel.Parent:= Self;
   FUpdatingLabel.Align:= alTop;
-  FUpdatingLabel.Height:= 10;
+  FUpdatingLabel.Height:= ScaleForDPI(ScaleForMagnification(10));
   FUpdatingLabel.Visible:= false;
   FUpdatingLabel.Caption:= SLabelUpdatingCaption;
 end;

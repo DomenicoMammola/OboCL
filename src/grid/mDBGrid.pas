@@ -117,7 +117,7 @@ implementation
 
 uses
   LResources, sysutils, md5,
-  mGridFilterValuesDlg, mGridFiltersEditDlg;
+  mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor;
 
 { TBookmarkListHelper }
 
@@ -724,6 +724,7 @@ begin
   Self.OnTitleClick:= InternalOnTitleClick;
   Self.OnMouseDown:= InternalOnMouseDown;
   Self.OnPrepareCanvas:= InternalOnPrepareCanvas;
+  ScaleFontForMagnification(Self.Font);
 end;
 
 destructor TmDBGrid.Destroy;

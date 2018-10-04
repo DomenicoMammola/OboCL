@@ -247,7 +247,7 @@ implementation
 uses
   SysUtils, LResources, Forms,
   mQuickReadOnlyVirtualDataSet, mLookupForm, mCheckListForm,
-  mDoubleList, mGraphicsUtility;
+  mDoubleList, mGraphicsUtility, mMagnificationFactor;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
@@ -966,12 +966,14 @@ begin
   FBottomPanel.Height:= FDateEditMin.Height;
   FDateEditMin.Align:= alClient;
   FDateEditMin.Flat:= true;
+  FDateEditMin.Height:= ScaleForMagnification(FDateEditMin.Height);
   FDateEditMax := TmDateEdit.Create(Self);
   FDateEditMax.Parent := FBottomPanel;
   FDateEditMax.Align:= alRight;
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
   FDateEditMax.Flat:= false;
+  FDateEditMax.Height:= ScaleForMagnification(FDateEditMax.Height);
   FLabel := Self.CreateStandardLabel;
   CreateStandardFilterMenu(FLabel, true);
 end;
@@ -1094,6 +1096,7 @@ begin
   Result.WordWrap:= true;
   Result.Alignment:= taCenter;
   Result.Font.Size := Round((- Graphics.GetFontData(Result.Font.Handle).Height * 72 / Result.Font.PixelsPerInch));
+  ScaleFontForMagnification(Result.Font);
 end;
 
 function TmFilterConditionPanel.CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;
@@ -1230,9 +1233,9 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.FFlex := 2;
-  Self.Width := Self.FFlex * ScaleForDPI (DEFAULT_FLEX_WIDTH);
+  Self.Width := Self.FFlex * ScaleForDPI (ScaleForMagnification(DEFAULT_FLEX_WIDTH));
   Self.Caption := '';
-  Self.Height := ScaleForDPI(DEFAULT_HEIGHT);
+  Self.Height := ScaleForDPI(ScaleForMagnification(DEFAULT_HEIGHT));
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
   FOperatorsMenuItems := TList.Create;

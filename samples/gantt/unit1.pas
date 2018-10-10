@@ -51,7 +51,7 @@ var
 begin
   inherited;
   FBars := TObjectList.Create(true);
-  for i := 0 to 23 do
+  for i := 0 to 15 do
   begin
     tmp := TmGanttBarDatum.Create;
     tmp.StartTime:= EncodeDate(2018, 1, i + 1);
@@ -60,7 +60,7 @@ begin
     FBars.Add(tmp);
 
     tmp := TmGanttBarDatum.Create;
-    tmp.StartTime:= EncodeDate(2018, 1, (i * 2) + 1);
+    tmp.StartTime:= EncodeDate(2018, 1, 1 + (i * 2));
     tmp.EndTime:= tmp.StartTime + Random(100) / 10;
     tmp.Color:= clYellow;
     FBars.Add(tmp);
@@ -86,9 +86,9 @@ begin
   curBar := FBars.Items[aRowIndex] as TmGanttBarDatum;
   if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
     aGanttBars.Add(curBar);
-  curBar := FBars.Items[aRowIndex * 2 - 1] as TmGanttBarDatum;
+(*  curBar := FBars.Items[aRowIndex * 2 - 1] as TmGanttBarDatum;
   if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
-    aGanttBars.Add(curBar);
+    aGanttBars.Add(curBar);*)
 end;
 
 { TForm1 }

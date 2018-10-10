@@ -89,7 +89,8 @@ type
     procedure Clear; override;
   end;
 
-  TmEditFilterValueType = (efString, efUppercaseString, efInteger, efFloat, efUniqueIdentifier);
+  TmEditFilterValueType = (efString, efUppercaseString, efInteger, efFloat, efUniqueIdentifier, efDate, efDateTime);
+  TmComboCheckLookupFilterValueType = (cfString, cfInteger, cfFloat, cfDate, cfDateTime);
 
   { TmEditFilterConditionPanel }
 
@@ -119,6 +120,7 @@ type
     FCombobox: TComboBox;
     FGarbage : TObjectList;
     FDefaultItemIndex : integer;
+    FValueType : TmComboCheckLookupFilterValueType;
     procedure SetDefaultItemIndex(AValue: integer);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -135,6 +137,7 @@ type
     function IsEmpty : boolean; override;
 
     property DefaultItemIndex : integer read FDefaultItemIndex write SetDefaultItemIndex;
+    property ValueType : TmComboCheckLookupFilterValueType read FValueType write FValueType;
   end;
 
   { TmCheckListFilterConditionPanel }
@@ -144,9 +147,9 @@ type
     FCurrentValue : variant;
     FLabel : TLabel;
     FEdit : TEditButton;
-    FValueType : TmEditFilterValueType;
     FGarbage : TObjectList;
     FValues : TStringList;
+    FValueType : TmComboCheckLookupFilterValueType;
     procedure OnShowValuesList (Sender: TObject);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -160,7 +163,7 @@ type
 
     procedure Clear; override;
     function IsEmpty : boolean; override;
-    property ValueType : TmEditFilterValueType read FValueType write FValueType;
+    property ValueType : TmComboCheckLookupFilterValueType read FValueType write FValueType;
   end;
 
 
@@ -296,10 +299,10 @@ begin
   FEdit.ButtonCaption:='...';
   FEdit.OnButtonClick:= Self.OnShowValuesList;
   FLabel := Self.CreateStandardLabel;
-  FValueType:= efString;
   CreateStandardFilterMenu(FLabel, true);
   FGarbage := TObjectList.Create(true);
   FValues := TStringList.Create;
+  FValueType:= cfString;
   CreateStandardFilterMenu(FLabel, false);
 end;
 
@@ -320,8 +323,15 @@ procedure TmCheckListFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
 begin
   inherited ExportToFilter(aFilter);
   aFilter.Value:= FCurrentValue;
-  aFilter.DataType:= fdtString;
   aFilter.DisplayValue:= FEdit.Text;
+  case FValueType of
+    cfInteger: aFilter.DataType:= fdtInteger;
+    cfFloat: aFilter.DataType:= fdtFloat;
+    cfDate: aFilter.DataType:= fdtDate;
+    cfDateTime: aFilter.DataType:= fdtDateTime
+  else
+    aFilter.DataType:= fdtString;
+  end;
 end;
 
 procedure TmCheckListFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
@@ -483,13 +493,29 @@ begin
     aFilter.DataType:= fdtInteger;
   end
   else
-  if FValueType = efFloat then
+  if (FValueType = efFloat) then
   begin
     if VarIsFloat(FCurrentValue) then
       aFilter.Value := FCurrentValue
     else
       aFilter.Value := null;
     aFilter.DataType:= fdtFloat;
+  end
+  else if (FValueType = efDateTime) then
+  begin
+    if VarIsFloat(FCurrentValue) then
+      aFilter.Value := FCurrentValue
+    else
+      aFilter.Value := null;
+    aFilter.DataType:= fdtDateTime;
+  end
+  else if (FValueType = efDate) then
+  begin
+    if VarIsOrdinal(FCurrentValue) then
+      aFilter.Value := FCurrentValue
+    else
+      aFilter.Value := null;
+    aFilter.DataType:= fdtDate;
   end
   else
     aFilter.Value := FCurrentValue;
@@ -693,6 +719,7 @@ end;
 procedure TmEditFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
 var
   tmp : Double;
+  tmpDateTime : TDateTime;
 begin
   inherited ExportToFilter(aFilter);
   aFilter.DataType:= fdtString;
@@ -700,9 +727,7 @@ begin
     aFilter.Value := null
   else
   if FValueType = efUppercaseString then
-  begin
     aFilter.Value := Uppercase(FEdit.Text)
-  end
   else
   if FValueType = efUniqueIdentifier then
   begin
@@ -734,6 +759,22 @@ begin
     else
       aFilter.Value := null;
     aFilter.DataType:= fdtFloat;
+  end
+  else if (FValueType = efDateTime) then
+  begin
+    if TryToUnderstandDateString(FEdit.Text, tmpDateTime) then
+      aFilter.Value:= tmpDateTime
+    else
+      aFilter.Value:= null;
+    aFilter.DataType:= fdtDateTime;
+  end
+  else if (FValueType = efDate) then
+  begin
+    if TryToUnderstandDateString(FEdit.Text, tmpDateTime) then
+      aFilter.Value:= trunc(tmpDateTime)
+    else
+      aFilter.Value:= null;
+    aFilter.DataType:= fdtDate;
   end
   else
     aFilter.Value := FEdit.Text;
@@ -799,6 +840,7 @@ begin
   FGarbage := TObjectList.Create(true);
   FDefaultItemIndex:= -1;
   CreateStandardFilterMenu(FLabel, false);
+  FValueType:= cfString;
 end;
 
 destructor TmComboFilterConditionPanel.Destroy;
@@ -820,7 +862,15 @@ begin
     aFilter.Value := Null
   else
     aFilter.Value := (FComboBox.Items.Objects[FComboBox.ItemIndex] as TVariantObject).Value;
-  aFilter.DataType:= fdtString;
+
+  case FValueType of
+    cfInteger: aFilter.DataType:= fdtInteger;
+    cfFloat: aFilter.DataType:= fdtFloat;
+    cfDate: aFilter.DataType:= fdtDate;
+    cfDateTime: aFilter.DataType:= fdtDateTime
+  else
+    aFilter.DataType:= fdtString;
+  end;
 end;
 
 procedure TmComboFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);

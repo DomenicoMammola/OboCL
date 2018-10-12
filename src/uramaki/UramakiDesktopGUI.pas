@@ -519,13 +519,17 @@ end;
 
 procedure TUramakiDesktopSimplePanel.StartShining;
 begin
-  FUpdatingLabel.Visible:= true;
-  Application.ProcessMessages;
+  if Assigned(FUpdatingLabel) then
+  begin
+    FUpdatingLabel.Visible:= true;
+    Application.ProcessMessages;
+  end;
 end;
 
 procedure TUramakiDesktopSimplePanel.StopShining;
 begin
-  FUpdatingLabel.Visible:= false;
+  if Assigned(FUpdatingLabel) then
+    FUpdatingLabel.Visible:= false;
 end;
 
 end.

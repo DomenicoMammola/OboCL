@@ -108,7 +108,6 @@ type
     property SortManager : ISortableDatasetManager read FSortManager write SetSortManager;
     property FilterManager : IFilterDatasetManager read FFilterManager write SetFilterManager;
     property SummaryManager : ISummaryDatasetManager read FSummaryManager write SetSummaryManager;
-    property Row;
     property CellDecorations : TmCellDecorations read FCellDecorations;
     property SummaryPanel : ISummaryPanel read FSummaryPanel write SetSummaryPanel;
   end;

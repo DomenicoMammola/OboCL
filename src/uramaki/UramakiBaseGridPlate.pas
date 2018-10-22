@@ -88,7 +88,7 @@ type
     FDatasource : TDatasource;
     //FToolbar : TToolBar;
     FToolbar : TUramakiToolbar;
-    FLastSelectedRow : integer;
+    FLastSelectedRow : TBookmark;
     FLastSelectedRowsCount : integer;
     FLastSelectedRowsHash : string;
     FFilterPanel : TmFilterPanel;
@@ -402,25 +402,25 @@ begin
       if newHash <> FLastSelectedRowsHash then
       begin
         FLastSelectedRowsHash:= newHash;
-        FLastSelectedRow := FGrid.Row;
+        FLastSelectedRow := FGrid.DataSource.DataSet.Bookmark;
         FLastSelectedRowsCount := FGrid.SelectedRows.Count;
         if Assigned(Self.Parent) then
           InvokeChildsRefresh;
       end;
     end
     else begin
-      if (FGrid.SelectedRows.Count = 0) and ((FLastSelectedRow >= 0) or (FLastSelectedRowsCount > 0)) then
+      if (FGrid.SelectedRows.Count = 0) and ((FGrid.DataSource.DataSet.BookmarkValid(FLastSelectedRow)) or (FLastSelectedRowsCount > 0)) then
       begin
-        FLastSelectedRow:= -1;
+        FLastSelectedRow:= nil;
         FLastSelectedRowsCount:= 0;
         if Assigned(Self.Parent) then
           InvokeChildsRefresh;
       end
       else
       begin
-        if FLastSelectedRow <> FGrid.Row then
+        if FGrid.DataSource.DataSet.CompareBookmarks(FLastSelectedRow, FGrid.DataSource.DataSet.Bookmark) <> 0 then
         begin
-          FLastSelectedRow := FGrid.Row;
+          FLastSelectedRow := FGrid.DataSource.DataSet.Bookmark;
           FLastSelectedRowsCount := 1;
           if Assigned(Self.Parent) then
             InvokeChildsRefresh;
@@ -430,7 +430,7 @@ begin
   end
   else
   begin
-    FLastSelectedRow:= -1;
+    FLastSelectedRow:= nil;
     FLastSelectedRowsCount:= 0;
     if Assigned(Self.Parent) then
       InvokeChildsRefresh;
@@ -674,7 +674,7 @@ begin
   finally
     Self.EnableControls;
   end;
-  FLastSelectedRow := -1;
+  FLastSelectedRow := nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
   if AutomaticChildsUpdateMode = cuOnChangeSelection then
@@ -697,7 +697,7 @@ procedure TUramakiBaseGridPlate.RefreshDataset;
 begin
   FGrid.SelectedRows.Clear;
   FGrid.SelectedIndex:= -1;
-  FLastSelectedRow := -1;
+  FLastSelectedRow := nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
   FDataset.Refresh;
@@ -729,7 +729,7 @@ begin
   FGrid.SummaryManager := Self.FDataset.SummaryManager;
   FGrid.ColumnsHeaderMenuVisible:= true;
 
-  FLastSelectedRow:=-1;
+  FLastSelectedRow:= nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
@@ -790,7 +790,7 @@ begin
   finally
     Self.EnableControls;
   end;
-  FLastSelectedRow := -1;
+  FLastSelectedRow := nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
   InvokeChildsClear;

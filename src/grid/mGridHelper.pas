@@ -26,7 +26,7 @@ uses
   {$ENDIF}
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
-  mDBGrid,
+  mDBGrid, mNullables,
   mVirtualDatasetFormulas;
 
 resourcestring
@@ -93,11 +93,23 @@ type
   end;
 
 
+function GetLastUsedFolderForExport : TNullableString;
+
 implementation
 
 uses
   SysUtils,
   mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml;
+
+var
+  _LastUsedFolderForExport : TNullableString;
+
+function GetLastUsedFolderForExport: TNullableString;
+begin
+  if not Assigned(_LastUsedFolderForExport) then
+    _LastUsedFolderForExport := TNullableString.Create();
+  Result := _LastUsedFolderForExport;
+end;
 
 { TmDBGridHelper }
 
@@ -129,6 +141,10 @@ begin
     FSaveDialog.DefaultExt:= 'html';
     FSaveDialog.Filter:=SHtmlFileDescription + '|*.html';
   end;
+
+  if GetLastUsedFolderForExport.NotNull and DirectoryExists(GetLastUsedFolderForExport.AsString) then
+    FSaveDialog.InitialDir:= GetLastUsedFolderForExport.AsString;
+
   if FSaveDialog.Execute then
   begin
     if FileExists(FSaveDialog.FileName) then
@@ -136,6 +152,7 @@ begin
       if not ConfirmFileOverwrite then
         exit;
     end;
+    _LastUsedFolderForExport.Value:= ExtractFileDir(FSaveDialog.FileName);
     try
       oldCursor := Screen.Cursor;
       try
@@ -767,5 +784,8 @@ begin
   // TODO
 end;
 {$ENDIF}
+
+finalization
+  FreeAndNil(_LastUsedFolderForExport);
 
 end.

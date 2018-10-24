@@ -298,6 +298,9 @@ procedure TmDBGridHelper.OnEditFormulaFields(Sender: TObject);
 var
   frm : TFormulaFieldsConfigurationForm;
 begin
+  if not Assigned(FFormulaFields) then
+    exit;
+
   frm := TFormulaFieldsConfigurationForm.Create(nil);
   try
     frm.Init(FFormulaFields, FDBGrid.DataSource.DataSet.Fields);
@@ -351,19 +354,22 @@ begin
   finally
     cursor.Free;
   end;
-  cursor := TmXmlElementCursor.Create(aXMLElement, 'formulaFields');
-  try
-    if cursor.Count > 0 then
-    begin
-      LoadFormulaFieldsFromXmlElement(FFormulaFields, cursor.Elements[0]);
-      if FFormulaFields.Count > 0 then
+  if Assigned(FFormulaFields) then
+  begin
+    cursor := TmXmlElementCursor.Create(aXMLElement, 'formulaFields');
+    try
+      if cursor.Count > 0 then
       begin
-        FDBGrid.DataSource.DataSet.Close;
-        FDBGrid.DataSource.DataSet.Open;
+        LoadFormulaFieldsFromXmlElement(FFormulaFields, cursor.Elements[0]);
+        if FFormulaFields.Count > 0 then
+        begin
+          FDBGrid.DataSource.DataSet.Close;
+          FDBGrid.DataSource.DataSet.Open;
+        end;
       end;
+    finally
+      cursor.Free;
     end;
-  finally
-    cursor.Free;
   end;
   if Assigned(FDBGrid.SummaryManager) then
   begin

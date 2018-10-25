@@ -1058,7 +1058,7 @@ begin
   FValueListEditor.Height:= 200;
   FValueListEditor.AlternateColor := clMoneyGreen;
   FValueListEditor.AutoAdvance := aaDown;
-  FValueListEditor.DefaultColWidth := 230;
+  FValueListEditor.DefaultColWidth := 250;
   FValueListEditor.FixedCols := 0;
   FValueListEditor.Flat := True;
   FValueListEditor.RowCount := 2;
@@ -1068,8 +1068,8 @@ begin
   FValueListEditor.OnValidateEntry := Self.OnValueListEditorValidateEntry;
   FValueListEditor.TitleCaptions.Add(SPropertyColumnTitle);
   FValueListEditor.TitleCaptions.Add(SValueColumnTitle);
-  FValueListEditor.ColWidths[0] := 230;
-  FValueListEditor.ColWidths[1] := 370;
+  FValueListEditor.ColWidths[0] := 250;
+  FValueListEditor.ColWidths[1] := 350;
 
   FDateCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FDateCellEditor.Visible := false;

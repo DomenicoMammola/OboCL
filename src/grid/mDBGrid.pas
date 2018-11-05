@@ -18,6 +18,7 @@ interface
 
 uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, variants, Grids, ExtCtrls,
+  LCLVersion, ImgList,
   mGridColumnSettings, mXML, mSortConditions, mGridIcons,
   mDatasetInterfaces, mSystemColumns, mFilter, mFilterOperators, mCellDecorations,
   mSummary, KAParser, mMaps;
@@ -72,6 +73,7 @@ type
     procedure InternalOnTitleClick(Column: TColumn); // inspired by http://forum.lazarus.freepascal.org/index.php?topic=24510.0
     procedure InternalOnMouseDown (Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer); // https://www.codeproject.com/Articles/199506/Improving-Delphi-TDBGrid
     procedure InternalOnPrepareCanvas (sender: TObject; DataCol: Integer; Column: TColumn; AState: TGridDrawState);
+    procedure InternalOnGetCheckBoxBitmap(Sender: TObject; const CheckedState: TCheckboxState; var ABitmap: TBitmap);
     procedure SetColumnsHeaderMenuVisible(AValue: boolean);
     procedure ApplySettingsToField(aColumn: TColumn; aSettings : TmGridColumnSettings);
     procedure ExtractSettingsFromField(aColumn: TColumn; aSettings : TmGridColumnSettings);
@@ -89,7 +91,9 @@ type
     procedure RefreshSummaryPanel (Sender : TObject);
     procedure SetSummaryPanel(AValue: ISummaryPanel);
   protected
-    function GetImageForCheckBox(const aCol,aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap; override;
+//    {$IF lcl_major>=2}
+//    function GetImageForCheckBox(const aCol,aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap; override;
+//    {$ENDIF}
   protected
     property OnTitleClick; // hide the original event
     property OnMouseDown; // hide the original event
@@ -646,6 +650,16 @@ begin
   end;
 end;
 
+procedure TmDBGrid.InternalOnGetCheckBoxBitmap(Sender: TObject; const CheckedState: TCheckboxState; var ABitmap: TBitmap);
+begin
+  if CheckedState=cbUnchecked then
+    ABitmap := FCustomUncheckedBitmap
+  else if CheckedState=cbChecked then
+    ABitmap := FCustomCheckedBitmap
+  else
+    ABitmap := FCustomGrayedBitmap;
+end;
+
 procedure TmDBGrid.RefreshSummaryPanel(Sender : TObject);
 var
   i : integer;
@@ -699,6 +713,7 @@ begin
   FSummaryManager.RegisterListener(Self.RefreshSummaryPanel);
 end;
 
+(*
 function TmDBGrid.GetImageForCheckBox(const aCol, aRow: Integer; CheckBoxView: TCheckBoxState): TBitmap;
 begin
   if CheckboxView=cbUnchecked then
@@ -707,7 +722,7 @@ begin
     Result := FCustomCheckedBitmap
   else
     Result := FCustomGrayedBitmap;
-end;
+end;*)
 
 constructor TmDBGrid.Create(AOwner: TComponent);
 begin
@@ -723,6 +738,7 @@ begin
   Self.OnTitleClick:= InternalOnTitleClick;
   Self.OnMouseDown:= InternalOnMouseDown;
   Self.OnPrepareCanvas:= InternalOnPrepareCanvas;
+  Self.OnUserCheckboxBitmap := InternalOnGetCheckBoxBitmap;
   ScaleFontForMagnification(Self.Font);
 end;
 

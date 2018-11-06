@@ -714,7 +714,7 @@ begin
     exit;
 
   if MultiEditMode then
-    curLine.Changed := false
+    curLine.Changed := true //false
   else
     curLine.Changed:= curLine.Changed and (FValueListEditor.Rows[curLine.Index + 1].Strings[1] <> '');
 
@@ -1173,7 +1173,7 @@ begin
     tmpLine:= FLines.Items[i] as TEditorLine;
     if Assigned(tmpLine.Configuration.ChangedValueDestination) and (tmpLine.Configuration.ReadOnly <> roReadOnly) then
     begin
-      if (not MultiEditMode) or  (MultiEditMode and tmpLine.Changed) then
+      if (not MultiEditMode) or (MultiEditMode and tmpLine.Changed) then
       begin
         tmpLine.Configuration.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
         FSomethingChanged := FSomethingChanged or tmpLine.Configuration.ChangedValueDestination.TagChanged;

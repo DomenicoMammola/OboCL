@@ -21,7 +21,7 @@ interface
 
 uses
   Classes, Controls, Forms, ValEdit, Graphics, Grids, contnrs, ExtCtrls,
-  SysUtils, variants, StdCtrls, Buttons,
+  SysUtils, variants, StdCtrls, Buttons, CheckLst,
   oMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
   mQuickReadOnlyVirtualDataSet, mDataProviderFieldDefs, mNullables,
@@ -36,6 +36,7 @@ resourcestring
   SErrorNotADate = 'Not a date.';
   SErrorNotANumber = 'Not a number.';
   SErrorNotATime = 'Not a time.';
+  SMultiEditClearValues = 'To be cleared';
 
 type
 
@@ -108,6 +109,7 @@ type
   TmEditingPanel = class(TCustomPanel)
   strict private
     FRootPanel : TOMultiPanel;
+    FClearValuesPanel : TPanel;
     FValueListEditor: TmValueListEditor;
     FDateCellEditor : TmExtButtonTextCellEditor;
     FButtonCellEditor : TmExtButtonTextCellEditor;
@@ -117,6 +119,7 @@ type
     FMemosByName : TmStringDictionary;
     FLines : TObjectList;
     FMemos : TObjectList;
+    FClearValuesList : TCheckListBox;
     FOnEditValueEvent: TmOnEditValueEvent;
     FOnValidateValueEvent: TmOnValidateValueEvent;
     FOnShowDialogEvent: TmOnShowDialogEvent;
@@ -134,6 +137,7 @@ type
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
     function OnGetValue (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
+    procedure OnClickClearValue(Sender: TObject);
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
     procedure CheckDate (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
@@ -144,6 +148,7 @@ type
     function CheckMandatoryLines(var aMissingValues: string): boolean;
     procedure CommitChanges;
     procedure SetFocusInEditor;
+    procedure SetMultiEditMode(AValue: boolean);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -161,7 +166,7 @@ type
     procedure Run;
 
     property AlternateColor : TColor read GetAlternateColor write SetAlternateColor;
-    property MultiEditMode : boolean read FMultiEditMode write FMultiEditMode;
+    property MultiEditMode : boolean read FMultiEditMode write SetMultiEditMode;
 
     property OnEditValue: TmOnEditValueEvent read FOnEditValueEvent write FOnEditValueEvent;
     property OnValidateValue: TmOnValidateValueEvent read FOnValidateValueEvent write FOnValidateValueEvent;
@@ -205,12 +210,12 @@ type
   { TEditorLine }
 
   TEditorLine = class
-
   private
     Name: String;
     Index: integer;
 
     Changed: boolean;
+    ForceClear : boolean;
     Configuration: TmEditorLineConfiguration;
     ActualValue : variant;
 
@@ -295,6 +300,7 @@ begin
   Index:= 0;
   ActualValue:= Null;
   Changed:= false;
+  ForceClear:= false;
 end;
 
 destructor TEditorLine.Destroy;
@@ -425,6 +431,9 @@ begin
     FValueListEditor.Canvas.Font.Style := FValueListEditor.Canvas.Font.Style + [fsBold];
     if MultiEditMode and (aRow > 0) then
     begin
+      if (FLinesByRowIndex.Find(aRow) as TEditorLine).ForceClear then
+        FValueListEditor.Canvas.Font.Color:= clLtGray
+      else
       if not (FLinesByRowIndex.Find(aRow) as TEditorLine).Changed then
         FValueListEditor.Canvas.Font.Color:= clGray
       else
@@ -441,7 +450,7 @@ begin
     exit;
 
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
-  if (not Assigned(curLine)) or (curLine.Configuration.ReadOnly in [roAllowOnlySetValue, roReadOnly]) then
+  if (not Assigned(curLine)) or (curLine.Configuration.ReadOnly in [roAllowOnlySetValue, roReadOnly]) or (curLine.ForceClear) then
     exit;
 
   if (curLine.Configuration.EditorKind = ekCalendar) then
@@ -477,7 +486,7 @@ var
 begin
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  if curLine.Configuration.ReadOnly = roAllowEditing then
+  if (curLine.Configuration.ReadOnly = roAllowEditing) and (not curLine.ForceClear) then
     NewValue := Trim(NewValue)
   else
   begin
@@ -573,6 +582,8 @@ begin
 
     if Assigned(FOnEditValueEvent) then
       FOnEditValueEvent(Self, curLine.Name, NewValue, curLine.ActualValue);
+
+    FValueListEditor.Invalidate;
   end;
 end;
 
@@ -590,7 +601,7 @@ begin
 
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  if curLine.Configuration.ReadOnly <> roAllowEditing then
+  if (curLine.Configuration.ReadOnly <> roAllowEditing) or (curLine.ForceClear) then
     exit;
 
   OldStringValue := FValueListEditor.Cells[aCol, aRow];
@@ -699,6 +710,8 @@ begin
 
       if Assigned(FOnEditValueEvent) then
         FOnEditValueEvent(Self, curLine.Name, aNewDisplayValue, curLine.ActualValue);
+
+      FValueListEditor.Invalidate;
     end;
   end;
 end;
@@ -710,17 +723,27 @@ begin
   Result := false;
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
 
-  if curLine.Configuration.ReadOnly <> roAllowEditing then
+  if (curLine.Configuration.ReadOnly <> roAllowEditing) or (curLine.ForceClear) then
     exit;
 
   if MultiEditMode then
-    curLine.Changed := true //false
+    curLine.Changed := false
   else
     curLine.Changed:= curLine.Changed and (FValueListEditor.Rows[curLine.Index + 1].Strings[1] <> '');
 
   FValueListEditor.Rows[curLine.Index + 1].Strings[1] := '';
   curLine.ActualValue:= null;
   Result := true;
+  FValueListEditor.Invalidate;
+end;
+
+procedure TmEditingPanel.OnClickClearValue(Sender: TObject);
+begin
+  if Sender is TCheckListBox then
+  begin
+    ((Sender as TCheckListBox).Items.Objects[(Sender as TCheckListBox).ItemIndex] as TEditorLine).ForceClear:= (Sender as TCheckListBox).Checked[(Sender as TCheckListBox).ItemIndex];
+    FValueListEditor.Invalidate;
+  end;
 end;
 
 function TmEditingPanel.ComposeCaption(const aCaption: string;
@@ -878,6 +901,9 @@ begin
     if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
       or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard)) then
         FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
+
+    if MultiEditMode and Assigned(FClearValuesList) then
+      FClearValuesList.AddItem(curLine.Configuration.Caption, curLine);
   end;
 end;
 
@@ -891,6 +917,7 @@ begin
     curLine.Changed := curLine.Changed or (aDisplayValue <> FValueListEditor.Rows[curLine.Index + 1].Strings[1]);
     FValueListEditor.Rows[curLine.Index + 1].Strings[1] := aDisplayValue;
     curLine.ActualValue:= aActualValue;
+    FValueListEditor.Invalidate;
   end;
 end;
 
@@ -1135,6 +1162,47 @@ begin
   FValueListEditor.EditorMode:= true;
 end;
 
+procedure TmEditingPanel.SetMultiEditMode(AValue: boolean);
+var
+  tmpPanel : TPanel;
+begin
+  if FMultiEditMode=AValue then Exit;
+  FMultiEditMode:=AValue;
+  if FMultiEditMode then
+  begin
+    if not Assigned(FClearValuesPanel) then
+    begin
+      FClearValuesPanel := TPanel.Create(FRootPanel);
+      FClearValuesPanel.Parent := FRootPanel;
+      FClearValuesPanel.BevelInner:= bvNone;
+      FClearValuesPanel.BevelOuter:= bvNone;
+      FRootPanel.PanelCollection.AddControl(FClearValuesPanel);
+      tmpPanel := TPanel.Create(FClearValuesPanel);
+      tmpPanel.Parent := FClearValuesPanel;
+      tmpPanel.Align:= alTop;
+      tmpPanel.BevelInner:= bvNone;
+      tmpPanel.BevelOuter:= bvNone;
+      tmpPanel.Height:= FValueListEditor.DefaultRowHeight;
+      tmpPanel.Caption:= SMultiEditClearValues;
+      tmpPanel.Font.Style:=[fsBold];
+      tmpPanel.BorderWidth:= 1;
+      tmpPanel.BorderStyle:=bsSingle;
+    end;
+    if not Assigned(FClearValuesList) then
+    begin
+      FClearValuesList := TCheckListBox.Create(FClearValuesPanel);
+      FClearValuesList.Parent := FClearValuesPanel;
+      FClearValuesList.Align:= alClient;
+      FClearValuesList.OnClickCheck:= Self.OnClickClearValue;
+    end;
+  end
+  else
+  begin
+    if Assigned(FClearValuesPanel) then
+      FClearValuesPanel.Visible:= false;
+  end;
+end;
+
 function TmEditingPanel.CheckMandatoryLines(var aMissingValues: string): boolean;
 var
   i : integer;
@@ -1173,7 +1241,12 @@ begin
     tmpLine:= FLines.Items[i] as TEditorLine;
     if Assigned(tmpLine.Configuration.ChangedValueDestination) and (tmpLine.Configuration.ReadOnly <> roReadOnly) then
     begin
-      if (not MultiEditMode) or (MultiEditMode and tmpLine.Changed) then
+      if (tmpLine.ForceClear) then
+      begin
+        tmpLine.Configuration.ChangedValueDestination.CheckIfDifferentAndAssign(null);
+        FSomethingChanged := FSomethingChanged or tmpLine.Configuration.ChangedValueDestination.TagChanged;
+      end
+      else if (not MultiEditMode) or (MultiEditMode and tmpLine.Changed) then
       begin
         tmpLine.Configuration.ChangedValueDestination.CheckIfDifferentAndAssign(tmpLine.ActualValue);
         FSomethingChanged := FSomethingChanged or tmpLine.Configuration.ChangedValueDestination.TagChanged;

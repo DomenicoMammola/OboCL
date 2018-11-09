@@ -719,6 +719,8 @@ end;
 function TmEditingPanel.OnValueListEditorClearValue(const aCol, aRow: integer): boolean;
 var
   curLine: TEditorLine;
+  NewValue, OldValue, errorMessage : string;
+  NewActualValue, OldActualValue: variant;
 begin
   Result := false;
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
@@ -726,15 +728,42 @@ begin
   if (curLine.Configuration.ReadOnly <> roAllowEditing) or (curLine.ForceClear) then
     exit;
 
+  NewValue := '';
+  NewActualValue:= null;
+  OldValue := FValueListEditor.Rows[curLine.Index + 1].Strings[1];
+  OldActualValue := curLine.ActualValue;
+
   if MultiEditMode then
     curLine.Changed := false
   else
-    curLine.Changed:= curLine.Changed and (FValueListEditor.Rows[curLine.Index + 1].Strings[1] <> '');
+  begin
+    if Assigned(FOnValidateValueEvent) then
+    begin
+      FOnValidateValueEvent(Self, curLine.Name, OldValue, NewValue, OldActualValue, NewActualValue, errorMessage);
+      if errorMessage <> '' then
+        TmToast.ShowText(errorMessage);
+    end;
 
-  FValueListEditor.Rows[curLine.Index + 1].Strings[1] := '';
-  curLine.ActualValue:= null;
+    if NewValue <> OldValue then
+    begin
+      curLine.Changed:= true; // curLine.Changed and (FValueListEditor.Rows[curLine.Index + 1].Strings[1] <> '');
+
+      FValueListEditor.Rows[curLine.Index + 1].Strings[1] := NewValue;
+      curLine.ActualValue:= NewActualValue;
+
+      if Assigned(FOnEditValueEvent) then
+        FOnEditValueEvent(Self, curLine.Name, NewValue, NewActualValue);
+
+      FValueListEditor.Invalidate;
+      Result := true;
+    end;
+  end;
+
+(*
+  FValueListEditor.Rows[curLine.Index + 1].Strings[1] := NewValue;
+  curLine.ActualValue:= NewActualValue;
   Result := true;
-  FValueListEditor.Invalidate;
+  FValueListEditor.Invalidate;*)
 end;
 
 procedure TmEditingPanel.OnClickClearValue(Sender: TObject);

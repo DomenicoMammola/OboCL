@@ -37,6 +37,8 @@ resourcestring
   SDisableAutomaticChildsUpdateCaption = 'Do not refresh them automatically';
   SUpdateChildWidgetsBtnHint = 'Click to update child widgets';
   SSelectAllMenuCaption = 'Select all rows';
+  SAutoAdjustColumnsMenuCaption = 'Auto-size columns';
+  SAutoAdjustColumnsMenuHint = 'Set optimal width to columns';
   SGridActionsHint = 'Grid actions...';
   SCopySummaryToClipboard = 'Copy to clipboard';
 
@@ -79,6 +81,7 @@ type
     procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
     procedure DoUpdateChilds (Sender : TObject);
     procedure DoSelectAll (Sender : TObject);
+    procedure DoAutoAdjustColumns(Sender : TObject);
   protected
     FGrid: TmDBGrid;
     FSummaryPanel : TUramakiGridSummaryPanel;
@@ -442,6 +445,13 @@ begin
   FGridHelper.SelectAllRows;
 end;
 
+procedure TUramakiBaseGridPlate.DoAutoAdjustColumns(Sender: TObject);
+begin
+  if not Assigned(FGrid) then
+    exit;
+  FGrid.AutoAdjustColumns;
+end;
+
 procedure TUramakiBaseGridPlate.CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
 var
   mItm : TMenuItem;
@@ -474,6 +484,13 @@ begin
   mItm.OnClick:=Self.DoSelectAll;;
   mItm.Caption:= SSelectAllMenuCaption;
   FGridCommandsPopupMenu.Items.Add(mItm);
+
+  mItm := TMenuItem.Create(FGridCommandsPopupMenu);
+  FGridCommandsPopupMenu.Items.Add(mItm);
+  mItm.OnClick:= Self.DoAutoAdjustColumns;
+  mItm.Hint:= SAutoAdjustColumnsMenuHint;
+  mItm.Caption:= SAutoAdjustColumnsMenuCaption;
+
 end;
 
 

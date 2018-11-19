@@ -39,8 +39,8 @@ resourcestring
   SWantToOpenFileMessage = 'Do you want to open the file?';
   SConfigureCommandHint = 'Configure...';
   SConfigureGridCommandHint = 'Configure grid...';
-  SConfigureFormulaFieldsCommandHint = 'Configure formula fields..';
   SConfigureGridCommandCaption = 'Configure grid';
+  SConfigureFormulaFieldsCommandHint = 'Configure formula fields..';
   SConfigureFormulaFieldsCommandCaption = 'Configure formula fields';
   SExportGridAsCsvCommandHint = 'Export grid data to csv file';
   SExportGridAsCsvCommandCaption = 'Export to csv file...';

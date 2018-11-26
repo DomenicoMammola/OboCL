@@ -36,12 +36,15 @@ resourcestring
   SErrorNotADate = 'Not a date.';
   SErrorNotANumber = 'Not a number.';
   SErrorNotATime = 'Not a time.';
+  SErrorYearInThePast = 'Year in the past.';
+  SErrorYearInTheFuture = 'Year in the future.';
+  SErrorYearTooFaraway = 'Year too faraway.';
   SMultiEditClearValues = 'To be cleared';
 
 type
 
   TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard);
-  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber);
+  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
   TmEditingPanel = class;
@@ -67,6 +70,7 @@ type
     FChangedValueDestination: TAbstractNullable;
     FEditorKind: TmEditorLineKind;
     FDataType : TmEditorLineDataType;
+    FTimeMaxDistanceInMonths : integer;
 
     function GetUseBooleanProvider: boolean;
     procedure SetUseBooleanProvider(AValue: boolean);
@@ -80,6 +84,7 @@ type
 
     property EditorKind : TmEditorLineKind read FEditorKind write FEditorKind;
     property DataType : TmEditorLineDataType read FDataType write FDataType;
+    property TimeMaxDistanceInMonths : integer read FTimeMaxDistanceInMonths write FTimeMaxDistanceInMonths;
     property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
 
     property Caption: String read FCaption write FCaption;
@@ -143,6 +148,7 @@ type
     procedure CheckDate (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckTime (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckInteger (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
+    procedure CheckYear(const aOldStringValue : string; const aDataType: TmEditorLineDataType; const aDistanceInMonths : integer; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckFloat (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant; const aLineConfiguration : TmEditorLineConfiguration);
   private
     function CheckMandatoryLines(var aMissingValues: string): boolean;
@@ -202,7 +208,7 @@ uses
   LazLogger,
   {$ENDIF}
   LCLType,
-  Dialogs,
+  Dialogs, dateutils,
   mToast;
 
 type
@@ -278,6 +284,7 @@ begin
   FAllowFreeTypedText := true;
   FFractionalPartDigits:= 0;
   FDisplayFormat:= '';
+  FTimeMaxDistanceInMonths:= 0;
 end;
 
 destructor TmEditorLineConfiguration.Destroy;
@@ -561,6 +568,11 @@ begin
           curLine.ActualValue:= NewValue;
         end;
       end;
+    end
+    else if (curLine.Configuration.DataType = dtYear) or (curLine.Configuration.DataType = dtCurrentYearOrInThePast) or
+      (curLine.Configuration.DataType = dtCurrentYearOrInTheFuture) then
+    begin
+      CheckYear(OldValue, curLine.Configuration.DataType, curLine.Configuration.TimeMaxDistanceInMonths, NewValue, curLine.ActualValue);
     end;
   end
   else
@@ -1058,6 +1070,43 @@ begin
     end
     else
       aActualValue:= StrToInt(aNewStringValue);
+  end
+  else
+    aActualValue:= null;
+end;
+
+procedure TmEditingPanel.CheckYear(const aOldStringValue: string; const aDataType: TmEditorLineDataType; const aDistanceInMonths : integer; var aNewStringValue: string; var aActualValue: variant);
+var
+  tmp : integer;
+begin
+  if aNewStringValue <> '' then
+  begin
+    if not IsNumeric(aNewStringValue, false) then
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotANumber);
+    end
+    else
+    begin
+      tmp := StrToInt(aNewStringValue);
+      if (aDataType = dtCurrentYearOrInTheFuture) and (tmp < YearOf(Date)) then
+      begin
+        aNewStringValue:= aOldStringValue;
+        TmToast.ShowText(SErrorYearInThePast);
+      end
+      else if (aDataType = dtCurrentYearOrInThePast) and (tmp > YearOf(Date)) then
+      begin
+        aNewStringValue:= aOldStringValue;
+        TmToast.ShowText(SErrorYearInTheFuture);
+      end
+      else if (aDistanceInMonths > 0) and (abs(YearOf(Date) - tmp) > (aDistanceInMonths div 12)) then
+      begin
+        aNewStringValue:= aOldStringValue;
+        TmToast.ShowText(SErrorYearTooFaraway);;
+      end
+      else
+        aActualValue := tmp;
+    end;
   end
   else
     aActualValue:= null;

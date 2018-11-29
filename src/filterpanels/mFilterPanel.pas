@@ -179,7 +179,7 @@ type
     FValueType : TmEditFilterValueType;
     FDataProvider: TmDataProvider;
     FKeyFieldName : string;
-    FValueFieldName : string;
+    //FValueFieldName : string;
     FLookupFieldNames : TStringList;
     FDisplayLabelFieldNames : TStringList;
     FOnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields;
@@ -199,7 +199,7 @@ type
 
     property ValueType : TmEditFilterValueType read FValueType write FValueType;
     property KeyFieldName : String read FKeyFieldName write FKeyFieldName;
-    property ValueFieldName : string read FValueFieldName write FValueFieldName;
+//    property ValueFieldName : string read FValueFieldName write FValueFieldName;
     property OnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields read FOnFillVirtualFieldDefs write FOnFillVirtualFieldDefs;
     property LookupFieldNames : TStringList read FLookupFieldNames;
     property DisplayLabelFieldNames: TStringList read FDisplayLabelFieldNames;
@@ -387,16 +387,11 @@ var
   keyFieldName : string;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
 begin
-  if FKeyFieldName = '' then
-    raise Exception.Create('[TmLookupFilterConditionPanel] Missing KeyFieldName.');
-  if FValueFieldName = '' then
-    raise Exception.Create('[TmLookupFilterConditionPanel] Missing ValueFieldName.');
-
-  if FDisplayLabelFieldNames.Count = 0 then
-    raise Exception.Create('[TmLookupFilterConditionPanel] Missing DisplayLabelFieldNames.');
-
   if not Assigned(FDataProvider) then
     raise Exception.Create('[TmLookupFilterConditionPanel] Missing DataProvider.');
+
+//  if FValueFieldName = '' then
+//    raise Exception.Create('[TmLookupFilterConditionPanel] Missing ValueFieldName.');
 
   lookupFrm := TmLookupFrm.Create(Self);
   try
@@ -412,6 +407,11 @@ begin
         tmpVirtualFieldDefs.Free;;
       end;
     end;
+
+    if FDisplayLabelFieldNames.Count = 0 then
+      FDataProvider.GetMinimumFields(FDisplayLabelFieldNames);
+    if FDisplayLabelFieldNames.Count = 0 then
+      raise Exception.Create('[TmLookupFilterConditionPanel] Missing DisplayLabelFieldNames.');
 
     if FKeyFieldName <> '' then
       keyFieldName := FKeyFieldName
@@ -447,7 +447,7 @@ begin
   FValueType:= efString;
   CreateStandardFilterMenu(FLabel, true);
   FKeyFieldName:= '';
-  FValueFieldName:= '';
+//  FValueFieldName:= '';
   FOnFillVirtualFieldDefs:= nil;
   FLookupFieldNames := TStringList.Create;
   FDisplayLabelFieldNames := TStringList.Create;

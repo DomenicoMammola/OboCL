@@ -151,13 +151,14 @@ type
     procedure CheckYear(const aOldStringValue : string; const aDataType: TmEditorLineDataType; const aDistanceInMonths : integer; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckFloat (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant; const aLineConfiguration : TmEditorLineConfiguration);
   private
-    function CheckMandatoryLines(var aMissingValues: string): boolean;
-    procedure CommitChanges;
-    procedure SetFocusInEditor;
     procedure SetMultiEditMode(AValue: boolean);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure SetFocusInEditor;
+    function CheckMandatoryLines(var aMissingValues: string): boolean;
+    procedure CommitChanges;
 
     function AddLine(const aName : String): TmEditorLineConfiguration;
 

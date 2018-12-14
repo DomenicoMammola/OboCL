@@ -153,8 +153,6 @@ begin
 end;
 
 procedure TDesktopLayoutConfigForm.Init(aSource: TUramakiDesktopLayoutConfItem);
-var
-  tmpNode :TTreeNode;
 begin
   FWIPLayout := TUramakiDesktopLayoutConfContainerItem.Create;
   (FWIPLayout as TUramakiDesktopLayoutConfContainerItem).Assign(aSource, true);

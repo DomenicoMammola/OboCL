@@ -445,7 +445,24 @@ begin
 end;
 
 type
+  {$IFNDEF FPC}
   TMyControl = class(TControl);
+  {$ELSE}
+
+  { TRunConstrainedResize }
+
+  TRunConstrainedResize = class helper for TControl
+    procedure RunConstrainedResize(var MinWidth, MinHeight, MaxWidth, MaxHeight: TConstraintSize);
+  end;
+
+{ TRunConstrainedResize }
+
+procedure TRunConstrainedResize.RunConstrainedResize(var MinWidth, MinHeight, MaxWidth, MaxHeight: TConstraintSize);
+begin
+  ConstrainedResize(MinWidth, MinHeight, MaxWidth, MaxHeight);
+end;
+
+  {$ENDIF}
 
 procedure TOCustomMultiPanel.ConstrainedResize(var MinWidth, MinHeight, MaxWidth,
   MaxHeight: TConstraintSize);
@@ -458,7 +475,11 @@ procedure TOCustomMultiPanel.ConstrainedResize(var MinWidth, MinHeight, MaxWidth
     for I := 0 to ControlCount-1 do
     begin
       nH := Controls[I].Constraints.MinHeight;
+      {$IFNDEF FPC}
       TMyControl(Controls[I]).ConstrainedResize(nW, nH, xW, xH);
+      {$ELSE}
+      Controls[I].RunConstrainedResize(nW, nH, xW, xH);
+      {$ENDIF}
       Inc(Result, nH);
     end;
   end;

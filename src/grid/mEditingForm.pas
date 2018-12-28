@@ -113,6 +113,8 @@ type
 
   TmEditingPanel = class(TCustomPanel)
   strict private
+    const COLOR_CURRENT_ROW = $39EEFD;
+  strict private
     FRootPanel : TOMultiPanel;
     FClearValuesPanel : TPanel;
     FValueListEditor: TmValueListEditor;
@@ -437,6 +439,10 @@ begin
   if (aCol = 0) or (aRow = 0) then
   begin
     FValueListEditor.Canvas.Font.Style := FValueListEditor.Canvas.Font.Style + [fsBold];
+
+    if (sender as TmValueListEditor).Row = aRow then
+      FValueListEditor.Canvas.Brush.Color := TmEditingPanel.COLOR_CURRENT_ROW;
+
     if MultiEditMode and (aRow > 0) then
     begin
       if (FLinesByRowIndex.Find(aRow) as TEditorLine).ForceClear then
@@ -454,6 +460,8 @@ procedure TmEditingPanel.OnValueListEditorSelectEditor(Sender: TObject; aCol, aR
 var
   curLine : TEditorLine;
 begin
+  (Sender as TmValueListEditor).Invalidate;
+
   if aCol <> 1 then
     exit;
 

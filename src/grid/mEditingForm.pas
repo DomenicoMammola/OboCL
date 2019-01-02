@@ -36,6 +36,8 @@ resourcestring
   SErrorNotADate = 'Not a date.';
   SErrorNotANumber = 'Not a number.';
   SErrorNotATime = 'Not a time.';
+  SErrorNotAMonth = 'Not a month.';
+  SErrorNotAYear = 'Not a year.';
   SErrorYearInThePast = 'Year in the past.';
   SErrorYearInTheFuture = 'Year in the future.';
   SErrorYearTooFaraway = 'Year too faraway.';
@@ -44,7 +46,7 @@ resourcestring
 type
 
   TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard);
-  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear);
+  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
   TmEditingPanel = class;
@@ -151,6 +153,7 @@ type
     procedure CheckTime (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckInteger (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckYear(const aOldStringValue : string; const aDataType: TmEditorLineDataType; const aDistanceInMonths : integer; var aNewStringValue : string; var aActualValue : variant);
+    procedure CheckMonth(const aOldStringValue : string; const aDataType: TmEditorLineDataType; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckFloat (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant; const aLineConfiguration : TmEditorLineConfiguration);
   private
     procedure SetMultiEditMode(AValue: boolean);
@@ -582,6 +585,10 @@ begin
       (curLine.Configuration.DataType = dtCurrentYearOrInTheFuture) then
     begin
       CheckYear(OldValue, curLine.Configuration.DataType, curLine.Configuration.TimeMaxDistanceInMonths, NewValue, curLine.ActualValue);
+    end
+    else if (curLine.Configuration.DataType = dtMonth) then
+    begin
+      CheckMonth(OldValue, curLine.Configuration.DataType, NewValue, curLine.ActualValue);
     end;
   end
   else
@@ -1098,7 +1105,12 @@ begin
     else
     begin
       tmp := StrToInt(aNewStringValue);
-      if (aDataType = dtCurrentYearOrInTheFuture) and (tmp < YearOf(Date)) then
+      if (tmp <= 0) then
+      begin
+        aNewStringValue:= aOldStringValue;
+        TmToast.ShowText(SErrorNotAYear);
+      end
+      else if (aDataType = dtCurrentYearOrInTheFuture) and (tmp < YearOf(Date)) then
       begin
         aNewStringValue:= aOldStringValue;
         TmToast.ShowText(SErrorYearInThePast);
@@ -1112,6 +1124,33 @@ begin
       begin
         aNewStringValue:= aOldStringValue;
         TmToast.ShowText(SErrorYearTooFaraway);;
+      end
+      else
+        aActualValue := tmp;
+    end;
+  end
+  else
+    aActualValue:= null;
+end;
+
+procedure TmEditingPanel.CheckMonth(const aOldStringValue: string; const aDataType: TmEditorLineDataType; var aNewStringValue: string; var aActualValue: variant);
+var
+  tmp : integer;
+begin
+  if aNewStringValue <> '' then
+  begin
+    if not IsNumeric(aNewStringValue, false) then
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotANumber);
+    end
+    else
+    begin
+      tmp := StrToInt(aNewStringValue);
+      if (tmp < 1) or (tmp > 12) then
+      begin
+        aNewStringValue:= aOldStringValue;
+        TmToast.ShowText(SErrorNotAMonth);
       end
       else
         aActualValue := tmp;

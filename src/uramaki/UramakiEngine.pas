@@ -33,12 +33,14 @@ type
   private
     FMessages: TObjectList;
     FCriticalSection: TCriticalSection;
+    FEvent : TSimpleEvent;
   public
     constructor Create;
     destructor Destroy; override;
 
     procedure Put(aMessage : TUramakiEngineMessage);
     function Pick : TUramakiEngineMessage;
+    property Event : TSimpleEvent read FEvent write FEvent;
   end;
 
   TDoProcessMessage = procedure (aMessage : TUramakiEngineMessage) of object;
@@ -206,8 +208,8 @@ begin
 
     if not Terminated then
     begin
+      FLetsGoEvent.WaitFor(INFINITE);
       FLetsGoEvent.ResetEvent;
-      FLetsGoEvent.WaitFor(10000);
     end;
   end;
   Sleep (10);
@@ -237,6 +239,8 @@ begin
   finally
     FCriticalSection.Leave;
   end;
+  if Assigned(FEvent) then
+    FEvent.SetEvent;
 end;
 
 function TUramakiEngineMessageQueue.Pick: TUramakiEngineMessage;
@@ -437,6 +441,7 @@ begin
   FMessagesThread.LetsDieEvent := FWaitForCloseThreadEvent;
   FMessagesThread.MessagesQueue := FMessagesQueue;
   FMessagesThread.DoProcessMessage:= Self.ProcessMessage;
+  FMessagesQueue.Event := FMessagesThread.LetsGoEvent;
 end;
 
 destructor TUramakiEngine.Destroy;

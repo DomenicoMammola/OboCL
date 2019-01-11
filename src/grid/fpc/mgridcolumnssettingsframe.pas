@@ -257,7 +257,7 @@ begin
   if (FListBoxHiddenColumns.ItemIndex >= 0) then
     start := FListBoxHiddenColumns.ItemIndex
   else
-    start := 0;
+    start := -1;
   for i := start + 1 to FListBoxHiddenColumns.Count - 1 do
   begin
     if Pos(Uppercase(FHiddenColFindBtn.Text), Uppercase(FListBoxHiddenColumns.Items[i])) > 0 then
@@ -286,7 +286,7 @@ begin
   if (FListBoxVisibleColumns.ItemIndex >= 0) then
     start := FListBoxVisibleColumns.ItemIndex
   else
-    start := 0;
+    start := -1;
   for i := start + 1 to FListBoxVisibleColumns.Count - 1 do
   begin
     if Pos(Uppercase(FVisibleColFindBtn.Text), Uppercase(FListBoxVisibleColumns.Items[i])) > 0 then

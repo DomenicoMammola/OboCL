@@ -78,6 +78,7 @@ type
   TUramakiBaseGridPlate = class abstract (TUramakiPlate)
   strict private
     FAutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode;
+    FRunningDoUpdateChilds : boolean;
     procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
     procedure DoUpdateChilds (Sender : TObject);
     procedure DoSelectAll (Sender : TObject);
@@ -397,52 +398,68 @@ procedure TUramakiBaseGridPlate.DoUpdateChilds(Sender : TObject);
 var
   newHash : string;
 begin
-  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
-  begin
-    if FGrid.SelectedRows.Count > 1 then
+  FRunningDoUpdateChilds := true;
+  try
+    if FAutomaticChildsUpdateMode = cuOnChangeSelection then
     begin
-      newHash:= FGrid.SelectedRows.CalculateHashCode;
-      if newHash <> FLastSelectedRowsHash then
+      if FGrid.SelectedRows.Count > 1 then
       begin
-        FLastSelectedRowsHash:= newHash;
-        FLastSelectedRow := FGrid.DataSource.DataSet.Bookmark;
-        FLastSelectedRowsCount := FGrid.SelectedRows.Count;
-        if Assigned(Self.Parent) then
-          InvokeChildsRefresh;
-      end;
-    end
-    else begin
-      if (FGrid.SelectedRows.Count = 0) and ((FGrid.DataSource.DataSet.BookmarkValid(FLastSelectedRow)) or (FLastSelectedRowsCount > 0)) then
-      begin
-        FLastSelectedRow:= nil;
-        FLastSelectedRowsCount:= 0;
-        if Assigned(Self.Parent) then
-          InvokeChildsRefresh;
-      end
-      else
-      begin
-        if FGrid.DataSource.DataSet.CompareBookmarks(FLastSelectedRow, FGrid.DataSource.DataSet.Bookmark) <> 0 then
+        newHash:= FGrid.SelectedRows.CalculateHashCode;
+        if newHash <> FLastSelectedRowsHash then
         begin
+          FLastSelectedRowsHash:= newHash;
           FLastSelectedRow := FGrid.DataSource.DataSet.Bookmark;
-          FLastSelectedRowsCount := 1;
+          FLastSelectedRowsCount := FGrid.SelectedRows.Count;
           if Assigned(Self.Parent) then
             InvokeChildsRefresh;
         end;
+      end
+      else begin
+        if (FGrid.SelectedRows.Count = 0) and ((FGrid.DataSource.DataSet.BookmarkValid(FLastSelectedRow)) or (FLastSelectedRowsCount > 0)) then
+        begin
+          FLastSelectedRow:= nil;
+          FLastSelectedRowsCount:= 0;
+          if Assigned(Self.Parent) then
+            InvokeChildsRefresh;
+        end
+        else
+        begin
+          if FGrid.DataSource.DataSet.CompareBookmarks(FLastSelectedRow, FGrid.DataSource.DataSet.Bookmark) <> 0 then
+          begin
+            FLastSelectedRow := FGrid.DataSource.DataSet.Bookmark;
+            FLastSelectedRowsCount := 1;
+            if Assigned(Self.Parent) then
+              InvokeChildsRefresh;
+          end;
+        end;
       end;
+    end
+    else
+    begin
+      FLastSelectedRow:= nil;
+      FLastSelectedRowsCount:= 0;
+      if Assigned(Self.Parent) then
+        InvokeChildsRefresh;
     end;
-  end
-  else
-  begin
-    FLastSelectedRow:= nil;
-    FLastSelectedRowsCount:= 0;
-    if Assigned(Self.Parent) then
-      InvokeChildsRefresh;
+  finally
+    FRunningDoUpdateChilds := false;
   end;
 end;
 
 procedure TUramakiBaseGridPlate.DoSelectAll(Sender: TObject);
 begin
-  FGridHelper.SelectAllRows;
+  FGrid.OnSelectEditor:= nil;
+  FGrid.OnCellClick:= nil;
+  try
+    FGridHelper.SelectAllRows;
+  finally
+    if AutomaticChildsUpdateMode = cuOnChangeSelection then
+    begin
+      FGrid.OnSelectEditor:= Self.OnSelectEditor;
+      FGrid.OnCellClick := Self.OnCellClick;
+      DoUpdateChilds(nil);
+    end;
+  end;
 end;
 
 procedure TUramakiBaseGridPlate.DoAutoAdjustColumns(Sender: TObject);
@@ -549,7 +566,7 @@ begin
 
   if (FGrid.SelectedRows.Count > 1) then
   begin
-    FGrid.BeginUpdate;
+    FGrid.DataSource.DataSet.DisableControls;// BeginUpdate;
     try
       tmpBookmark := FDataset.Bookmark;
       try
@@ -562,7 +579,7 @@ begin
         FDataset.GotoBookmark(tmpBookmark);
       end;
     finally
-      FGrid.EndUpdate(true);
+      FGrid.DataSource.DataSet.EnableControls; // EndUpdate(true);
     end;
   end
   else //if FGrid.SelectedRows.Count =  1 then
@@ -593,6 +610,8 @@ end;
 
 procedure TUramakiBaseGridPlate.OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
 begin
+  if FRunningDoUpdateChilds then
+    exit;
   DoUpdateChilds(nil);
 end;
 
@@ -750,6 +769,7 @@ begin
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
+  FRunningDoUpdateChilds := false;
 end;
 
 destructor TUramakiBaseGridPlate.Destroy;

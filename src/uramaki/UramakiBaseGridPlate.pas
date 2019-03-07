@@ -80,9 +80,11 @@ type
     FAutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode;
     FRunningDoUpdateChilds : boolean;
     procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
-    procedure DoUpdateChilds (Sender : TObject);
+    procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean);
     procedure DoSelectAll (Sender : TObject);
     procedure DoAutoAdjustColumns(Sender : TObject);
+    procedure DoUpdateChilds(Sender : TObject);
+    procedure OnFilterDataset(Sender : TObject);
   protected
     FGrid: TmDBGrid;
     FSummaryPanel : TUramakiGridSummaryPanel;
@@ -394,13 +396,13 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.DoUpdateChilds(Sender : TObject);
+procedure TUramakiBaseGridPlate.UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean);
 var
   newHash : string;
 begin
   FRunningDoUpdateChilds := true;
   try
-    if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+    if (FAutomaticChildsUpdateMode = cuOnChangeSelection) and (not aUpdateThemAnyWay) then
     begin
       if FGrid.SelectedRows.Count > 1 then
       begin
@@ -457,7 +459,7 @@ begin
     begin
       FGrid.OnSelectEditor:= Self.OnSelectEditor;
       FGrid.OnCellClick := Self.OnCellClick;
-      DoUpdateChilds(nil);
+      UpdateChildsIfNeeded(true);
     end;
   end;
 end;
@@ -467,6 +469,19 @@ begin
   if not Assigned(FGrid) then
     exit;
   FGrid.AutoAdjustColumns;
+end;
+
+procedure TUramakiBaseGridPlate.DoUpdateChilds(Sender: TObject);
+begin
+  UpdateChildsIfNeeded(true);
+end;
+
+procedure TUramakiBaseGridPlate.OnFilterDataset(Sender: TObject);
+begin
+  FLastSelectedRow:= nil;
+  FLastSelectedRowsCount:= 0;
+  if Assigned(Self.Parent) then
+    InvokeChildsRefresh;
 end;
 
 procedure TUramakiBaseGridPlate.CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
@@ -612,12 +627,12 @@ procedure TUramakiBaseGridPlate.OnSelectEditor(Sender: TObject; Column: TColumn;
 begin
   if FRunningDoUpdateChilds then
     exit;
-  DoUpdateChilds(nil);
+  UpdateChildsIfNeeded(false);
 end;
 
 procedure TUramakiBaseGridPlate.OnCellClick(Column: TColumn);
 begin
-  DoUpdateChilds(nil);
+  UpdateChildsIfNeeded(false);
 end;
 
 procedure TUramakiBaseGridPlate.InvokeChildsRefresh;
@@ -757,6 +772,7 @@ begin
   FProvider := TReadOnlyVirtualDatasetProvider.Create;
   FDataset.DatasetDataProvider := FProvider;
   FDatasource.DataSet := FDataset;
+  Self.FDataset.OnFilter:= Self.OnFilterDataset;
 
   FGridHelper:= TUramakiDBGridHelper.Create(Self);
   FGridHelper.SetupGrid;

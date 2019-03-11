@@ -265,6 +265,7 @@ begin
     FDataProvider := FBooleanProvider;
     FDisplayLabelFieldNames.Add(TBooleanDatum.FLD_VALUE);
     EditorKind:= ekLookup;
+    AllowFreeTypedText:= false;
   end
   else
   begin

@@ -1,3 +1,13 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+
 unit mformulafieldsconfigurationframe;
 
 {$mode objfpc}{$H+}
@@ -11,7 +21,7 @@ uses
 
   OMultiPanel, oMultiPanelSetup,
 
-  mVirtualDatasetFormulas;
+  mVirtualDatasetFormulas, mFields;
 
 resourcestring
   SErrorMessageCaption = 'Error';
@@ -66,7 +76,7 @@ type
     destructor Destroy; override;
 
     function Check : boolean;
-    procedure Init (aFormulas : TmFormulaFields; const aFields : TFields);
+    procedure Init (aFormulas : TmFormulaFields; const aFields : TmFields);
     procedure UpdateFormulaFields;
   end;
 
@@ -74,7 +84,7 @@ implementation
 
 uses
   Graphics,
-  mUtility, mMathUtility, mSystemColumns, KAParser;
+  mUtility, mMathUtility, KAParser;
 
 {$R *.lfm}
 
@@ -371,7 +381,7 @@ begin
   Result := true;
 end;
 
-procedure TFormulaFieldsConfFrame.Init(aFormulas: TmFormulaFields; const aFields : TFields);
+procedure TFormulaFieldsConfFrame.Init(aFormulas: TmFormulaFields; const aFields : TmFields);
 var
   i : integer;
 begin
@@ -395,8 +405,8 @@ begin
   GetFunctionsList(FFieldsList, false);
   for i := 0 to aFields.Count - 1 do
   begin
-    if (not Assigned(aFormulas.FindByName(aFields[i].FieldName))) and (not IsSystemField(aFields[i])) then
-        FFieldsList.Add(aFields[i].FieldName);
+    if (not Assigned(aFormulas.FindByName(aFields.Get(i).FieldName))) and (not IsSystemField(aFields.Get(i).FieldName)) then
+        FFieldsList.Add(aFields.Get(i).FieldName);
   end;
   FFormulas := aFormulas;
 end;

@@ -18,7 +18,7 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ExtCtrls,
   Buttons, DB,
   mformulafieldsconfigurationframe,
-  mVirtualDatasetFormulas;
+  mVirtualDatasetFormulas, mFields;
 
 
 type
@@ -33,7 +33,7 @@ type
   private
     FFormulaFieldsFrame: TFormulaFieldsConfFrame;
   public
-    procedure Init (aFormulaFields: TmFormulaFields; const aFields: TFields);
+    procedure Init (aFormulaFields: TmFormulaFields; const aFields: TmFields);
   end;
 
 
@@ -56,7 +56,7 @@ begin
   Self.ModalResult:= mrOk;
 end;
 
-procedure TFormulaFieldsConfigurationForm.Init(aFormulaFields: TmFormulaFields; const aFields: TFields);
+procedure TFormulaFieldsConfigurationForm.Init(aFormulaFields: TmFormulaFields; const aFields: TmFields);
 begin
   FFormulaFieldsFrame := TFormulaFieldsConfFrame.Create(Self);
   FFormulaFieldsFrame.Parent := Self;

@@ -7,6 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+
 unit mDBGrid;
 
 {$IFDEF FPC}
@@ -20,16 +21,8 @@ uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, variants, Grids, ExtCtrls,
   LCLVersion, ImgList,
   mGridColumnSettings, mXML, mSortConditions, mGridIcons,
-  mDatasetInterfaces, mSystemColumns, mFilter, mFilterOperators, mCellDecorations,
-  mSummary, KAParser, mMaps;
-
-resourcestring
-  SFilterValuesMenuCaption = 'Filter by value...';
-  SEditFiltersMenuCaption = 'Edit filters...';
-  SRemoveFiltersMenuCaption = 'Remove all filters';
-  SAddSummaryMenuCaption = 'Add summary...';
-  SRemoveSummariesMenuCaption = 'Remove all summaries';
-
+  mDatasetInterfaces, mFields, mFilter, mFilterOperators, mCellDecorations,
+  mSummary, KAParser, mMaps, mGrids;
 
 type
 
@@ -39,8 +32,25 @@ type
     function CalculateHashCode : string;
   end;
 
+  { TmDBGridCursor }
+
+  TmDBGridCursor = class (ImGridCursor)
+  strict private
+    FDBGrid : TDBGrid;
+    FRecNo : LongInt;
+  public
+    constructor Create(aDBGrid : TDBGrid);
+
+    procedure StartBrowsing;
+    procedure EndBrowsing;
+    procedure First;
+    procedure Next;
+    function EOF: boolean;
+    function GetValueByFieldName(const aFieldName : String): Variant;
+  end;
+
   { TmDBGrid }
-  TmDBGrid = class(TDBGrid)
+  TmDBGrid = class (TDBGrid, ImGrid)
   strict private
     // custom bitmaps
     FCustomUncheckedBitmap : TBitmap;
@@ -49,6 +59,7 @@ type
     // bridges for overrided events
     FOnExtTitleClick: TDBGridClickEvent;
     FOnExtMouseDown: TMouseEvent;
+//    FVirtualDatasetDataProvider: TmVirtualDatasetDataProvider;
     //
     FAllowSort : boolean;
     FColumnsHeaderMenuVisible : boolean;
@@ -59,6 +70,7 @@ type
     FOriginalPopupMenu : TPopupMenu;
     FSortManager : ISortableDatasetManager;
     FFilterManager : IFilterDatasetManager;
+    FCursor : TmDBGridCursor;
     // menu
     FMI_EditFilters: TMenuItem;
     FMI_RemoveAllFilters : TMenuItem;
@@ -100,8 +112,15 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    // interface ImGrid:
     procedure ReadSettings(aSettings : TmGridColumnsSettings);
     procedure ApplySettings(aSettings : TmGridColumnsSettings);
+    procedure RefreshDataProvider;
+    function GetSummaryManager : ISummaryDatasetManager;
+    procedure GetFields(aFields : TmFields);
+    function GetDataCursor : ImGridCursor;
+    procedure GetColumns(aColumns : TmGridColumns);
 
     // alias for original events
     property OnExtTitleClick: TDBGridClickEvent read FOnExtTitleClick write FOnExtTitleClick;
@@ -121,6 +140,40 @@ implementation
 uses
   LResources, sysutils, md5,
   mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor;
+
+{ TmDBGridCursor }
+
+constructor TmDBGridCursor.Create(aDBGrid: TDBGrid);
+begin
+  FDBGrid := aDBGrid;
+end;
+
+procedure TmDBGridCursor.StartBrowsing;
+begin
+  FRecNo:= FDBGrid.DataSource.DataSet.RecNo;
+  FDBGrid.DataSource.DataSet.DisableControls;
+end;
+
+procedure TmDBGridCursor.EndBrowsing;
+begin
+  FDBGrid.DataSource.DataSet.RecNo:= FRecNo;
+  FDBGrid.DataSource.DataSet.EnableControls;
+end;
+
+procedure TmDBGridCursor.First;
+begin
+  FDBGrid.DataSource.DataSet.First;
+end;
+
+procedure TmDBGridCursor.Next;
+begin
+  FDBGrid.DataSource.DataSet.Next;
+end;
+
+function TmDBGridCursor.EOF: boolean;
+begin
+  Result := FDBGrid.DataSource.DataSet.EOF;
+end;
 
 { TBookmarkListHelper }
 
@@ -740,6 +793,7 @@ begin
   Self.OnPrepareCanvas:= InternalOnPrepareCanvas;
   Self.OnUserCheckboxBitmap := InternalOnGetCheckBoxBitmap;
   ScaleFontForMagnification(Self.Font);
+  FCursor := TmDBGridCursor.Create(Self);
 end;
 
 destructor TmDBGrid.Destroy;
@@ -749,6 +803,7 @@ begin
   FCustomCheckedBitmap.Free;
   FCustomGrayedBitmap.Free;
   FreeAndNil(FParser);
+  FCursor.Free;
   inherited Destroy;
 end;
 
@@ -760,7 +815,7 @@ var
 begin
   for i := 0 to Self.Columns.Count - 1 do
   begin
-    if not IsSystemField(Self.Columns.Items[i].Field) then
+    if not IsSystemField(Self.Columns.Items[i].Field.FieldName) then
     begin
       op := aSettings.AddSettingsForField(Self.Columns.Items[i].FieldName);
       ExtractSettingsFromField( Self.Columns.Items[i], op);
@@ -780,7 +835,7 @@ begin
   try
     for i := 0 to Self.Columns.Count - 1 do
     begin
-      if not IsSystemField (Self.Columns.Items[i].Field) then
+      if not IsSystemField (Self.Columns.Items[i].Field.FieldName) then
       begin
         if Assigned(aSettings.GetSettingsForField(Self.Columns.Items[i].Field.FieldName)) then
           tmpDictionary.Add(Self.Columns.Items[i].Field.FieldName, Self.Columns.Items[i])
@@ -804,6 +859,45 @@ begin
     tmpList.Free;
     tmpDictionary.Free;;
   end;
+end;
+
+procedure TmDBGrid.RefreshDataProvider;
+begin
+  Self.DataSource.DataSet.Close;
+  Self.DataSource.DataSet.Open;
+end;
+
+function TmDBGrid.GetSummaryManager: ISummaryDatasetManager;
+begin
+  Result := FSummaryManager;
+end;
+
+procedure TmDBGrid.GetFields(aFields: TmFields);
+var
+  i : integer;
+begin
+  aFields.Clear;
+  for i := 0 to Self.DataSource.DataSet.Fields.Count - 1 do
+    aFields.Add.AssignFromField(Self.DataSource.DataSet.Fields[i]);
+end;
+
+function TmDBGrid.GetDataCursor: ImGridCursor;
+begin
+  Result := FCursor;
+end;
+
+procedure TmDBGrid.GetColumns(aColumns: TmGridColumns);
+var
+  i : integer;
+begin
+  aColumns.Clear;
+  for i := 0 to Self.Columns.Count - 1 do
+    aColumns.Add.Assign(Self.Columns.Items[i]);
+end;
+
+function TmDBGridCursor.GetValueByFieldName(const aFieldName: String): Variant;
+begin
+  Result := FDBGrid.DataSource.DataSet.FieldByName(aFieldName).Value;
 end;
 
 

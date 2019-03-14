@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
-  DBGrids, Controls, Menus, LCLIntf,
+  DBGrids, Grids, Controls, Menus, LCLIntf,
   ATButtons,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet,
@@ -26,7 +26,7 @@ uses
   {$ENDIF}
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
-  mDBGrid, mNullables,
+  mDBGrid, mNullables, mGrids, mFields,
   mVirtualDatasetFormulas;
 
 resourcestring
@@ -51,25 +51,25 @@ resourcestring
 
 type
 
-  { TmDBGridHelper }
+  { TmAbstractGridHelper }
 
-  TmDBGridHelper = class
+  TmAbstractGridHelper = class abstract
   protected
+    FGrid: TCustomGrid;
+
     FSettings : TmGridColumnsSettings;
-    FDBGrid : TmDBGrid;
     FFormulaFields : TmFormulaFields;
     FSaveDialog: TSaveDialog;
     FConfigurePopupMenu : TPopupMenu;
 
     function ConfirmFileOverwrite : boolean;
     procedure ExportGridToFile(aFileType : String);
+
+    procedure InternalCreate(aGrid: TCustomGrid; aFormulaFields : TmFormulaFields);
   public
-    constructor Create(aGrid : TmDBGrid;aFormulaFields : TmFormulaFields); virtual;
     destructor Destroy; override;
 
-    procedure SetupGrid;
     procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer);
-    //procedure CreateStandardConfigureMenu(aToolbar : TATButtonsToolbar; const aConfigureImageIndex : integer); virtual;
 
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
@@ -87,9 +87,22 @@ type
     procedure ExportGridAsHtml (aStream: TStream);
     procedure OnExportGridAsHtml (Sender : TObject);
 
-    procedure SelectAllRows;
+    procedure SelectAllRows; virtual; abstract;
+  end;
 
-    property Grid : TmDBGrid read FDBGrid;
+  { TmDBGridHelper }
+
+  TmDBGridHelper = class(TmAbstractGridHelper)
+  protected
+    FDBGrid : TmDBGrid;
+  public
+    constructor Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields); virtual;
+    destructor Destroy; override;
+
+    procedure SetupGrid;
+    procedure SelectAllRows; override;
+
+    property DBGrid : TmDBGrid read FDBGrid;
   end;
 
 
@@ -98,7 +111,8 @@ function GetLastUsedFolderForExport : TNullableString;
 implementation
 
 uses
-  SysUtils,
+  SysUtils, variants,
+  mCSV, mFloatsManagement,
   mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml;
 
 var
@@ -114,12 +128,12 @@ end;
 { TmDBGridHelper }
 
 
-function TmDBGridHelper.ConfirmFileOverwrite: boolean;
+function TmAbstractGridHelper.ConfirmFileOverwrite: boolean;
 begin
   Result := MessageDlg(SConfirmFileOverwriteCaption, SConfirmFileOverwriteMessage, mtConfirmation, mbYesNo, 0) = mrYes;
 end;
 
-procedure TmDBGridHelper.ExportGridToFile(aFileType: String);
+procedure TmAbstractGridHelper.ExportGridToFile(aFileType: String);
 var
   fs : TFileStream;
   oldCursor : TCursor;
@@ -152,7 +166,7 @@ begin
       if not ConfirmFileOverwrite then
         exit;
     end;
-    _LastUsedFolderForExport.Value:= ExtractFileDir(FSaveDialog.FileName);
+    GetLastUsedFolderForExport.Value:= ExtractFilePath(FSaveDialog.FileName);
     try
       oldCursor := Screen.Cursor;
       try
@@ -184,32 +198,89 @@ begin
 
 end;
 
-constructor TmDBGridHelper.Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields);
+procedure TmAbstractGridHelper.InternalCreate(aGrid: TCustomGrid; aFormulaFields: TmFormulaFields);
 begin
+  FGrid := aGrid;
   FSettings := TmGridColumnsSettings.Create;
-  FDBGrid := aGrid;
   FFormulaFields:= aFormulaFields;
   FSaveDialog := TSaveDialog.Create(nil);
+end;
+
+destructor TmAbstractGridHelper.Destroy;
+begin
+  FSettings.Free;
+  FSaveDialog.Free;
+
+  inherited Destroy;
+end;
+
+constructor TmDBGridHelper.Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields);
+begin
+  InternalCreate(aGrid, aFormulaFields);
+  FDBGrid := aGrid;
 end;
 
 destructor TmDBGridHelper.Destroy;
 begin
   FDBGrid := nil;
-  FSettings.Free;
-  FSaveDialog.Free;
   inherited Destroy;
 end;
 
 procedure TmDBGridHelper.SetupGrid;
 begin
   FDBGrid.Align:= alClient;
-  FDBGrid.AlternateColor:= clMoneyGreen;
-  FDBGrid.Flat := True;
-  FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
+  if FDBGrid is TDBGrid then
+  begin
+    (FDBGrid as TDBGrid).AlternateColor:= clMoneyGreen;
+    (FDBGrid as TDBGrid).Flat := True;
+    (FDBGrid as TDBGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
+  end;
+{  else if FDBGrid is TDrawGrid then
+  begin
+    (FDBGrid as TDrawGrid).AlternateColor:= clMoneyGreen;
+    (FDBGrid as TDrawGrid).Flat := True;
+    //(FDBGrid as TDrawGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
+    (FDBGrid as TDrawGrid).Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect];
+    (*
+    goFixedVertLine,      // Ya
+    goFixedHorzLine,      // Ya
+    goVertLine,           // Ya
+    goHorzLine,           // Ya
+    goRangeSelect,        // Ya
+    goDrawFocusSelected,  // Ya
+    goRowSizing,          // Ya
+    goColSizing,          // Ya
+    goRowMoving,          // Ya
+    goColMoving,          // Ya
+    goEditing,            // Ya
+    goAutoAddRows,        // JuMa
+    goTabs,               // Ya
+    goRowSelect,          // Ya
+    goAlwaysShowEditor,   // Ya
+    goThumbTracking,      // ya
+    // Additional Options
+    goColSpanning,        // Enable cellextent calcs
+    ,   // User can see focused cell on goRowSelect
+    goDblClickAutoSize,   // dblclicking columns borders (on hdrs) resize col.
+    goSmoothScroll,       // Switch scrolling mode (pixel scroll is by default)
+    goFixedRowNumbering,  // Ya
+    goScrollKeepVisible,  // keeps focused cell visible while scrolling
+    goHeaderHotTracking,  // Header cells change look when mouse is over them
+    goHeaderPushedLook,   // Header cells looks pushed when clicked
+    goSelectionActive,    // Setting grid.Selection moves also cell cursor
+    goFixedColSizing,     // Allow to resize fixed columns
+    goDontScrollPartCell, // clicking partially visible cells will not scroll
+    goCellHints,          // show individual cell hints
+    goTruncCellHints,     // show cell hints if cell text is too long
+    goCellEllipsis,       // show "..." if cell text is too long
+    goAutoAddRowsSkipContentCheck,//BB Also add a row (if AutoAddRows in Options) if last row is empty
+    goRowHighlight        // Highlight the current Row
+    *)
+  end;}
 end;
 
 
-procedure TmDBGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex : integer);
+procedure TmAbstractGridHelper.CreateStandardConfigureMenu(aToolbar: TToolbar; const aConfigureImageIndex : integer);
 var
   tmp : TToolButton;
   itm : TMenuItem;
@@ -263,60 +334,71 @@ begin
   tmp.Parent := aToolbar;
 end;
 
-function TmDBGridHelper.EditSettings : boolean;
+function TmAbstractGridHelper.EditSettings : boolean;
 var
   frm : TGridSettingsForm;
   OldCursor : TCursor;
+  Intf : ImGrid;
 begin
   Result := false;
-  FDBGrid.ReadSettings(FSettings);
-  frm := TGridSettingsForm.Create(nil);
-  try
-    frm.Init(FSettings);
-    if frm.ShowModal = mrOk then
-    begin
-      OldCursor:= Screen.Cursor;
-      try
-        Screen.Cursor:= crHourGlass;
-        FDBGrid.ApplySettings(FSettings);
-      finally
-        Screen.Cursor:= OldCursor;
+  if FGrid.GetInterface(SImGridInterface, Intf) then
+  begin
+    Intf.ReadSettings(FSettings);
+    frm := TGridSettingsForm.Create(nil);
+    try
+      frm.Init(FSettings);
+      if frm.ShowModal = mrOk then
+      begin
+        OldCursor:= Screen.Cursor;
+        try
+          Screen.Cursor:= crHourGlass;
+          Intf.ApplySettings(FSettings);
+        finally
+          Screen.Cursor:= OldCursor;
+        end;
+        Result := true;
       end;
-      Result := true;
+    finally
+      frm.Free;
     end;
-  finally
-    frm.Free;
   end;
 end;
 
-procedure TmDBGridHelper.OnEditSettings(Sender: TObject);
+procedure TmAbstractGridHelper.OnEditSettings(Sender: TObject);
 begin
   Self.EditSettings;
 end;
 
-procedure TmDBGridHelper.OnEditFormulaFields(Sender: TObject);
+procedure TmAbstractGridHelper.OnEditFormulaFields(Sender: TObject);
 var
   frm : TFormulaFieldsConfigurationForm;
+  Intf : ImGrid;
+  fields : TmFields;
 begin
   if not Assigned(FFormulaFields) then
     exit;
 
+  fields := TmFields.Create;
   frm := TFormulaFieldsConfigurationForm.Create(nil);
   try
-    frm.Init(FFormulaFields, FDBGrid.DataSource.DataSet.Fields);
-    if frm.ShowModal = mrOk then
+    if FGrid.GetInterface(SImGridInterface, Intf) then
     begin
-      FDBGrid.ReadSettings(FSettings);
-      FDBGrid.DataSource.DataSet.Close;
-      FDBGrid.DataSource.DataSet.Open;
-      FDBGrid.ApplySettings(FSettings);
+      Intf.GetFields(fields);
+      frm.Init(FFormulaFields, fields);
+      if frm.ShowModal = mrOk then
+      begin
+        Intf.ReadSettings(FSettings);
+        Intf.RefreshDataProvider;
+        Intf.ApplySettings(FSettings);
+      end;
     end;
   finally
     frm.Free;
+    fields.Free;
   end;
 end;
 
-procedure TmDBGridHelper.LoadSettings(aStream: TStream);
+procedure TmAbstractGridHelper.LoadSettings(aStream: TStream);
 var
   doc : TmXmlDocument;
 begin
@@ -329,7 +411,7 @@ begin
   end;
 end;
 
-procedure TmDBGridHelper.SaveSettings(aStream: TStream);
+procedure TmAbstractGridHelper.SaveSettings(aStream: TStream);
 var
   doc : TmXmlDocument;
   root : TmXmlElement;
@@ -344,203 +426,293 @@ begin
   end;
 end;
 
-procedure TmDBGridHelper.LoadSettingsFromXML(aXMLElement: TmXmlElement);
+procedure TmAbstractGridHelper.LoadSettingsFromXML(aXMLElement: TmXmlElement);
 var
   cursor : TmXmlElementCursor;
+  Intf : ImGrid;
 begin
-  cursor := TmXmlElementCursor.Create(aXMLElement, 'columns');
-  try
-    LoadGridColumnsSettingFromXmlElement(FSettings, cursor.Elements[0]);
-  finally
-    cursor.Free;
-  end;
-  if Assigned(FFormulaFields) then
+  if FGrid.GetInterface(SImGridInterface, Intf) then
   begin
-    cursor := TmXmlElementCursor.Create(aXMLElement, 'formulaFields');
+    cursor := TmXmlElementCursor.Create(aXMLElement, 'columns');
     try
-      if cursor.Count > 0 then
-      begin
-        LoadFormulaFieldsFromXmlElement(FFormulaFields, cursor.Elements[0]);
-        if FFormulaFields.Count > 0 then
+      LoadGridColumnsSettingFromXmlElement(FSettings, cursor.Elements[0]);
+    finally
+      cursor.Free;
+    end;
+    if Assigned(FFormulaFields) then
+    begin
+      cursor := TmXmlElementCursor.Create(aXMLElement, 'formulaFields');
+      try
+        if cursor.Count > 0 then
         begin
-          FDBGrid.DataSource.DataSet.Close;
-          FDBGrid.DataSource.DataSet.Open;
+          LoadFormulaFieldsFromXmlElement(FFormulaFields, cursor.Elements[0]);
+          if FFormulaFields.Count > 0 then
+            Intf.RefreshDataProvider;
         end;
+      finally
+        cursor.Free;
       end;
-    finally
-      cursor.Free;
     end;
-  end;
-  if Assigned(FDBGrid.SummaryManager) then
-  begin
-    cursor := TmXmlElementCursor.Create(aXMLElement, 'summaries');
-    try
-      if cursor.Count > 0 then
-      begin
-        LoadSummaryDefinitionsFromXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, cursor.Elements[0]);
+    if Assigned(Intf.GetSummaryManager) then
+    begin
+      cursor := TmXmlElementCursor.Create(aXMLElement, 'summaries');
+      try
+        if cursor.Count > 0 then
+        begin
+          LoadSummaryDefinitionsFromXmlElement(Intf.GetSummaryManager.GetSummaryDefinitions, cursor.Elements[0]);
+        end;
+      finally
+        cursor.Free;
       end;
-    finally
-      cursor.Free;
     end;
+    Intf.ApplySettings(FSettings);
+    if Assigned(Intf.GetSummaryManager) then
+      Intf.GetSummaryManager.RefreshSummaries;
   end;
-  FDBGrid.ApplySettings(FSettings);
-  if Assigned(FDBGrid.SummaryManager) then
-    FDBGrid.SummaryManager.RefreshSummaries;
 end;
 
-procedure TmDBGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
-begin
-  FDBGrid.ReadSettings(FSettings);
-  aXMLElement.SetAttribute('version', '1');
-  SaveGridColumnsSettingToXmlElement(FSettings, aXMLElement.AddElement('columns'));
-  if Assigned(FFormulaFields) then
-    SaveFormulaFieldsToXmlElement(FFormulaFields, aXMLElement.AddElement('formulaFields'));
-  if Assigned(FDBGrid.SummaryManager) then
-    SaveSummaryDefinitionsToXmlElement(FDBGrid.SummaryManager.GetSummaryDefinitions, aXMLElement.AddElement('summaries'));
-end;
-
-procedure TmDBGridHelper.ExportGridAsCsv(aStream: TStream);
+procedure TmAbstractGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
 var
-  tmpFields : TFields;
-  i, rn : integer;
-  str, sep : AnsiString;
+  Intf : ImGrid;
 begin
-  FDBGrid.DataSource.DataSet.DisableControls;
-  try
-    tmpFields := FDBGrid.DataSource.DataSet.Fields;
-    sep := '';
-    str := '';
-    for i := 0 to tmpFields.Count - 1 do
-    begin
-      str := str + sep + tmpFields[i].DisplayLabel;
-      sep := ';';
-    end;
-    str := str + sLineBreak;
-
-    aStream.WriteBuffer(PAnsiChar(str)^,Length(str));
-    rn := FDBGrid.DataSource.DataSet.RecNo;
-
-    FDBGrid.DataSource.DataSet.First;
-    while not FDBGrid.DataSource.DataSet.EOF do
-    begin
-      sep := '';
-      str := '';
-      for i := 0 to tmpFields.Count - 1 do
-      begin
-        str := str + sep + tmpFields[i].AsString;
-        sep := ';';
-      end;
-
-      str := str + sLineBreak;
-      aStream.WriteBuffer(PAnsiChar(str)^,Length(str));
-
-      FDBGrid.DataSource.DataSet.Next;
-    end;
-    FDBGrid.DataSource.DataSet.RecNo:= rn;
-
-
-  finally
-    FDBGrid.DataSource.DataSet.EnableControls;
+  if FGrid.GetInterface(SImGridInterface, Intf) then
+  begin
+    Intf.ReadSettings(FSettings);
+    aXMLElement.SetAttribute('version', '1');
+    SaveGridColumnsSettingToXmlElement(FSettings, aXMLElement.AddElement('columns'));
+    if Assigned(FFormulaFields) then
+      SaveFormulaFieldsToXmlElement(FFormulaFields, aXMLElement.AddElement('formulaFields'));
+    if Assigned(Intf.GetSummaryManager) then
+      SaveSummaryDefinitionsToXmlElement(Intf.GetSummaryManager.GetSummaryDefinitions, aXMLElement.AddElement('summaries'));
   end;
 end;
 
-procedure TmDBGridHelper.OnExportGridAsCsv(Sender : TObject);
+procedure TmAbstractGridHelper.ExportGridAsCsv(aStream: TStream);
+var
+  i : integer;
+  Intf : ImGrid;
+  CSVBuilder : TmCSVBuilder;
+  columns : TmGridColumns;
+  fields : TmFields;
+  curField : TmField;
+  curValue : Variant;
+begin
+  if FGrid.GetInterface(SImGridInterface, Intf) then
+  begin
+    fields := TmFields.Create;
+    columns := TmGridColumns.Create;
+    CSVBuilder := TmCSVBuilder.Create;
+    try
+      CSVBuilder.Stream := aStream;
+      CSVBuilder.StartWrite;
+
+      Intf.GetColumns(columns);
+      Intf.GetFields(fields);
+
+      Intf.GetDataCursor.StartBrowsing;
+      try
+        for i := 0 to columns.Count - 1 do
+        begin
+          if columns.Get(i).Visible then
+            CSVBuilder.AppendCell(columns.Get(i).Title);
+        end;
+        CSVBuilder.AppendRow;
+
+        Intf.GetDataCursor.First;
+        while not Intf.GetDataCursor.EOF do
+        begin
+          for i := 0 to columns.Count - 1 do
+          begin
+            if columns.Get(i).Visible then
+            begin
+              curField := fields.FieldByName(columns.Get(i).FieldName);
+              curValue := Intf.GetDataCursor.GetValueByFieldName(columns.Get(i).FieldName);
+              if (curField.DataType = ftSmallint) or (curField.DataType = ftInteger) or (curField.DataType = ftLargeint) then
+              begin
+                if VarIsNull(curValue) then
+                  CSVBuilder.AppendCell('')
+                else
+                  CSVBuilder.AppendCell(IntToStr(curValue));
+              end
+              else
+              if (curField.DataType = ftFloat) then
+              begin
+                if VarIsNull(curValue) then
+                  CSVBuilder.AppendCell('')
+                else
+                  CSVBuilder.AppendCell(FloatToStr(curValue));
+              end
+              else
+              if (curField.DataType = ftDate) then
+              begin
+                if VarIsNull(curValue) then
+                  CSVBuilder.AppendCell('')
+                else
+                  CSVBuilder.AppendCell(DateToStr(curValue));
+              end
+              else
+              if (curField.DataType = ftDateTime) or (curField.DataType = ftTime) or (curField.DataType = ftTimeStamp) then
+              begin
+                if VarIsNull(curValue) then
+                  CSVBuilder.AppendCell('')
+                else
+                  CSVBuilder.AppendCell(DateTimeToStr(curValue));
+              end
+              else
+              if (curField.DataType = ftBoolean) then
+              begin
+                if VarIsNull(curValue) then
+                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar +  CSVBuilder.QuoteChar)
+                else
+                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar + BoolToStr(curValue, true) + CSVBuilder.QuoteChar);
+              end
+              else
+              begin
+                if VarIsNull(curValue) then
+                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar +  CSVBuilder.QuoteChar)
+                else
+                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar + VarToStr(curValue) + CSVBuilder.QuoteChar);
+              end;
+            end;
+          end;
+          CSVBuilder.AppendRow;
+
+          Intf.GetDataCursor.Next;
+        end;
+      finally
+        Intf.GetDataCursor.EndBrowsing;
+      end;
+      CSVBuilder.EndWrite;
+    finally
+      CSVBuilder.Free;
+      columns.Free;
+      fields.Free;
+    end;
+  end;
+end;
+
+procedure TmAbstractGridHelper.OnExportGridAsCsv(Sender : TObject);
 begin
   ExportGridToFile('CSV');
 end;
 
 {$IFDEF FPC}
 
-procedure TmDBGridHelper.ExportGridAsXls(aStream: TStream);
+procedure TmAbstractGridHelper.ExportGridAsXls(aStream: TStream);
 var
   MyWorkbook: TsWorkbook;
   MyWorksheet : TsWorksheet;
-  i, rn, row, col : integer;
-  tmpField : TField;
+  i, row, col : integer;
+  Intf : ImGrid;
+  curField : TmField;
+  fields : TmFields;
+  columns : TmGridColumns;
+  curValue : Variant;
+  d : double;
 begin
+  fields := TmFields.Create;
+  columns := TmGridColumns.Create;
   MyWorkbook := TsWorkbook.Create;
   try
     MyWorksheet := MyWorkbook.AddWorksheet('Sheet1');
 
-    FDBGrid.DataSource.DataSet.DisableControls;
-    try
-      col := 0;
-      for i := 0 to FDBGrid.Columns.Count - 1 do
-      begin
-        if FDBGrid.Columns.Items[i].Visible then
-        begin
-          MyWorksheet.WriteText(0, col, FDBGrid.Columns.Items[i].Title.Caption);
-          MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
-          inc (col);
-        end;
-      end;
+    if FGrid.GetInterface(SImGridInterface, Intf) then
+    begin
 
-      rn := FDBGrid.DataSource.DataSet.RecNo;
-      row := 1;
+      Intf.GetFields(fields);
+      Intf.GetColumns(columns);
 
-      FDBGrid.DataSource.DataSet.First;
-      while not FDBGrid.DataSource.DataSet.EOF do
-      begin
+      Intf.GetDataCursor.StartBrowsing;
+      try
         col := 0;
-
-        for i := 0 to FDBGrid.Columns.Count - 1 do
+        for i := 0 to columns.Count - 1 do
         begin
-          if FDBGrid.Columns.Items[i].Visible then
+          if columns.Get(i).Visible then
           begin
-            tmpField := FDBGrid.Columns.Items[i].Field;
-            if not tmpField.IsNull then
-            begin
-              if (tmpField.DataType = ftSmallint) or (tmpField.DataType = ftInteger) or (tmpField.DataType = ftLargeint) then
-                MyWorksheet.WriteNumber(row, col, tmpField.AsFloat, nfGeneral, 0)
-              else
-              if (tmpField.DataType = ftFloat) then
-                MyWorksheet.WriteNumber(row, col, tmpField.AsFloat)
-              else
-              if (tmpField.DataType = ftDate) then
-                MyWorksheet.WriteDateTime(row, col, round(tmpField.AsDateTime), nfShortDate)
-              else
-              if (tmpField.DataType = ftDateTime) or (tmpField.DataType = ftTime) or (tmpField.DataType = ftTimeStamp) then
-              begin
-                if tmpField.AsDateTime = round(tmpField.AsDateTime) then
-                  MyWorksheet.WriteDateTime(row, col, tmpField.AsDateTime, nfShortDate)
-                else
-                  MyWorksheet.WriteDateTime(row, col, tmpField.AsDateTime, nfShortDateTime);
-              end
-              else
-              if (tmpField.DataType = ftBoolean) then
-                MyWorksheet.WriteBoolValue(row, col, tmpField.AsBoolean)
-              else
-                MyWorksheet.WriteText(row, col, tmpField.AsString);
-            end;
-            inc(col);
+            MyWorksheet.WriteText(0, col, columns.Get(i).Title);
+            MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
+            inc (col);
           end;
         end;
 
-        inc(row);
-        FDBGrid.DataSource.DataSet.Next;
-      end;
-      FDBGrid.DataSource.DataSet.RecNo:= rn;
+        row := 1;
 
-    finally
-      FDBGrid.DataSource.DataSet.EnableControls;
+        Intf.GetDataCursor.First;
+        while not Intf.GetDataCursor.EOF do
+        begin
+          col := 0;
+
+          for i := 0 to columns.Count - 1 do
+          begin
+            if columns.Get(i).Visible then
+            begin
+              curField := fields.FieldByName(columns.Get(i).FieldName);
+              curValue:= Intf.GetDataCursor.GetValueByFieldName(curField.FieldName);
+              if not VarIsNull(curValue) then
+              begin
+                if (curField.DataType = ftSmallint) or (curField.DataType = ftInteger) or (curField.DataType = ftLargeint) then
+                  MyWorksheet.WriteNumber(row, col, curValue, nfGeneral, 0)
+                else
+                if (curField.DataType = ftFloat) then
+                  MyWorksheet.WriteNumber(row, col, curValue)
+                else
+                if (curField.DataType = ftDate) then
+                begin
+                  d := curValue;
+                  MyWorksheet.WriteDateTime(row, col, round(d), nfShortDate);
+                end
+                else
+                if (curField.DataType = ftDateTime) or (curField.DataType = ftTime) or (curField.DataType = ftTimeStamp) then
+                begin
+                  d := curValue;
+                  if DoublesAreEqual(0, abs(d - round(d))) then
+                    MyWorksheet.WriteDateTime(row, col, curValue, nfShortDate)
+                  else
+                    MyWorksheet.WriteDateTime(row, col, curValue, nfShortDateTime);
+                end
+                else
+                if (curField.DataType = ftBoolean) then
+                  MyWorksheet.WriteBoolValue(row, col, curValue)
+                else
+                  MyWorksheet.WriteText(row, col, VarToStr(curValue));
+              end;
+              inc(col);
+            end;
+          end;
+
+          inc(row);
+          Intf.GetDataCursor.Next;
+        end;
+      finally
+        Intf.GetDataCursor.EndBrowsing;
+      end;
     end;
     MyWorkbook.WriteToStream(aStream, sfExcel8);
   finally
     MyWorkbook.Free;
+    columns.Free;
+    fields.Free;
   end;
 end;
 
-procedure TmDBGridHelper.OnExportGridAsXls(Sender : TObject);
+procedure TmAbstractGridHelper.OnExportGridAsXls(Sender : TObject);
 begin
   ExportGridToFile('XLS');
 end;
 
-procedure TmDBGridHelper.ExportGridAsHtml(aStream: TStream);
+procedure TmAbstractGridHelper.ExportGridAsHtml(aStream: TStream);
 var
   htmlDoc : TStringList;
-  i, rn, row, col : integer;
-  tmpField : TField;
+  i, row, col : integer;
+  Intf : ImGrid;
+  curField : TmField;
+  fields : TmFields;
+  columns : TmGridColumns;
+  curValue : Variant;
+  d : double;
 begin
+  fields := TmFields.Create;
+  columns := TmGridColumns.Create;
   htmlDoc := TStringList.Create;
   try
     htmlDoc.Add('<!DOCTYPE html>');
@@ -664,91 +836,100 @@ begin
 
     htmlDoc.Add('<table>');
 
-    FDBGrid.DataSource.DataSet.DisableControls;
-    try
-      col := 0;
-      htmlDoc.Add('<tr>');
-      for i := 0 to FDBGrid.Columns.Count - 1 do
-      begin
-        if FDBGrid.Columns.Items[i].Visible then
-        begin
-          htmlDoc.Add('<th>' + FDBGrid.Columns.Items[i].Title.Caption + '</th>');
-          inc (col);
-        end;
-      end;
-      htmlDoc.Add('</tr>');
+    if FGrid.GetInterface(SImGridInterface, Intf) then
+    begin
+      Intf.GetColumns(columns);
+      Intf.GetFields(fields);
 
-      rn := FDBGrid.DataSource.DataSet.RecNo;
-      row := 1;
-
-
-      FDBGrid.DataSource.DataSet.First;
-      while not FDBGrid.DataSource.DataSet.EOF do
-      begin
+      Intf.GetDataCursor.StartBrowsing;
+      try
         col := 0;
-
         htmlDoc.Add('<tr>');
-
-        for i := 0 to FDBGrid.Columns.Count - 1 do
+        for i := 0 to columns.Count - 1 do
         begin
-          if FDBGrid.Columns.Items[i].Visible then
+          if columns.Get(i).Visible then
           begin
-            htmlDoc.Add('<td>');
-            tmpField := FDBGrid.Columns.Items[i].Field;
-            if not tmpField.IsNull then
-            begin
-              if (tmpField.DataType = ftSmallint) or (tmpField.DataType = ftInteger) or (tmpField.DataType = ftLargeint) then
-                htmlDoc.Add(IntToStr(tmpField.AsInteger))
-              else
-              if (tmpField.DataType = ftFloat) then
-              begin
-                if (tmpField as TFloatField).DisplayFormat <> '' then
-                  htmlDoc.Add(FormatFloat((tmpField as TFloatField).DisplayFormat, tmpField.AsFloat))
-                else
-                  htmlDoc.Add(FloatToStr(tmpField.AsFloat));
-              end
-              else
-              if (tmpField.DataType = ftDate) then
-              begin
-                htmlDoc.Add(DateToStr(tmpField.AsDateTime));
-              end
-              else
-              if (tmpField.DataType = ftDateTime) or (tmpField.DataType = ftTimeStamp) then
-              begin
-                htmlDoc.Add(DateTimeToStr(tmpField.AsDateTime));
-              end
-              else
-              if (tmpField.DataType = ftTime) then
-              begin
-                htmlDoc.Add(TimeToStr(tmpField.AsDateTime));
-              end
-              else
-              if (tmpField.DataType = ftBoolean) then
-              begin
-                htmlDoc.Add(BoolToStr(tmpField.AsBoolean, true));
-              end
-              else
-                htmlDoc.Add(tmpField.AsString);
-            end;
-            htmlDoc.Add('</td>');
-            inc(col);
+            htmlDoc.Add('<th>' + columns.Get(i).Title + '</th>');
+            inc (col);
           end;
         end;
         htmlDoc.Add('</tr>');
 
-        inc(row);
-        FDBGrid.DataSource.DataSet.Next;
+        row := 1;
+
+
+        Intf.GetDataCursor.First;
+        while not Intf.GetDataCursor.EOF do
+        begin
+          col := 0;
+
+          htmlDoc.Add('<tr>');
+
+          for i := 0 to columns.Count - 1 do
+          begin
+            if columns.Get(i).Visible then
+            begin
+              htmlDoc.Add('<td>');
+              curField := fields.FieldByName(columns.Get(i).FieldName);
+              curValue := Intf.GetDataCursor.GetValueByFieldName(columns.Get(i).FieldName);
+              if not VarIsNull(curValue) then
+              begin
+                if (curField.DataType = ftSmallint) or (curField.DataType = ftInteger) or (curField.DataType = ftLargeint) then
+                  htmlDoc.Add(IntToStr(curValue))
+                else
+                if (curField.DataType = ftFloat) then
+                begin
+                  d := curValue;
+                  if curField.DisplayFormat <> '' then
+                    htmlDoc.Add(FormatFloat(curField.DisplayFormat, d))
+                  else
+                    htmlDoc.Add(FloatToStr(d));
+                end
+                else
+                if (curField.DataType = ftDate) then
+                begin
+                  d := curValue;
+                  htmlDoc.Add(DateToStr(d));
+                end
+                else
+                if (curField.DataType = ftDateTime) or (curField.DataType = ftTimeStamp) then
+                begin
+                  d := curValue;
+                  htmlDoc.Add(DateTimeToStr(d));
+                end
+                else
+                if (curField.DataType = ftTime) then
+                begin
+                  d := curValue;
+                  htmlDoc.Add(TimeToStr(d));
+                end
+                else
+                if (curField.DataType = ftBoolean) then
+                begin
+                  htmlDoc.Add(BoolToStr(curValue, true));
+                end
+                else
+                  htmlDoc.Add(VarToStr(curValue));
+              end;
+              htmlDoc.Add('</td>');
+              inc(col);
+            end;
+          end;
+          htmlDoc.Add('</tr>');
+
+          inc(row);
+          Intf.GetDataCursor.Next;
+        end;
+
+      finally
+        Intf.GetDataCursor.EndBrowsing;
       end;
-      FDBGrid.DataSource.DataSet.RecNo:= rn;
+      htmlDoc.Add('</table>');
 
-    finally
-      FDBGrid.DataSource.DataSet.EnableControls;
-    end;
-    htmlDoc.Add('</table>');
-
-    for i := 0 to FDBGrid.SummaryManager.GetSummaryValues.Count - 1 do
-    begin
-      htmlDoc.Add('<p>' + FDBGrid.SummaryManager.GetSummaryValues.Get(i).FormattedValue + '</p>');
+      for i := 0 to Intf.GetSummaryManager.GetSummaryValues.Count - 1 do
+      begin
+        htmlDoc.Add('<p>' + Intf.GetSummaryManager.GetSummaryValues.Get(i).FormattedValue + '</p>');
+      end;
     end;
 
     htmlDoc.Add('</body>');
@@ -756,10 +937,12 @@ begin
     htmlDoc.SaveToStream(aStream);
   finally
     htmlDoc.Free;
+    columns.Free;
+    fields.Free;
   end;
 end;
 
-procedure TmDBGridHelper.OnExportGridAsHtml(Sender: TObject);
+procedure TmAbstractGridHelper.OnExportGridAsHtml(Sender: TObject);
 begin
   ExportGridToFile('HTML');
 end;

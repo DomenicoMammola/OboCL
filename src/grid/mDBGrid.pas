@@ -21,7 +21,7 @@ uses
   db, Classes, DBGrids, StdCtrls, Graphics, Forms, Controls, Menus, Math, variants, Grids, ExtCtrls,
   LCLVersion, ImgList,
   mGridColumnSettings, mXML, mSortConditions, mGridIcons,
-  mDatasetInterfaces, mFields, mFilter, mFilterOperators, mCellDecorations,
+  mDataProviderInterfaces, mFields, mFilter, mFilterOperators, mCellDecorations,
   mSummary, KAParser, mMaps, mGrids;
 
 type
@@ -139,7 +139,7 @@ implementation
 
 uses
   LResources, sysutils, md5,
-  mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor;
+  mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor, mDataProviderUtility;
 
 { TmDBGridCursor }
 
@@ -714,42 +714,8 @@ begin
 end;
 
 procedure TmDBGrid.RefreshSummaryPanel(Sender : TObject);
-var
-  i : integer;
-  tempList : TmSummaryScreenValues;
 begin
-  if Assigned(FSummaryManager) then
-  begin
-    if Assigned(FSummaryPanel) then
-    begin
-      if FSummaryManager.GetSummaryValues.Count > 0 then
-      begin
-        tempList := TmSummaryScreenValues.Create;
-        try
-          for i := 0 to FSummaryManager.GetSummaryValues.Count - 1 do
-          begin
-            with tempList.Add do
-            begin
-              FormattedValue:= FSummaryManager.GetSummaryValues.Get(i).FormattedValue;
-              RawValue:= FSummaryManager.GetSummaryValues.Get(i).ValueAsVariant;
-              DataType:= FSummaryManager.GetSummaryValues.Get(i).DataType;
-            end;
-          end;
-          FSummaryPanel.SetSummaryValues(tempList);
-          FSummaryPanel.Show;
-        finally
-          tempList.Free;
-        end;
-      end
-      else
-      begin
-        FSummaryPanel.Hide;
-      end;
-    end;
-  end
-  else
-    if Assigned(FSummaryPanel) then
-      FSummaryPanel.Hide;
+  mDataProviderUtility.RefreshSummaryPanel(FSummaryManager, FSummaryPanel);
 end;
 
 procedure TmDBGrid.SetSummaryPanel(AValue: ISummaryPanel);

@@ -20,7 +20,7 @@ interface
 uses
   Classes, contnrs,
   DBGrids, Grids,
-  mGridColumnSettings, mDatasetInterfaces, mFields;
+  mGridColumnSettings, mDataProviderInterfaces, mFields;
 
 resourcestring
   SFilterValuesMenuCaption = 'Filter by value...';
@@ -91,6 +91,9 @@ type
 
 implementation
 
+uses
+  mBaseClassesAsObjects;
+
 { TmGridColumn }
 
 constructor TmGridColumn.Create;
@@ -116,6 +119,8 @@ procedure TmGridColumn.Assign(aSource: TGridColumn);
 begin
   FVisible:= aSource.Visible;
   FTitle := aSource.Title.Caption;
+  if (aSource.Tag > 0) and (TObject(aSource.Tag) is TStringObject) then
+    FFieldName := TStringObject(aSource.Tag).Value;
 end;
 
 { TmGridColumns }

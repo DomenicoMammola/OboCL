@@ -11,12 +11,13 @@ unit UramakiBaseGridPlate;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
+  {$interfaces corba}
 {$ENDIF}
 
 interface
 
 uses
-  Classes, Controls, ExtCtrls, DB, ComCtrls, DBGrids,
+  Classes, Controls, ExtCtrls, DB, ComCtrls, DBGrids, Grids,
   Forms, Menus, SysUtils, StdCtrls, contnrs,
   UramakiToolbar,
   {$IFDEF FPC}
@@ -28,7 +29,7 @@ uses
   {$ENDIF}
 
   UramakiBase,
-  mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid,
+  mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid, mDrawGrid,
   mQuickReadOnlyVirtualDataSet, mXML, mDataProviderInterfaces, mSummary;
 
 resourcestring
@@ -47,12 +48,15 @@ const
   WM_USER_CLEARCHILDS = WM_USER + 2;
 
 type
-
-  TUramakiDBGridHelper = class;
+  IUramakiGridHelper = interface
+    ['{9FCCE502-BC8C-43F1-B4BC-D088224355B1}']
+    procedure CreateConfigureMenu(aToolbar : TUramakiToolbar; const aConfigureImageIndex : integer);
+  end;
 
   TDoFillRollFromDatasetRow = procedure (aUrakamiRoll : TUramakiRoll; const aDataset : TDataset) of object;
 
   TUramakiGridChildsAutomaticUpdateMode = (cuOnChangeSelection, cuDisabled);
+
 
   { TUramakiGridSummaryPanel }
 
@@ -77,21 +81,9 @@ type
 
   TUramakiBaseGridPlate = class abstract (TUramakiPlate)
   strict private
-    FAutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode;
-    FRunningDoUpdateChilds : boolean;
-    procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
-    procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean);
-    procedure DoSelectAll (Sender : TObject);
-    procedure DoAutoAdjustColumns(Sender : TObject);
     procedure DoUpdateChilds(Sender : TObject);
-    procedure OnFilterDataset(Sender : TObject);
   protected
-    FGrid: TmDBGrid;
     FSummaryPanel : TUramakiGridSummaryPanel;
-    FDataset: TmVirtualDataset;
-    FProvider : TReadOnlyVirtualDatasetProvider;
-    FGridHelper : TUramakiDBGridHelper;
-    FDatasource : TDatasource;
     //FToolbar : TToolBar;
     FToolbar : TUramakiToolbar;
     FLastSelectedRow : TBookmark;
@@ -99,30 +91,37 @@ type
     FLastSelectedRowsHash : string;
     FFilterPanel : TmFilterPanel;
     FGridCommandsPopupMenu : TPopupMenu;
+    FAutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode;
 
     // override these:
     function GetDataProvider : IVDDataProvider; virtual; abstract;
     procedure ReloadData (aFilters : TmFilters); virtual; abstract;
 
+
     procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
-    procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);
+    procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow); virtual; abstract;
     procedure ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_REFRESHCHILDS;
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
-    procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
-    procedure OnCellClick(Column: TColumn);
     procedure InvokeChildsRefresh;
     procedure InvokeChildsClear;
-    procedure GetSelectedItems (const aKeyFieldName : string; aList : TList);
 
     procedure OnClearFilter (Sender : TObject);
     procedure OnExecuteFilter (Sender : TObject);
+    procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode); virtual; abstract;
+    procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); virtual; abstract;
+    procedure DoSelectAll (Sender : TObject); virtual; abstract;
+    procedure DoAutoAdjustColumns(Sender : TObject); virtual; abstract;
+    function GetUramakiGridHelper : IUramakiGridHelper; virtual; abstract;
+    function GetGridHelper : TmAbstractGridHelper; virtual; abstract;
+    procedure DoProcessRefreshChilds; virtual; abstract;
+    procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); virtual; abstract;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure DisableControls;
-    procedure EnableControls;
-    procedure RefreshDataset;
+    procedure DisableControls; virtual; abstract;
+    procedure EnableControls; virtual; abstract;
+    procedure RefreshDataset; virtual; abstract;
 
     procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); override;
     procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); override;
@@ -131,22 +130,57 @@ type
     property AutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode read FAutomaticChildsUpdateMode write SetAutomaticChildsUpdateMode;
   end;
 
+  TUramakiDBGridPlate = class;
+
   { TUramakiDBGridHelper }
 
-  TUramakiDBGridHelper = class(TmDBGridHelper)
+  TUramakiDBGridHelper = class(TmDBGridHelper, IUramakiGridHelper)
   strict private
     FEnableAutomaticChildsUpdateMI : TMenuItem;
     FDisableAutomaticChildsUpdateMI : TMenuItem;
     FConfigurePopupMenu : TPopupMenu;
 
-    FGridPlate : TUramakiBaseGridPlate;
+    FGridPlate : TUramakiDBGridPlate;
     procedure OnEnableAutomaticChildsUpdate(Sender : TObject);
     procedure OnDisableAutomaticChildsUpdate(Sender : TObject);
   public
-    constructor Create(aPlate : TUramakiBaseGridPlate); reintroduce;
+    constructor Create(aPlate : TUramakiDBGridPlate); reintroduce;
 
     //procedure CreateStandardConfigureMenu(aToolbar : TToolbar; const aConfigureImageIndex : integer); override;
     procedure CreateConfigureMenu(aToolbar : TUramakiToolbar; const aConfigureImageIndex : integer);
+  end;
+
+  { TUramakiDBGridPlate }
+
+  TUramakiDBGridPlate = class(TUramakiBaseGridPlate)
+  protected
+    FGrid: TmDBGrid;
+    FDataset: TmVirtualDataset;
+    FProvider : TReadOnlyVirtualDatasetProvider;
+    FGridHelper : TUramakiDBGridHelper;
+    FDatasource : TDatasource;
+    FRunningDoUpdateChilds : boolean;
+    procedure OnFilterDataset(Sender : TObject);
+    procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode); override;
+    procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
+    procedure DoSelectAll (Sender : TObject); override;
+    procedure DoAutoAdjustColumns(Sender : TObject); override;
+    function GetUramakiGridHelper : IUramakiGridHelper; override;
+    function GetGridHelper : TmAbstractGridHelper; override;
+    procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow); override;
+    procedure DoProcessRefreshChilds; override;
+    procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); override;
+    procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
+    procedure OnCellClick(Column: TColumn);
+
+  public
+    constructor Create(TheOwner: TComponent); override;
+    destructor Destroy; override;
+
+    procedure DisableControls; override;
+    procedure EnableControls; override;
+    procedure RefreshDataset; override;
+
   end;
 
 implementation
@@ -170,6 +204,45 @@ type
     property RawValue: variant read FRawValue write FRawValue;
     property DataType: TmSummaryValueType read FDataType write FDataType;
   end;
+
+{ TUramakiDBGridPlate }
+
+constructor TUramakiDBGridPlate.Create(TheOwner: TComponent);
+begin
+  inherited Create(TheOwner);
+
+  FGrid := TmDBGrid.Create(Self);
+  FGrid.Parent := Self;
+  FGrid.Align:= alClient;
+  FDatasource:= TDataSource.Create(Self);
+  FGrid.DataSource := FDataSource;
+  FGrid.SummaryPanel := FSummaryPanel;
+
+  FDataset := TmVirtualDataset.Create(nil);
+  FProvider := TReadOnlyVirtualDatasetProvider.Create;
+  FDataset.DatasetDataProvider := FProvider;
+  FDatasource.DataSet := FDataset;
+  Self.FDataset.OnFilter:= Self.OnFilterDataset;
+
+  FGridHelper:= TUramakiDBGridHelper.Create(Self);
+  FGridHelper.SetupGrid;
+  FGrid.SortManager := Self.FDataset.SortManager;
+  FGrid.FilterManager := Self.FDataset.FilterManager;
+  FGrid.SummaryManager := Self.FDataset.SummaryManager;
+  FGrid.ColumnsHeaderMenuVisible:= true;
+
+  FRunningDoUpdateChilds := false;
+  Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
+end;
+
+destructor TUramakiDBGridPlate.Destroy;
+begin
+  FGridHelper.Free;
+  FProvider.Free;
+  FDataset.Free;
+
+  inherited Destroy;
+end;
 
 { TSummaryLabel }
 
@@ -283,7 +356,7 @@ end;
 
 { TUramakiDBGridHelper }
 
-constructor TUramakiDBGridHelper.Create(aPlate: TUramakiBaseGridPlate);
+constructor TUramakiDBGridHelper.Create(aPlate: TUramakiDBGridPlate);
 begin
   FGridPlate := aPlate;
   inherited Create(FGridPlate.FGrid, FGridPlate.FProvider.FormulaFields);
@@ -381,7 +454,7 @@ end;
 
 { TUramakiBaseGridPlate }
 
-procedure TUramakiBaseGridPlate.SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
+procedure TUramakiDBGridPlate.SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
 begin
   FAutomaticChildsUpdateMode:=AValue;
   if FAutomaticChildsUpdateMode = cuOnChangeSelection then
@@ -396,7 +469,7 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean);
+procedure TUramakiDBGridPlate.UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean);
 var
   newHash : string;
 begin
@@ -448,7 +521,7 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.DoSelectAll(Sender: TObject);
+procedure TUramakiDBGridPlate.DoSelectAll(Sender: TObject);
 begin
   FGrid.OnSelectEditor:= nil;
   FGrid.OnCellClick:= nil;
@@ -464,11 +537,21 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.DoAutoAdjustColumns(Sender: TObject);
+procedure TUramakiDBGridPlate.DoAutoAdjustColumns(Sender: TObject);
 begin
   if not Assigned(FGrid) then
     exit;
   FGrid.AutoAdjustColumns;
+end;
+
+function TUramakiDBGridPlate.GetUramakiGridHelper : IUramakiGridHelper;
+begin
+  Result := FGridHelper;
+end;
+
+function TUramakiDBGridPlate.GetGridHelper: TmAbstractGridHelper;
+begin
+  Result := FGridHelper;
 end;
 
 procedure TUramakiBaseGridPlate.DoUpdateChilds(Sender: TObject);
@@ -476,7 +559,7 @@ begin
   UpdateChildsIfNeeded(true);
 end;
 
-procedure TUramakiBaseGridPlate.OnFilterDataset(Sender: TObject);
+procedure TUramakiDBGridPlate.OnFilterDataset(Sender: TObject);
 begin
   FLastSelectedRow:= nil;
   FLastSelectedRowsCount:= 0;
@@ -491,7 +574,7 @@ begin
   FToolbar := TUramakiToolbar.Create(Self);
   FToolbar.Images := aImageList;
   FToolbar.Parent := Self;
-  FGridHelper.CreateConfigureMenu(FToolbar, aConfigureImageIndex);
+  GetUramakiGridHelper.CreateConfigureMenu(FToolbar, aConfigureImageIndex);
 
   FGridCommandsPopupMenu := TPopupMenu.Create(FToolbar);
 
@@ -571,7 +654,7 @@ begin
   tmp.Parent := FToolbar;
 end;*)
 
-procedure TUramakiBaseGridPlate.ConvertSelectionToUramakiRoll(aUramakiRoll: TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);
+procedure TUramakiDBGridPlate.ConvertSelectionToUramakiRoll(aUramakiRoll: TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);
 var
   tmpBookmark : TBookMark;
   i : integer;
@@ -603,7 +686,7 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
+procedure TUramakiDBGridPlate.DoProcessRefreshChilds;
 begin
   FGrid.OnSelectEditor:= nil;
   FGrid.OnCellClick:= nil;
@@ -618,19 +701,24 @@ begin
   end;
 end;
 
+procedure TUramakiBaseGridPlate.ProcessRefreshChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
+begin
+  Self.DoProcessRefreshChilds;
+end;
+
 procedure TUramakiBaseGridPlate.ProcessClearChilds(var Message: TLMessage);
 begin
   EngineMediator.PleaseClearMyChilds(Self);
 end;
 
-procedure TUramakiBaseGridPlate.OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
+procedure TUramakiDBGridPlate.OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
 begin
   if FRunningDoUpdateChilds then
     exit;
   UpdateChildsIfNeeded(false);
 end;
 
-procedure TUramakiBaseGridPlate.OnCellClick(Column: TColumn);
+procedure TUramakiDBGridPlate.OnCellClick(Column: TColumn);
 begin
   UpdateChildsIfNeeded(false);
 end;
@@ -645,7 +733,7 @@ begin
   PostMessage(Self.Handle, WM_USER_CLEARCHILDS, 0, 0);
 end;
 
-procedure TUramakiBaseGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TList);
+procedure TUramakiDBGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TList);
 var
   tmpBookmark : TBookmark;
   i : integer;
@@ -734,17 +822,17 @@ begin
     InvokeChildsClear;
 end;
 
-procedure TUramakiBaseGridPlate.DisableControls;
+procedure TUramakiDBGridPlate.DisableControls;
 begin
   FDataset.DisableControls;
 end;
 
-procedure TUramakiBaseGridPlate.EnableControls;
+procedure TUramakiDBGridPlate.EnableControls;
 begin
   FDataset.EnableControls;
 end;
 
-procedure TUramakiBaseGridPlate.RefreshDataset;
+procedure TUramakiDBGridPlate.RefreshDataset;
 begin
   FGrid.SelectedRows.Clear;
   FGrid.SelectedIndex:= -1;
@@ -761,41 +849,15 @@ begin
   FSummaryPanel := TUramakiGridSummaryPanel.Create;
   FSummaryPanel.LinkToPlate(Self);
 
-  FGrid := TmDBGrid.Create(Self);
-  FGrid.Parent := Self;
-  FGrid.Align:= alClient;
-  FDatasource:= TDataSource.Create(Self);
-  FGrid.DataSource := FDataSource;
-  FGrid.SummaryPanel := FSummaryPanel;
-
-  FDataset := TmVirtualDataset.Create(nil);
-  FProvider := TReadOnlyVirtualDatasetProvider.Create;
-  FDataset.DatasetDataProvider := FProvider;
-  FDatasource.DataSet := FDataset;
-  Self.FDataset.OnFilter:= Self.OnFilterDataset;
-
-  FGridHelper:= TUramakiDBGridHelper.Create(Self);
-  FGridHelper.SetupGrid;
-  FGrid.SortManager := Self.FDataset.SortManager;
-  FGrid.FilterManager := Self.FDataset.FilterManager;
-  FGrid.SummaryManager := Self.FDataset.SummaryManager;
-  FGrid.ColumnsHeaderMenuVisible:= true;
-
   FLastSelectedRow:= nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
-  Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
-  FRunningDoUpdateChilds := false;
 end;
 
 destructor TUramakiBaseGridPlate.Destroy;
 begin
   FreeAndNil(FToolbar);
   FreeAndNil(FSummaryPanel);
-
-  FGridHelper.Free;
-  FProvider.Free;
-  FDataset.Free;
 
   inherited Destroy;
 end;
@@ -807,7 +869,7 @@ begin
   Cursor := TmXmlElementCursor.Create(aXMLElement, 'gridConfiguration');
   try
     if Cursor.Count > 0 then
-      FGridHelper.LoadSettingsFromXML(Cursor.Elements[0]);
+      GetGridHelper.LoadSettingsFromXML(Cursor.Elements[0]);
   finally
     Cursor.Free;
   end;
@@ -829,7 +891,7 @@ procedure TUramakiBaseGridPlate.SaveConfigurationToXML(aXMLElement: TmXmlElement
 var
   tmpElement : TmXmlElement;
 begin
-  FGridHelper.SaveSettingsToXML(aXMLElement.AddElement('gridConfiguration'));
+  GetGridHelper.SaveSettingsToXML(aXMLElement.AddElement('gridConfiguration'));
   tmpElement := aXMLElement.AddElement('refreshChildsConfiguration');
   tmpElement.SetBooleanAttribute('automatic', (Self.AutomaticChildsUpdateMode = cuOnChangeSelection));
 end;

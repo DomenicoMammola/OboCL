@@ -26,7 +26,7 @@ uses
   {$ENDIF}
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
-  mDBGrid, mNullables, mGrids, mFields,
+  mDBGrid, mDrawGrid, mNullables, mGrids, mFields,
   mVirtualDatasetFormulas;
 
 resourcestring
@@ -88,6 +88,7 @@ type
     procedure OnExportGridAsHtml (Sender : TObject);
 
     procedure SelectAllRows; virtual; abstract;
+    procedure SetupGrid; virtual; abstract;
   end;
 
   { TmDBGridHelper }
@@ -99,12 +100,26 @@ type
     constructor Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields); virtual;
     destructor Destroy; override;
 
-    procedure SetupGrid;
+    procedure SetupGrid; override;
     procedure SelectAllRows; override;
 
     property DBGrid : TmDBGrid read FDBGrid;
   end;
 
+  { TmDrawGridHelper }
+
+  TmDrawGridHelper = class(TmAbstractGridHelper)
+  protected
+    FDrawGrid : TmDrawGrid;
+  public
+    constructor Create(aGrid : TmDrawGrid; aFormulaFields : TmFormulaFields); virtual;
+    destructor Destroy; override;
+
+    procedure SetupGrid; override;
+    procedure SelectAllRows; override;
+
+    property DrawGrid : TmDrawGrid read FDrawGrid;
+  end;
 
 function GetLastUsedFolderForExport : TNullableString;
 
@@ -123,6 +138,70 @@ begin
   if not Assigned(_LastUsedFolderForExport) then
     _LastUsedFolderForExport := TNullableString.Create();
   Result := _LastUsedFolderForExport;
+end;
+
+{ TmDrawGridHelper }
+
+constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields);
+begin
+  InternalCreate(aGrid, aFormulaFields);
+  FDrawGrid:= aGrid;
+end;
+
+destructor TmDrawGridHelper.Destroy;
+begin
+  FDrawGrid:= nil;
+  inherited Destroy;
+end;
+
+procedure TmDrawGridHelper.SetupGrid;
+begin
+  FDrawGrid.Align:= alClient;
+  FDrawGrid.AlternateColor:= clMoneyGreen;
+  FDrawGrid.Flat := True;
+  //(FDBGrid as TDrawGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
+  FDrawGrid.Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect];
+      (*
+      goFixedVertLine,      // Ya
+      goFixedHorzLine,      // Ya
+      goVertLine,           // Ya
+      goHorzLine,           // Ya
+      goRangeSelect,        // Ya
+      goDrawFocusSelected,  // Ya
+      goRowSizing,          // Ya
+      goColSizing,          // Ya
+      goRowMoving,          // Ya
+      goColMoving,          // Ya
+      goEditing,            // Ya
+      goAutoAddRows,        // JuMa
+      goTabs,               // Ya
+      goRowSelect,          // Ya
+      goAlwaysShowEditor,   // Ya
+      goThumbTracking,      // ya
+      // Additional Options
+      goColSpanning,        // Enable cellextent calcs
+      ,   // User can see focused cell on goRowSelect
+      goDblClickAutoSize,   // dblclicking columns borders (on hdrs) resize col.
+      goSmoothScroll,       // Switch scrolling mode (pixel scroll is by default)
+      goFixedRowNumbering,  // Ya
+      goScrollKeepVisible,  // keeps focused cell visible while scrolling
+      goHeaderHotTracking,  // Header cells change look when mouse is over them
+      goHeaderPushedLook,   // Header cells looks pushed when clicked
+      goSelectionActive,    // Setting grid.Selection moves also cell cursor
+      goFixedColSizing,     // Allow to resize fixed columns
+      goDontScrollPartCell, // clicking partially visible cells will not scroll
+      goCellHints,          // show individual cell hints
+      goTruncCellHints,     // show cell hints if cell text is too long
+      goCellEllipsis,       // show "..." if cell text is too long
+      goAutoAddRowsSkipContentCheck,//BB Also add a row (if AutoAddRows in Options) if last row is empty
+      goRowHighlight        // Highlight the current Row
+      *)
+
+end;
+
+procedure TmDrawGridHelper.SelectAllRows;
+begin
+
 end;
 
 { TmDBGridHelper }
@@ -229,54 +308,9 @@ end;
 procedure TmDBGridHelper.SetupGrid;
 begin
   FDBGrid.Align:= alClient;
-  if FDBGrid is TDBGrid then
-  begin
-    (FDBGrid as TDBGrid).AlternateColor:= clMoneyGreen;
-    (FDBGrid as TDBGrid).Flat := True;
-    (FDBGrid as TDBGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
-  end;
-{  else if FDBGrid is TDrawGrid then
-  begin
-    (FDBGrid as TDrawGrid).AlternateColor:= clMoneyGreen;
-    (FDBGrid as TDrawGrid).Flat := True;
-    //(FDBGrid as TDrawGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
-    (FDBGrid as TDrawGrid).Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect];
-    (*
-    goFixedVertLine,      // Ya
-    goFixedHorzLine,      // Ya
-    goVertLine,           // Ya
-    goHorzLine,           // Ya
-    goRangeSelect,        // Ya
-    goDrawFocusSelected,  // Ya
-    goRowSizing,          // Ya
-    goColSizing,          // Ya
-    goRowMoving,          // Ya
-    goColMoving,          // Ya
-    goEditing,            // Ya
-    goAutoAddRows,        // JuMa
-    goTabs,               // Ya
-    goRowSelect,          // Ya
-    goAlwaysShowEditor,   // Ya
-    goThumbTracking,      // ya
-    // Additional Options
-    goColSpanning,        // Enable cellextent calcs
-    ,   // User can see focused cell on goRowSelect
-    goDblClickAutoSize,   // dblclicking columns borders (on hdrs) resize col.
-    goSmoothScroll,       // Switch scrolling mode (pixel scroll is by default)
-    goFixedRowNumbering,  // Ya
-    goScrollKeepVisible,  // keeps focused cell visible while scrolling
-    goHeaderHotTracking,  // Header cells change look when mouse is over them
-    goHeaderPushedLook,   // Header cells looks pushed when clicked
-    goSelectionActive,    // Setting grid.Selection moves also cell cursor
-    goFixedColSizing,     // Allow to resize fixed columns
-    goDontScrollPartCell, // clicking partially visible cells will not scroll
-    goCellHints,          // show individual cell hints
-    goTruncCellHints,     // show cell hints if cell text is too long
-    goCellEllipsis,       // show "..." if cell text is too long
-    goAutoAddRowsSkipContentCheck,//BB Also add a row (if AutoAddRows in Options) if last row is empty
-    goRowHighlight        // Highlight the current Row
-    *)
-  end;}
+  FDBGrid.AlternateColor:= clMoneyGreen;
+  FDBGrid.Flat := True;
+  FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
 end;
 
 
@@ -504,6 +538,8 @@ begin
     CSVBuilder := TmCSVBuilder.Create;
     try
       CSVBuilder.Stream := aStream;
+      CSVBuilder.QuoteChar:= '"';
+      CSVBuilder.Delimiter:= ',';
       CSVBuilder.StartWrite;
 
       Intf.GetColumns(columns);
@@ -562,16 +598,16 @@ begin
               if (curField.DataType = ftBoolean) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar +  CSVBuilder.QuoteChar)
+                  CSVBuilder.AppendQuotedCell('')
                 else
-                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar + BoolToStr(curValue, true) + CSVBuilder.QuoteChar);
+                  CSVBuilder.AppendQuotedCell(BoolToStr(curValue, true));
               end
               else
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar +  CSVBuilder.QuoteChar)
+                  CSVBuilder.AppendQuotedCell('')
                 else
-                  CSVBuilder.AppendCell(CSVBuilder.QuoteChar + VarToStr(curValue) + CSVBuilder.QuoteChar);
+                  CSVBuilder.AppendQuotedCell(VarToStr(curValue));
               end;
             end;
           end;

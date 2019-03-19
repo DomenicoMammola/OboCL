@@ -89,6 +89,8 @@ type
 
     procedure SelectAllRows; virtual; abstract;
     procedure SetupGrid; virtual; abstract;
+
+    property FormulaFields : TmFormulaFields read FFormulaFields;
   end;
 
   { TmDBGridHelper }
@@ -550,7 +552,7 @@ begin
         for i := 0 to columns.Count - 1 do
         begin
           if columns.Get(i).Visible then
-            CSVBuilder.AppendCell(columns.Get(i).Title);
+            CSVBuilder.AppendQuotedCell(columns.Get(i).Title);
         end;
         CSVBuilder.AppendRow;
 
@@ -598,14 +600,14 @@ begin
               if (curField.DataType = ftBoolean) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendQuotedCell('')
+                  CSVBuilder.AppendCell('')
                 else
                   CSVBuilder.AppendQuotedCell(BoolToStr(curValue, true));
               end
               else
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendQuotedCell('')
+                  CSVBuilder.AppendCell('')
                 else
                   CSVBuilder.AppendQuotedCell(VarToStr(curValue));
               end;

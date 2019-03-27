@@ -45,7 +45,7 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard);
+  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard);
   TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
@@ -111,6 +111,8 @@ type
     Function EditingAllowed(ACol : Integer = -1) : Boolean; override;
   end;
 
+  TOnGetValueSource = (sMainButton, sWizardButton);
+
   { TmEditingPanel }
 
   TmEditingPanel = class(TCustomPanel)
@@ -123,6 +125,7 @@ type
     FDateCellEditor : TmExtButtonTextCellEditor;
     FButtonCellEditor : TmExtButtonTextCellEditor;
     FWizardCellEditor : TmExtButtonTextCellEditor;
+    FButtonWizardCellEditor : TmExtButtonsTextCellEditor;
     FLinesByName : TmStringDictionary;
     FLinesByRowIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
@@ -144,7 +147,9 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
-    function OnGetValue (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnGetValueFromMainSource(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnGetValue (const aCol, aRow : integer; const aSource: TOnGetValueSource; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnGetValueFromWizard (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     procedure OnClickClearValue(Sender: TObject);
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
@@ -495,6 +500,12 @@ begin
     FWizardCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FWizardCellEditor;
     FWizardCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
+  end
+  else if (curLine.Configuration.EditorKind = ekLookupPlusWizard) then
+  begin
+    FButtonWizardCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FButtonWizardCellEditor;
+    FButtonWizardCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
   end;
 end;
 
@@ -616,7 +627,12 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnGetValue(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnGetValueFromMainSource(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean;
+begin
+  Result := OnGetValue(aCol, aRow, sMainButton, aNewDisplayValue, aNewActualValue);
+end;
+
+function TmEditingPanel.OnGetValue(const aCol, aRow : integer; const aSource: TOnGetValueSource; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
   keyFieldName, errorMessage : String;
@@ -666,7 +682,7 @@ begin
       Result := FOnShowDialogEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
     end;
   end
-  else if (curLine.Configuration.EditorKind = ekWizard) then
+  else if (curLine.Configuration.EditorKind = ekWizard) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard) and (aSource = sWizardButton)) then
   begin
     if Assigned(FOnActivateWizardEvent) then
     begin
@@ -674,7 +690,7 @@ begin
       Result := FOnActivateWizardEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
     end;
   end
-  else if (curLine.Configuration.EditorKind = ekLookup) then
+  else if (curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard) and (aSource = sMainButton)) then
   begin
     lookupFrm := TmLookupFrm.Create(Self);
     try
@@ -743,6 +759,11 @@ begin
       FValueListEditor.Invalidate;
     end;
   end;
+end;
+
+function TmEditingPanel.OnGetValueFromWizard(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean;
+begin
+  Result := OnGetValue(aCol, aRow, sWizardButton, aNewDisplayValue, aNewActualValue);
 end;
 
 function TmEditingPanel.OnValueListEditorClearValue(const aCol, aRow: integer): boolean;
@@ -922,7 +943,7 @@ begin
       str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
     else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
-    else if (curLine.Configuration.EditorKind = ekLookup) and (curLine.Configuration.ChangedValueDestination.NotNull) then
+    else if ((curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard))) and (curLine.Configuration.ChangedValueDestination.NotNull) then
     begin
       assert (Assigned(curLine.Configuration.DataProvider));
 
@@ -957,7 +978,7 @@ begin
     FLinesByRowIndex.Add(curLine.RowIndex, curLine);
     FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
     if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
-      or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard)) then
+      or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard)) then
         FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
 
     if MultiEditMode and Assigned(FClearValuesList) then
@@ -1228,25 +1249,38 @@ begin
   FDateCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FDateCellEditor.Visible := false;
   FDateCellEditor.AllowFreeTypedText := true;
-  FDateCellEditor.OnGetValueEvent:= Self.OnGetValue;
+  FDateCellEditor.OnGetValueEvent:= Self.OnGetValueFromMainSource;
   FDateCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FDateCellEditor.ParentGrid := FValueListEditor;
   FDateCellEditor.ButtonStyle:= cebsCalendar;
 
   FButtonCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FButtonCellEditor.Visible:= false;
-  FButtonCellEditor.OnGetValueEvent:= Self.OnGetValue;
+  FButtonCellEditor.OnGetValueEvent:= Self.OnGetValueFromMainSource;
   FButtonCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FButtonCellEditor.ParentGrid := FValueListEditor;
   FButtonCellEditor.AllowFreeTypedText:= false;
 
   FWizardCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FWizardCellEditor.Visible:= false;
-  FWizardCellEditor.OnGetValueEvent:= Self.OnGetValue;
+  FWizardCellEditor.OnGetValueEvent:= Self.OnGetValueFromMainSource;
   FWizardCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FWizardCellEditor.ParentGrid := FValueListEditor;
   FWizardCellEditor.AllowFreeTypedText:= false;
   FWizardCellEditor.ButtonStyle:= cebsMagicWand;
+
+  FButtonWizardCellEditor := TmExtButtonsTextCellEditor.Create(Self);
+  FButtonWizardCellEditor.Visible:= false;
+  FButtonWizardCellEditor.OnGetValueEvent:= Self.OnGetValueFromMainSource;
+  FButtonWizardCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FButtonWizardCellEditor.ParentGrid := FValueListEditor;
+  FButtonWizardCellEditor.AllowFreeTypedText:= false;
+  FButtonWizardCellEditor.SetButtons(2);
+  FButtonWizardCellEditor.SetButtonStyle(0, cebsMagicWand);
+  FButtonWizardCellEditor.SetButtonStyle(1, cebsDots);
+  FButtonWizardCellEditor.SetOnClickButton(0, Self.OnGetValueFromWizard);
+  FButtonWizardCellEditor.TextEditor.OnShowWizardEvent:= Self.OnGetValueFromWizard;
+  FButtonWizardCellEditor.SetOnClickButton(1, Self.OnGetValueFromMainSource);
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();

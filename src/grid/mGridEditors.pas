@@ -134,13 +134,185 @@ type
     property AllowFreeTypedText: Boolean read GetAllowFreeTypedText write SetAllowFreeTypedText;
   end;
 
+  { TmExtButtonsTextCellEditor }
+
+  TmExtButtonsTextCellEditor = class (TCompositeCellEditor)
+  strict private
+    FTextEditor: TmExtDialogCellEditor;
+    FParentGrid: TCustomStringGrid;
+    FOnGetValueEvent: TmOnCellEditorGetValueEvent;
+    FOnClearEvent: TmOnCellEditorClearEvent;
+    function GetAllowFreeTypedText: Boolean;
+    procedure SetAllowFreeTypedText(Value: Boolean);
+    procedure SetOnClearEvent(AValue: TmOnCellEditorClearEvent);
+    procedure SetOnGetValueEvent(AValue: TmOnCellEditorGetValueEvent);
+    procedure SetParentGrid(AValue: TCustomStringGrid);
+    procedure OnClickButton (Sender: TObject);
+  protected
+    FButtonEditors : TObjectList;
+  public
+    constructor Create(Aowner: TComponent); override;
+    destructor Destroy; override;
+
+    procedure SetButtons (const aValue : integer);
+    procedure SetButtonStyle(const aIndex : integer; const aStyle: TmCellEditorButtonStyle);
+    procedure SetOnClickButton(const aIndex : integer; const aOnClickButton: TmOnCellEditorShowWizardEvent);
+
+    property TextEditor : TmExtDialogCellEditor read FTextEditor;
+
+    property ParentGrid: TCustomStringGrid read FParentGrid write SetParentGrid;
+
+    property AllowFreeTypedText: Boolean read GetAllowFreeTypedText write SetAllowFreeTypedText;
+
+    property OnGetValueEvent: TmOnCellEditorGetValueEvent read FOnGetValueEvent write SetOnGetValueEvent;
+    property OnClearEvent: TmOnCellEditorClearEvent read FOnClearEvent write SetOnClearEvent;
+  end;
 
 
 implementation
 
 uses
-  Controls,
+  Controls, SysUtils,
   mBaseClassesAsObjects, mGridIcons;
+
+type
+
+  { TSingleButtonEditorData }
+
+  TSingleButtonEditorData = class
+  public
+    constructor Create;
+    destructor Destroy; override;
+  public
+    Editor : TATButtonCellEditor;
+    ButtonStyle: TmCellEditorButtonStyle;
+    OnClick: TmOnCellEditorShowWizardEvent;
+  end;
+
+{ TSingleButtonEditorData }
+
+constructor TSingleButtonEditorData.Create;
+begin
+  Editor:= nil;
+  OnClick:= nil;
+end;
+
+destructor TSingleButtonEditorData.Destroy;
+begin
+//  if Assigned(Editor) and (not Assigned(Editor.Owner)) then
+//    FreeAndNil(Editor);
+  inherited Destroy;
+end;
+
+{ TmExtButtonsTextCellEditor }
+
+function TmExtButtonsTextCellEditor.GetAllowFreeTypedText: Boolean;
+begin
+  Result := not FTextEditor.ReadOnly;
+end;
+
+procedure TmExtButtonsTextCellEditor.SetAllowFreeTypedText(Value: Boolean);
+begin
+  FTextEditor.ReadOnly:= not Value;
+end;
+
+
+procedure TmExtButtonsTextCellEditor.SetOnClearEvent(AValue: TmOnCellEditorClearEvent);
+begin
+  FOnClearEvent:=AValue;
+  FTextEditor.OnClearEvent:= AValue;
+end;
+
+procedure TmExtButtonsTextCellEditor.SetOnGetValueEvent(AValue: TmOnCellEditorGetValueEvent);
+begin
+  FOnGetValueEvent:=AValue;
+  FTextEditor.OnGetValueEvent:= aValue;
+end;
+
+procedure TmExtButtonsTextCellEditor.SetParentGrid(AValue: TCustomStringGrid);
+begin
+  if FParentGrid=AValue then Exit;
+  FParentGrid:=AValue;
+  FTextEditor.ParentGrid := aValue;
+end;
+
+procedure TmExtButtonsTextCellEditor.OnClickButton(Sender: TObject);
+var
+  newDisplayValue: string;
+  newActualValue: variant;
+  idx : integer;
+begin
+  for idx := 0 to FButtonEditors.Count- 1 do
+  begin
+    if (FButtonEditors.Items[idx] as TSingleButtonEditorData).Editor = Sender then
+    begin
+      if Assigned((FButtonEditors.Items[idx] as TSingleButtonEditorData).OnClick) then
+      begin
+        if (FButtonEditors.Items[idx] as TSingleButtonEditorData).OnClick(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
+          FTextEditor.Text := newDisplayValue;
+      end;
+      exit;
+    end;
+  end;
+end;
+
+constructor TmExtButtonsTextCellEditor.Create(Aowner: TComponent);
+begin
+  inherited Create(Aowner);
+  FOnGetValueEvent := nil;
+  FOnClearEvent := nil;
+  FTextEditor := TmExtDialogCellEditor.Create(AOwner);
+  Self.AddEditor(FTextEditor, alClient, true);
+  FButtonEditors := TObjectList.Create(true);
+end;
+
+destructor TmExtButtonsTextCellEditor.Destroy;
+begin
+  FButtonEditors.Free;
+  inherited Destroy;
+end;
+
+procedure TmExtButtonsTextCellEditor.SetButtons(const aValue: integer);
+var
+  i : integer;
+  btnData : TSingleButtonEditorData;
+begin
+  if FButtonEditors.Count > 0 then
+    raise Exception.Create('Buttons already created');
+
+  for i := 0 to aValue - 1 do
+  begin
+    btnData := TSingleButtonEditorData.Create;
+    FButtonEditors.Add(btnData);
+    btnData.Editor := TATButtonCellEditor.Create(Self.Owner);
+    btnData.Editor.Images := GridIconsDataModule.GridEditorsImageList;
+    btnData.Editor.ImageIndex:= GRID_EDITORS_ICON_DOTS;
+    btnData.Editor.Kind:= abuIconOnly;
+    btnData.ButtonStyle:= cebsDots;
+    btnData.Editor.OnClick := Self.OnClickButton();
+    Self.AddEditor(btnData.Editor, alRight, false);
+  end;
+end;
+
+procedure TmExtButtonsTextCellEditor.SetButtonStyle(const aIndex: integer; const aStyle: TmCellEditorButtonStyle);
+begin
+  if aStyle <> (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).ButtonStyle then
+  begin
+    (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).ButtonStyle:= aStyle;
+    if aStyle = cebsCalendar then
+      (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_CALENDAR
+    else if aStyle = cebsMagicWand then
+      (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_MAGICWAND
+    else
+      (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_DOTS;
+    (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.Invalidate;
+  end;
+end;
+
+procedure TmExtButtonsTextCellEditor.SetOnClickButton(const aIndex: integer; const aOnClickButton: TmOnCellEditorShowWizardEvent);
+begin
+  (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).OnClick:= aOnClickButton;
+end;
 
 
 { TATButtonCellEditor }

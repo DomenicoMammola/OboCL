@@ -20,7 +20,7 @@ uses
   Variants,
   ListViewFilterEdit,
   mLookupWindowEvents, mMaps,
-  mDatasetStandardSetup, mDataProviderInterfaces;
+  mDatasetStandardSetup, mDataProviderInterfaces, mDataProviderFieldDefs;
 
 type
 
@@ -32,6 +32,7 @@ type
     LValuesFilter: TListViewFilterEdit;
     FOnSelectAValue : TOnSelectAValue;
     FFieldsList : TStringList;
+    FFieldDefs : TmVirtualFieldDefs;
 
     FKeyFieldName : String;
     FDataProvider : IVDDataProvider;
@@ -45,7 +46,8 @@ type
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
-    procedure Init(const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+    procedure Init(const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList); overload;
+    procedure Init(const aDataProvider : IVDDataProvider); overload;
     procedure SetFocusOnFilter;
     procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
 
@@ -91,11 +93,51 @@ end;
 
 procedure TmLookupPanel.AdjustColumnsWidth;
 var
-  ColWidth : integer;
-  i : integer;
+  // ColWidth : integer;
+  i, eqWidth : integer;
+  curFieldDef : TmVirtualFieldDef;
+  flex : double;
 begin
   if FFieldsList.Count > 0 then
   begin
+    eqWidth:= 0;
+    for i := 0 to FFieldsList.Count - 1 do
+    begin
+      curFieldDef := FFieldDefs.FindByName(FFieldsList.Strings[i]);
+      if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
+        eqWidth:= eqWidth + curFieldDef.Size div 6
+      else if curFieldDef.DataType = vftBoolean then
+        eqWidth:= eqWidth + 2
+      else if curFieldDef.DataType = vftInteger then
+        eqWidth:= eqWidth + 4
+      else if curFieldDef.DataType = vftFloat then
+        eqWidth:= eqWidth + 7
+      else
+        eqWidth:= eqWidth + 5;
+    end;
+
+    flex := (Self.Width - 30) / eqWidth;
+    LValues.BeginUpdate;
+    try
+      for i := 0 to LValues.Columns.Count -1 do
+      begin
+        curFieldDef := FFieldDefs.FindByName(FFieldsList.Strings[i]);
+        if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
+          LValues.Columns[i].Width:= trunc((curFieldDef.Size div 6) * flex)
+        else if curFieldDef.DataType = vftBoolean then
+          LValues.Columns[i].Width:= trunc(flex * 2)
+        else if curFieldDef.DataType = vftInteger then
+          LValues.Columns[i].Width:= trunc(flex * 4)
+        else if curFieldDef.DataType = vftFloat then
+          LValues.Columns[i].Width:= trunc(flex * 7)
+        else
+          LValues.Columns[i].Width:= trunc(flex * 5);
+      end;
+    finally
+      LValues.EndUpdate;
+    end;
+
+    (*
     ColWidth := (Self.Width - 30) div FFieldsList.Count;
     LValues.BeginUpdate;
     try
@@ -104,6 +146,7 @@ begin
     finally
       LValues.EndUpdate;
     end;
+    *)
   end;
 end;
 
@@ -152,12 +195,14 @@ begin
   LValues.ViewStyle := vsReport;
   FFieldsList := TStringList.Create;
   FDisplayFieldNames := TStringList.Create;
+  FFieldDefs := TmVirtualFieldDefs.Create;
 end;
 
 destructor TmLookupPanel.Destroy;
 begin
   FFieldsList.Free;
   FDisplayFieldNames.Free;
+  FFieldDefs.Free;
   inherited Destroy;
 end;
 
@@ -171,20 +216,28 @@ var
   curValue : Variant;
   curDatum : IVDDatum;
 begin
+  FDataProvider := aDataProvider;
+  FDataProvider.FillVirtualFieldDefs(FFieldDefs, '');
+
   FKeyFieldName:= aKeyFieldName;
   FDisplayFieldNames.Clear;
-  FDisplayFieldNames.AddStrings(aDisplayFieldNames);
-  FDataProvider := aDataProvider;
+  if Assigned(aDisplayFieldNames) then
+    FDisplayFieldNames.AddStrings(aDisplayFieldNames)
+  else
+    FDataProvider.GetMinimumFields(FDisplayFieldNames);
 
   LValues.BeginUpdate;
   try
     FFieldsList.Clear;
-    FFieldsList.AddStrings(aFieldNames);
+    if Assigned(aFieldNames) then
+      FFieldsList.AddStrings(aFieldNames)
+    else
+      FDataProvider.GetMinimumFields(FFieldsList);
 
-    for i := 0 to aFieldNames.Count -1 do
+    for i := 0 to FFieldsList.Count -1 do
     begin
       col := LValues.Columns.Add;
-      col.Caption:= GenerateDisplayLabel(aFieldNames.Strings[i]);
+      col.Caption:= GenerateDisplayLabel(FFieldsList.Strings[i]);
       col.Width:= 200;
     end;
 
@@ -214,6 +267,11 @@ begin
     LValues.EndUpdate;
   end;
   LValuesFilter.FilteredListview := LValues;
+end;
+
+procedure TmLookupPanel.Init(const aDataProvider: IVDDataProvider);
+begin
+  Self.Init(aDataProvider, nil, aDataProvider.GetKeyFieldName, nil);
 end;
 
 procedure TmLookupPanel.SetFocusOnFilter;

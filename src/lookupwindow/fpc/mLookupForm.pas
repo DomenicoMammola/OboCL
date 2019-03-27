@@ -43,7 +43,8 @@ type
     procedure OnSelectValue (const aKeyValue: variant; const aDisplayLabel: string);
   public
     { public declarations }
-    procedure Init (const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
+    procedure Init (const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList); overload;
+    procedure Init (const aDataProvider : IVDDataProvider); overload;
 
     property SelectedValue: variant read FSelectedValue;
     property SelectedDisplayLabel: string read FSelectedDisplayLabel;
@@ -53,7 +54,8 @@ type
 implementation
 
 uses
-  variants;
+  variants,
+  mFormSetup;
 
 {$R *.lfm}
 
@@ -72,6 +74,7 @@ begin
   FLookupPanel.OnSelectAValue:= @OnSelectValue;
   FSelectedValue:= Null;
   FSelectedDisplayLabel:= '';
+  SetupFormAndCenter(Self, 0.8);
 end;
 
 procedure TmLookupFrm.OkBtnClick(Sender: TObject);
@@ -94,6 +97,11 @@ end;
 procedure TmLookupFrm.Init(const aDataProvider : IVDDataProvider; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
 begin
   FLookupPanel.Init(aDataProvider, aFieldNames, aKeyFieldName, aDisplayFieldNames);
+end;
+
+procedure TmLookupFrm.Init(const aDataProvider: IVDDataProvider);
+begin
+  FLookupPanel.Init(aDataProvider);
 end;
 
 end.

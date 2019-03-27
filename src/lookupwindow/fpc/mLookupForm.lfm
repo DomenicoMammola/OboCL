@@ -9,7 +9,7 @@ object mLookupFrm: TmLookupFrm
   OnCreate = FormCreate
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '1.8.2.0'
+  LCLVersion = '1.8.4.0'
   object BottomPanel: TPanel
     Left = 0
     Height = 50

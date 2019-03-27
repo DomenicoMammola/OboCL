@@ -46,10 +46,10 @@ procedure LoadCellDecorationFromXmlElement(aDestination: TmCellDecoration; aXmlE
 begin
   aDestination.FieldName:= aXmlElement.GetAttribute('fieldName');
   aDestination.Condition.Assign(aXmlElement.GetAttribute('condition', ''), true);
-  aDestination.BackgroundColor.Assign(aXmlElement.GetAttribute('backgroundColor', ''), true);
-  aDestination.TextColor.Assign(aXmlElement.GetAttribute('textColor', ''), true);
-  aDestination.TextBold.Assign(aXmlElement.GetBooleanAttribute('textBold', ''), true);
-  aDestination.TextItalic.Assign(aXmlElement.GetBooleanAttribute('textItalic', ''), true);
+  aDestination.BackgroundColor.Assign(aXmlElement.GetAttribute('backgroundColor', ''));
+  aDestination.TextColor.Assign(aXmlElement.GetAttribute('textColor', ''));
+  aDestination.TextBold.Value := aXmlElement.GetBooleanAttribute('textBold', false);
+  aDestination.TextItalic.Value := aXmlElement.GetBooleanAttribute('textItalic', false);
 end;
 
 procedure SaveCellDecorationsToXmlElement(const aSource: TmCellDecorations; aXmlElement: TmXmlElement);

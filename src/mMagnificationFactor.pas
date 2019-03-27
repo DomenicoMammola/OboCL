@@ -9,8 +9,8 @@
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit mMagnificationFactor;
 
-
 interface
+
 uses
   Graphics;
 

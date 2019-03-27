@@ -27,7 +27,7 @@ uses
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
   mDBGrid, mDrawGrid, mNullables, mGrids, mFields,
-  mVirtualDatasetFormulas;
+  mVirtualDatasetFormulas, mCellDecorations;
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
@@ -59,13 +59,14 @@ type
 
     FSettings : TmGridColumnsSettings;
     FFormulaFields : TmFormulaFields;
+    FCellDecorations : TmCellDecorations;
     FSaveDialog: TSaveDialog;
     FConfigurePopupMenu : TPopupMenu;
 
     function ConfirmFileOverwrite : boolean;
     procedure ExportGridToFile(aFileType : String);
 
-    procedure InternalCreate(aGrid: TCustomGrid; aFormulaFields : TmFormulaFields);
+    procedure InternalCreate(aGrid: TCustomGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
   public
     destructor Destroy; override;
 
@@ -91,6 +92,7 @@ type
     procedure SetupGrid; virtual; abstract;
 
     property FormulaFields : TmFormulaFields read FFormulaFields;
+    property CellDecorations : TmCellDecorations read FCellDecorations;
   end;
 
   { TmDBGridHelper }
@@ -99,7 +101,7 @@ type
   protected
     FDBGrid : TmDBGrid;
   public
-    constructor Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields); virtual;
+    constructor Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations); virtual;
     destructor Destroy; override;
 
     procedure SetupGrid; override;
@@ -114,7 +116,7 @@ type
   protected
     FDrawGrid : TmDrawGrid;
   public
-    constructor Create(aGrid : TmDrawGrid; aFormulaFields : TmFormulaFields); virtual;
+    constructor Create(aGrid : TmDrawGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations); virtual;
     destructor Destroy; override;
 
     procedure SetupGrid; override;
@@ -130,7 +132,8 @@ implementation
 uses
   SysUtils, variants,
   mCSV, mFloatsManagement,
-  mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml;
+  mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml,
+  mCellDecorationsToXml;
 
 var
   _LastUsedFolderForExport : TNullableString;
@@ -144,9 +147,9 @@ end;
 
 { TmDrawGridHelper }
 
-constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields);
+constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
-  InternalCreate(aGrid, aFormulaFields);
+  InternalCreate(aGrid, aFormulaFields, aCellDecorations);
   FDrawGrid:= aGrid;
 end;
 
@@ -279,12 +282,13 @@ begin
 
 end;
 
-procedure TmAbstractGridHelper.InternalCreate(aGrid: TCustomGrid; aFormulaFields: TmFormulaFields);
+procedure TmAbstractGridHelper.InternalCreate(aGrid: TCustomGrid; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
   FGrid := aGrid;
   FSettings := TmGridColumnsSettings.Create;
   FFormulaFields:= aFormulaFields;
   FSaveDialog := TSaveDialog.Create(nil);
+  FCellDecorations := aCellDecorations;
 end;
 
 destructor TmAbstractGridHelper.Destroy;
@@ -295,9 +299,9 @@ begin
   inherited Destroy;
 end;
 
-constructor TmDBGridHelper.Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields);
+constructor TmDBGridHelper.Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
-  InternalCreate(aGrid, aFormulaFields);
+  InternalCreate(aGrid, aFormulaFields, aCellDecorations);
   FDBGrid := aGrid;
 end;
 
@@ -494,9 +498,17 @@ begin
       cursor := TmXmlElementCursor.Create(aXMLElement, 'summaries');
       try
         if cursor.Count > 0 then
-        begin
           LoadSummaryDefinitionsFromXmlElement(Intf.GetSummaryManager.GetSummaryDefinitions, cursor.Elements[0]);
-        end;
+      finally
+        cursor.Free;
+      end;
+    end;
+    if Assigned(FCellDecorations) then
+    begin
+      cursor := TmXmlElementCursor.Create(aXMLElement, 'cellDecorations');
+      try
+        if cursor.Count > 0 then
+          LoadCellDecorationsFromXmlElement(FCellDecorations, cursor.Elements[0]);
       finally
         cursor.Free;
       end;
@@ -520,6 +532,8 @@ begin
       SaveFormulaFieldsToXmlElement(FFormulaFields, aXMLElement.AddElement('formulaFields'));
     if Assigned(Intf.GetSummaryManager) then
       SaveSummaryDefinitionsToXmlElement(Intf.GetSummaryManager.GetSummaryDefinitions, aXMLElement.AddElement('summaries'));
+    if Assigned(FCellDecorations) then
+      SaveCellDecorationsToXmlElement(FCellDecorations, aXMLElement.AddElement('cellDecorations'));
   end;
 end;
 

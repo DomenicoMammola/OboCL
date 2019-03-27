@@ -795,35 +795,47 @@ var
   tmpDictionary : TmStringDictionary;
   tmpList : TList;
   tmpObj : TObject;
+  OldCursor : TCursor;
 begin
-  tmpDictionary := TmStringDictionary.Create();
-  tmpList := TList.Create;
+  OldCursor := Screen.Cursor;
   try
-    for i := 0 to Self.Columns.Count - 1 do
-    begin
-      if not IsSystemField (Self.Columns.Items[i].Field.FieldName) then
-      begin
-        if Assigned(aSettings.GetSettingsForField(Self.Columns.Items[i].Field.FieldName)) then
-          tmpDictionary.Add(Self.Columns.Items[i].Field.FieldName, Self.Columns.Items[i])
-        else
-          tmpList.Add(Self.Columns.Items[i]);
-      end
-      else
-        tmpList.Add(Self.Columns.Items[i]);
-    end;
+    Screen.Cursor:= crHourGlass;
+    Self.BeginUpdate;
+    try
+      tmpDictionary := TmStringDictionary.Create();
+      tmpList := TList.Create;
+      try
+        for i := 0 to Self.Columns.Count - 1 do
+        begin
+          if not IsSystemField (Self.Columns.Items[i].Field.FieldName) then
+          begin
+            if Assigned(aSettings.GetSettingsForField(Self.Columns.Items[i].Field.FieldName)) then
+              tmpDictionary.Add(Self.Columns.Items[i].Field.FieldName, Self.Columns.Items[i])
+            else
+              tmpList.Add(Self.Columns.Items[i]);
+          end
+          else
+            tmpList.Add(Self.Columns.Items[i]);
+        end;
 
-    for i := 0 to tmpList.Count - 1 do
-      TColumn(tmpList.Items[i]).Index:= Columns.Count - 1;
+        for i := 0 to tmpList.Count - 1 do
+          TColumn(tmpList.Items[i]).Index:= Columns.Count - 1;
 
-    for i := aSettings.Count - 1 downto 0 do
-    begin
-      tmpObj :=  tmpDictionary.Find(aSettings.Get(i).FieldName);
-      if Assigned(tmpObj) then
-        ApplySettingsToField(tmpObj as TColumn, aSettings.Get(i));
+        for i := aSettings.Count - 1 downto 0 do
+        begin
+          tmpObj :=  tmpDictionary.Find(aSettings.Get(i).FieldName);
+          if Assigned(tmpObj) then
+            ApplySettingsToField(tmpObj as TColumn, aSettings.Get(i));
+        end;
+      finally
+        tmpList.Free;
+        tmpDictionary.Free;;
+      end;
+    finally
+      Self.EndUpdate;
     end;
   finally
-    tmpList.Free;
-    tmpDictionary.Free;;
+    Screen.Cursor := OldCursor;
   end;
 end;
 

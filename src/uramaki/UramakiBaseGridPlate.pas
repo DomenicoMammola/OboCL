@@ -229,8 +229,8 @@ begin
   FGrid.SummaryPanel := FSummaryPanel;
   FProvider := TReadOnlyVirtualDatasetProvider.Create;
 
-  FGridHelper:= TmDrawGridHelper.Create(FGrid, FProvider.FormulaFields);
-  FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
+  FGridHelper:= TmDrawGridHelper.Create(FGrid, FProvider.FormulaFields, nil);// missing CellDecorations!!
+  FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper); // missing CellDecorations!!
   FGridHelper.SetupGrid;
 (*  FGrid.SortManager := Self.FProvider.SortManager;
   FGrid.FilterManager := Self.FProvider.FilterManager;
@@ -284,7 +284,7 @@ begin
   FDatasource.DataSet := FDataset;
   Self.FDataset.OnFilter:= Self.OnFilterDataset;
 
-  FGridHelper:= TmDBGridHelper.Create(FGrid, FProvider.FormulaFields);
+  FGridHelper:= TmDBGridHelper.Create(FGrid, FProvider.FormulaFields, FGrid.CellDecorations);
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
   FGrid.SortManager := Self.FDataset.SortManager;

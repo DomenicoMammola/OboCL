@@ -451,6 +451,14 @@ begin
     itm.Hint:= SConfigureFormulaFieldsCommandHint;
     itm.Caption:= SConfigureFormulaFieldsCommandCaption;
   end;
+  if Assigned(FGridHelper.CellDecorations) then
+  begin
+    itm := TMenuItem.Create(FConfigurePopupMenu);
+    FConfigurePopupMenu.Items.Add(itm);
+    itm.OnClick:= FGridHelper.OnEditCellDecorations();
+    itm.Hint:= SConfigureCellDecorationsCommandHint;
+    itm.Caption:= SConfigureCellDecorationsCommandCaption;
+  end;
 
   itm := TMenuItem.Create(FConfigurePopupMenu);
   itm.Caption:= '-';

@@ -17,9 +17,6 @@ interface
 uses
   Classes, SysUtils, BufDataset, FileUtil, Forms, Controls, DBGrids, Grids,
   StdCtrls, ExtCtrls,Dialogs, DB,
-  SynEdit, SynCompletion,
-
-  OMultiPanel, oMultiPanelSetup,
 
   mVirtualDatasetFormulas, mFields;
 
@@ -51,25 +48,13 @@ type
     const IDX_SIZE = 2;
     const IDX_FORMULA = 3;
   private
-    FRootPanel : TOMultiPanel;
     FGridPanel : TPanel;
     FGrid : TStringGrid;
-    FFormulaPanel : TPanel;
-    FLeftEditorPanel : TPanel;
     FFormulas : TmFormulaFields;
-    FEditor : TSynEdit;
-    FEditorCompletion: TSynCompletion;
     FFieldsList : TStringList;
-    FSaveFormulaBtn : TButton;
-    FDiscardFormulaBtn : TButton;
-    FCurRow : integer;
     procedure OnSelectEditor (Sender: TObject; aCol, aRow: Integer; var Editor: TWinControl);
     procedure OnEditButtonClick (Sender: TObject; aCol, aRow: Integer);
     procedure OnEditingDone(Sender : TObject);
-    procedure OnEditorCompletionExecute(Sender: TObject);
-    procedure OnEditorCompletionSearchPosition(var APosition: integer);
-    procedure OnClickSaveFormula(Sender : TObject);
-    procedure OnClickDiscardFormula(Sender : TObject);
   public
     { public declarations }
     constructor Create(TheOwner: TComponent); override;
@@ -84,7 +69,7 @@ implementation
 
 uses
   Graphics,
-  mUtility, mMathUtility, KAParser;
+  mUtility, mMathUtility, mFormulaEditForm;
 
 {$R *.lfm}
 
@@ -119,19 +104,21 @@ begin
 end;
 
 procedure TFormulaFieldsConfFrame.OnEditButtonClick(Sender: TObject; aCol, aRow: Integer);
+var
+  dlg : TFormulaEditForm;
 begin
   if FGrid.SelectedColumn.Index = IDX_FORMULA then
   begin
-    FCurRow := aRow;
-    FEditor.Text:= trim(FGrid.Cells[IDX_FORMULA, FCurRow]);
-    FSaveFormulaBtn.Enabled:= true;
-    FDiscardFormulaBtn.Enabled:= true;
-    FGrid.Enabled:= false;
-    AddButton.Enabled:= false;
-    RemoveButton.Enabled:= false;
-    FEditor.SetFocus;
-    FEditor.CaretX:= 0;
-    FEditor.CaretY:= 0;
+    dlg := TFormulaEditForm.Create(Self);
+    try
+      dlg.Init(trim(FGrid.Cells[IDX_FORMULA, aRow]), FFieldsList);
+      if dlg.ShowModal = mrOK then
+      begin
+        FGrid.Cells[IDX_FORMULA, aRow] := trim(dlg.GetFormula);
+      end;
+    finally
+      dlg.Free;
+    end;
   end;
 end;
 
@@ -158,114 +145,15 @@ begin
   end;
 end;
 
-procedure TFormulaFieldsConfFrame.OnEditorCompletionExecute(Sender: TObject);
-var
-  i : integer;
-
-  procedure Add(s: String);
-  begin
-    if (FEditorCompletion.CurrentString = '') or (pos(lowercase(FEditorCompletion.CurrentString), lowercase(s)) = 1) then
-      FEditorCompletion.ItemList.Add(s);
-  end;
-
-begin
-  FEditorCompletion.ItemList.Clear;
-  for i := 0 to FFieldsList.Count - 1 do
-    Add(FFieldsList.Strings[i]);
-end;
-
-procedure TFormulaFieldsConfFrame.OnEditorCompletionSearchPosition(var APosition: integer);
-var
-  i : integer;
-
-  procedure Add(s: String);
-  begin
-    if (FEditorCompletion.CurrentString = '') or (pos(lowercase(FEditorCompletion.CurrentString), lowercase(s)) = 1) then
-      FEditorCompletion.ItemList.Add(s);
-  end;
-begin
-  FEditorCompletion.ItemList.Clear;
-  for i := 0 to FFieldsList.Count - 1 do
-    Add(FFieldsList.Strings[i]);
-
-  if FEditorCompletion.ItemList.Count > 0 then
-    APosition := 0
-  else
-    APosition := -1;
-end;
-
-procedure TFormulaFieldsConfFrame.OnClickSaveFormula(Sender: TObject);
-begin
-  FGrid.Cells[IDX_FORMULA, FCurRow] := trim(FEditor.Text);
-  FSaveFormulaBtn.Enabled:= false;
-  FDiscardFormulaBtn.Enabled:= false;
-  FGrid.Enabled:= true;
-  FEditor.Text:= '';
-  AddButton.Enabled:= true;
-  RemoveButton.Enabled:= true;
-end;
-
-procedure TFormulaFieldsConfFrame.OnClickDiscardFormula(Sender: TObject);
-begin
-  FEditor.Text:= '';
-  FSaveFormulaBtn.Enabled:= false;
-  FDiscardFormulaBtn.Enabled:= false;
-  FGrid.Enabled:= true;
-  AddButton.Enabled:= true;
-  RemoveButton.Enabled:= true;
-end;
-
 constructor TFormulaFieldsConfFrame.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
 
   FFieldsList := TStringList.Create;
 
-  FRootPanel := TOMultiPanel.Create(Self);
-  FRootPanel.Parent := Self;
-  FRootPanel.PanelType:= ptVertical;
-  FRootPanel.Align:= alClient;
-
-  FGridPanel := TPanel.Create(FRootPanel);
-  FGridPanel.Parent := FRootPanel;
-  FRootPanel.PanelCollection.AddControl(FGridPanel);
-
-  FFormulaPanel := TPanel.Create(FRootPanel);
-  FFormulaPanel.Parent := FRootPanel;
-  FRootPanel.PanelCollection.AddControl(FFormulaPanel);
-
-  FRootPanel.PanelCollection.Items[1].Position:= 1;
-  FRootPanel.PanelCollection.Items[0].Position:= 0.4;
-
-  FLeftEditorPanel := TPanel.Create(FFormulaPanel);
-  FLeftEditorPanel.Parent := FFormulaPanel;
-  FLeftEditorPanel.BevelInner:= bvNone;
-  FLeftEditorPanel.BevelOuter:= bvNone;
-  FLeftEditorPanel.Caption:= '';
-  FLeftEditorPanel.Align:= alRight;
-  FLeftEditorPanel.Width:= 100;
-
-  FSaveFormulaBtn := TButton.Create(FLeftEditorPanel);
-  FSaveFormulaBtn.Parent := FLeftEditorPanel;
-  FSaveFormulaBtn.Top:= 4;
-  FSaveFormulaBtn.Left:= 4;
-  FSaveFormulaBtn.Width:= FLeftEditorPanel.Width - 8;
-  FSaveFormulaBtn.Caption:= SBtnSaveFormula;
-  FSaveFormulaBtn.OnClick:= @OnClickSaveFormula;
-  FSaveFormulaBtn.Enabled:= false;
-
-  FDiscardFormulaBtn := TButton.Create(FLeftEditorPanel);
-  FDiscardFormulaBtn.Parent := FLeftEditorPanel;
-  FDiscardFormulaBtn.Top:= 4 + 4 + FSaveFormulaBtn.Height;
-  FDiscardFormulaBtn.Left:= 4;
-  FDiscardFormulaBtn.Width:= FLeftEditorPanel.Width - 8;
-  FDiscardFormulaBtn.Caption:= SBtnDiscardFormula;
-  FDiscardFormulaBtn.OnClick:= @OnClickDiscardFormula;
-  FDiscardFormulaBtn.Enabled:= false;
-
-  FEditor := TSynEdit.Create(FFormulaPanel);
-  FEditor.Parent := FFormulaPanel;
-  FEditor.Align:= alClient;
+  FGridPanel := TPanel.Create(Self);
+  FGridPanel.Parent := Self;
+  FGridPanel.Align:= alClient;
 
   FGrid:= TStringGrid.Create(FGridPanel);
   FGrid.Parent := FGridPanel;
@@ -303,13 +191,6 @@ begin
     ButtonStyle:= cbsEllipsis;
   end;
   FGrid.RowCount:= 1;
-
-  FEditorCompletion:= TSynCompletion.Create(Self);
-  FEditorCompletion.Editor := FEditor;
-  //FEditorCompletion.EndOfTokenChr:= '()[].';
-  FEditorCompletion.OnExecute:= @OnEditorCompletionExecute;
-  FEditorCompletion.OnSearchPosition:= @OnEditorCompletionSearchPosition;
-  FEditorCompletion.LinesInWindow:= 12;
 end;
 
 destructor TFormulaFieldsConfFrame.Destroy;
@@ -324,12 +205,6 @@ var
   tmpNames : TStringList;
   i, newSize : integer;
 begin
-  if FSaveFormulaBtn.Enabled then
-  begin
-    MessageDlg(SErrorMessageCaption, SErrorStillEditingFormula, mtInformation, [mbOK], 0);
-    Result := false;
-    exit;
-  end;
   tmpNames := TStringList.Create;
   try
     for i := 1 to FGrid.RowCount - 1 do
@@ -402,7 +277,6 @@ begin
     FGrid.Objects[IDX_NAME, i+1] := aFormulas.Get(i);
   end;
 
-  GetFunctionsList(FFieldsList, false);
   for i := 0 to aFields.Count - 1 do
   begin
     if (not Assigned(aFormulas.FindByName(aFields.Get(i).FieldName))) and (not IsSystemField(aFields.Get(i).FieldName)) then

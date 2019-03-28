@@ -20,6 +20,8 @@ uses
   mformulafieldsconfigurationframe,
   mVirtualDatasetFormulas, mFields;
 
+resourcestring
+  SCaptionFormulaFieldsConfigurationForm = 'Formula fields';
 
 type
   { TFormulaFieldsConfigurationForm }
@@ -39,13 +41,18 @@ type
 
 implementation
 
+uses
+  mFormSetup;
+
+
 {$R *.lfm}
 
 { TFormulaFieldsConfigurationForm }
 
 procedure TFormulaFieldsConfigurationForm.FormCreate(Sender: TObject);
 begin
-  //
+  Self.Caption := SCaptionFormulaFieldsConfigurationForm;
+  SetupFormAndCenter(Self);
 end;
 
 procedure TFormulaFieldsConfigurationForm.OkBtnClick(Sender: TObject);

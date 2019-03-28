@@ -1,4 +1,4 @@
-object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
+object CellDecorationsConfigurationForm: TCellDecorationsConfigurationForm
   Left = 1861
   Height = 389
   Top = 236

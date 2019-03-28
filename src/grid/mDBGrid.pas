@@ -139,7 +139,8 @@ implementation
 
 uses
   LResources, sysutils, md5,
-  mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor, mDataProviderUtility;
+  mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor, mDataProviderUtility,
+  mGraphicsUtility;
 
 { TmDBGridCursor }
 
@@ -381,7 +382,17 @@ begin
     if PerformCustomizedDraw then
     begin
       if tmpCellDecoration.BackgroundColor.NotNull then
-        Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
+      begin
+        if gdSelected in AState then
+        begin
+          if IsDark(tmpCellDecoration.BackgroundColor.Value) then
+            Canvas.Brush.Color := LighterColor(tmpCellDecoration.BackgroundColor.Value, 70)
+          else
+            Canvas.Brush.Color := DarkerColor(tmpCellDecoration.BackgroundColor.Value, 20);
+        end
+        else
+          Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
+      end;
       if tmpCellDecoration.TextColor.NotNull then
         Canvas.Font.Color:= tmpCellDecoration.TextColor.Value;
       if tmpCellDecoration.TextBold.NotNull and tmpCellDecoration.TextBold.Value then

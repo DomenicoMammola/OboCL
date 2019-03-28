@@ -27,7 +27,8 @@ uses
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
   mDBGrid, mDrawGrid, mNullables, mGrids, mFields,
-  mVirtualDatasetFormulas, mCellDecorations;
+  mVirtualDatasetFormulas, mCellDecorations,
+  mCellDecorationsConfigurationForm;
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
@@ -40,8 +41,10 @@ resourcestring
   SConfigureCommandHint = 'Configure...';
   SConfigureGridCommandHint = 'Configure grid...';
   SConfigureGridCommandCaption = 'Configure grid';
-  SConfigureFormulaFieldsCommandHint = 'Configure formula fields..';
+  SConfigureFormulaFieldsCommandHint = 'Configure formula fields...';
   SConfigureFormulaFieldsCommandCaption = 'Configure formula fields';
+  SConfigureCellDecorationsCommandHint = 'Configure cell decorations...';
+  SConfigureCellDecorationsCommandCaption = 'Configure cell decorations';
   SExportGridAsCsvCommandHint = 'Export grid data to csv file';
   SExportGridAsCsvCommandCaption = 'Export to csv file...';
   SExportGridAsXlsCommandHint = 'Export grid data to Excel file (.xls)';
@@ -75,6 +78,7 @@ type
     function EditSettings : boolean;
     procedure OnEditSettings(Sender : TObject);
     procedure OnEditFormulaFields(Sender : TObject);
+    procedure OnEditCellDecorations(Sender : TObject);
 
     procedure LoadSettings (aStream : TStream);
     procedure SaveSettings (aStream : TStream);
@@ -346,6 +350,14 @@ begin
     itm.Hint:= SConfigureFormulaFieldsCommandHint;
     itm.Caption:= SConfigureFormulaFieldsCommandCaption;
   end;
+  if Assigned(FCellDecorations) then
+  begin
+    itm := TMenuItem.Create(FConfigurePopupMenu);
+    FConfigurePopupMenu.Items.Add(itm);
+    itm.OnClick:= Self.OnEditCellDecorations();
+    itm.Hint:= SConfigureCellDecorationsCommandHint;
+    itm.Caption:= SConfigureCellDecorationsCommandCaption;
+  end;
 
   itm := TMenuItem.Create(FConfigurePopupMenu);
   itm.Caption:= '-';
@@ -430,6 +442,36 @@ begin
         Intf.ReadSettings(FSettings);
         Intf.RefreshDataProvider;
         Intf.ApplySettings(FSettings);
+      end;
+    end;
+  finally
+    frm.Free;
+    fields.Free;
+  end;
+end;
+
+procedure TmAbstractGridHelper.OnEditCellDecorations(Sender: TObject);
+var
+  frm : TCellDecorationsConfigurationForm;
+  Intf : ImGrid;
+  fields : TmFields;
+begin
+  if not Assigned(FCellDecorations) then
+    exit;
+
+  fields := TmFields.Create;
+  frm := TCellDecorationsConfigurationForm.Create(nil);
+  try
+    if FGrid.GetInterface(SImGridInterface, Intf) then
+    begin
+      Intf.GetFields(fields);
+      frm.Init(FCellDecorations, fields);
+      if frm.ShowModal = mrOk then
+      begin
+        FGrid.Invalidate;
+        //Intf.ReadSettings(FSettings);
+        //Intf.RefreshDataProvider;
+        //ApplySettings(FSettings);
       end;
     end;
   finally

@@ -31,7 +31,7 @@ procedure SaveCellDecorationToXmlElement(const aSource: TmCellDecoration; aXmlEl
 begin
   aXmlElement.SetAttribute('fieldName', aSource.FieldName);
   if aSource.Condition.NotNull then
-    aXmlElement.SetAttribute('condition', aSource.Condition.ToString);
+    aXmlElement.SetAttribute('condition', aSource.Condition.AsString);
   if aSource.BackgroundColor.NotNull then
     aXmlElement.SetAttribute('backgroundColor', aSource.BackgroundColor.AsString);
   if aSource.TextColor.NotNull then

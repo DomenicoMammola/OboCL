@@ -1,25 +1,27 @@
-object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
-  Left = 1861
-  Height = 389
-  Top = 236
-  Width = 959
-  Caption = 'Formula fields'
-  ClientHeight = 389
-  ClientWidth = 959
+object FormulaEditForm: TFormulaEditForm
+  Left = 1704
+  Height = 217
+  Top = 104
+  Width = 543
+  Caption = 'Edit formula'
+  ClientHeight = 217
+  ClientWidth = 543
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnShow = FormShow
   Position = poMainFormCenter
   LCLVersion = '1.8.4.0'
   object BottomPanel: TPanel
     Left = 0
     Height = 50
-    Top = 339
-    Width = 959
+    Top = 167
+    Width = 543
     Align = alBottom
     ClientHeight = 50
-    ClientWidth = 959
+    ClientWidth = 543
     TabOrder = 0
     object OkBtn: TBitBtn
-      Left = 791
+      Left = 375
       Height = 30
       Top = 8
       Width = 75
@@ -31,7 +33,7 @@ object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
       TabOrder = 0
     end
     object CancelBtn: TBitBtn
-      Left = 871
+      Left = 455
       Height = 30
       Top = 8
       Width = 75
@@ -41,6 +43,19 @@ object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
       Kind = bkCancel
       ModalResult = 2
       TabOrder = 1
+    end
+  end
+  object PageControl: TPageControl
+    Left = 0
+    Height = 167
+    Top = 0
+    Width = 543
+    ActivePage = TSEditFormula
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 1
+    object TSEditFormula: TTabSheet
+      Caption = 'Edit formula'
     end
   end
 end

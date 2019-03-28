@@ -19,6 +19,12 @@ uses
   Classes, Graphics, contnrs,
   mNullables, StrHashMap;
 
+resourcestring
+  SDecorationBackgroundColor = 'background-color';
+  SDecorationTextColor = 'text-color';
+  SDecorationBold = 'bold';
+  SDecorationItalic = 'italic';
+
 type
 
   { TmCellDecoration }
@@ -37,6 +43,9 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
+    function DecorationAsString: String;
+    procedure Assign(const aSource : TmCellDecoration);
 
     property FieldName: string read FFieldName write SetFieldName;
     property Condition: TNullableString read FCondition;
@@ -160,6 +169,44 @@ begin
   FTextItalic.Free;
 
   inherited Destroy;
+end;
+
+function TmCellDecoration.DecorationAsString: String;
+var
+  sep : String;
+begin
+  Result := '';
+  sep := '';
+  if FBackgroundColor.NotNull then
+  begin
+    Result := Result + sep + SDecorationBackgroundColor + ': ' + FBackgroundColor.AsString;
+    sep := '; ';
+  end;
+  if FTextColor.NotNull then
+  begin
+    Result := Result + sep + SDecorationTextColor + ': ' + FTextColor.AsString;
+    sep := '; ';
+  end;
+  if FTextBold.AsBoolean then
+  begin
+    Result := Result + sep + SDecorationBold;
+    sep := '; ';
+  end;
+  if FTextItalic.AsBoolean then
+  begin
+    Result := Result + sep + SDecorationItalic;
+    sep := '; ';
+  end;
+end;
+
+procedure TmCellDecoration.Assign(const aSource: TmCellDecoration);
+begin
+  FieldName := aSource.FieldName;
+  Condition.Assign(aSource.Condition);
+  BackgroundColor.Assign(aSource.BackgroundColor);
+  TextColor.Assign(aSource.TextColor);
+  TextBold.Assign(aSource.TextBold);
+  TextItalic.Assign(aSource.TextItalic);
 end;
 
 end.

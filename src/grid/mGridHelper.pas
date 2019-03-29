@@ -131,6 +131,9 @@ type
 
 function GetLastUsedFolderForExport : TNullableString;
 
+var
+  DefaultGridAlternateColor : TColor = clMoneyGreen;
+
 implementation
 
 uses
@@ -166,7 +169,7 @@ end;
 procedure TmDrawGridHelper.SetupGrid;
 begin
   FDrawGrid.Align:= alClient;
-  FDrawGrid.AlternateColor:= clMoneyGreen;
+  FDrawGrid.AlternateColor:= DefaultGridAlternateColor;
   FDrawGrid.Flat := True;
   //(FDBGrid as TDrawGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
   FDrawGrid.Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect];
@@ -318,7 +321,7 @@ end;
 procedure TmDBGridHelper.SetupGrid;
 begin
   FDBGrid.Align:= alClient;
-  FDBGrid.AlternateColor:= clMoneyGreen;
+  FDBGrid.AlternateColor:= DefaultGridAlternateColor;
   FDBGrid.Flat := True;
   FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
 end;

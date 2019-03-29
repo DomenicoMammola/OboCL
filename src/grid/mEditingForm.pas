@@ -35,6 +35,7 @@ resourcestring
   SDefaultCaption = 'Edit values';
   SErrorNotADate = 'Not a date.';
   SErrorNotANumber = 'Not a number.';
+  SErrorNotAColor = 'Not a color.';
   SErrorNotATime = 'Not a time.';
   SErrorNotAMonth = 'Not a month.';
   SErrorNotAYear = 'Not a year.';
@@ -45,8 +46,8 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard);
-  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth);
+  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog);
+  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth, dtColor);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
   TmEditingPanel = class;
@@ -160,6 +161,7 @@ type
     procedure CheckYear(const aOldStringValue : string; const aDataType: TmEditorLineDataType; const aDistanceInMonths : integer; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckMonth(const aOldStringValue : string; const aDataType: TmEditorLineDataType; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckFloat (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant; const aLineConfiguration : TmEditorLineConfiguration);
+    procedure CheckColor (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
   private
     procedure SetMultiEditMode(AValue: boolean);
   public
@@ -483,6 +485,12 @@ begin
     FDateCellEditor.TextEditor.Text := FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FDateCellEditor;
   end
+  else if (curLine.Configuration.EditorKind = ekColorDialog) then
+  begin
+    FButtonCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FButtonCellEditor;
+    FButtonCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
+  end
   else if (curLine.Configuration.EditorKind = ekLookup) then
   begin
     FButtonCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
@@ -545,6 +553,8 @@ begin
       CheckInteger (OldValue, NewValue, curLine.ActualValue)
     else if (curLine.Configuration.DataType = dtFloat) then
       CheckFloat (OldValue, NewValue, curLine.ActualValue, curLine.Configuration)
+    else if (curLine.Configuration.DataType = dtColor) then
+      CheckColor(OldValue, NewValue, curLine.ActualValue)
     else if curLine.Configuration.DataType = dtUppercaseText then
     begin
       NewValue := Uppercase(NewValue);
@@ -635,12 +645,14 @@ end;
 function TmEditingPanel.OnGetValue(const aCol, aRow : integer; const aSource: TOnGetValueSource; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
+  colorDialog : TColorDialog;
   keyFieldName, errorMessage : String;
   curLine : TEditorLine;
   lookupFrm : TmLookupFrm;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
   OldStringValue : string;
   OldActualValue : Variant;
+  tmpColor : TColor;
 begin
   Result := false;
 
@@ -672,6 +684,25 @@ begin
       end;
     finally
       calendarFrm.Free;
+    end;
+  end
+  else if (curLine.Configuration.EditorKind = ekColorDialog) then
+  begin
+    colorDialog := TColorDialog.Create(Self);
+    try
+      if OldStringValue <> '' then
+      begin
+        if TryToUndestandColorString(OldStringValue, tmpColor) then
+          colorDialog.Color:= tmpColor;
+      end;
+      if colorDialog.Execute then
+      begin
+        aNewDisplayValue:= ColorToString(colorDialog.Color);
+        curLine.ActualValue:= aNewDisplayValue;
+        Result := true;
+      end;
+    finally
+      colorDialog.Free;
     end;
   end
   else if (curLine.Configuration.EditorKind = ekDialog) then
@@ -941,6 +972,8 @@ begin
     end
     else if (curLine.Configuration.DataType = dtDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
+    else if (curLine.Configuration.DataType = dtColor) then
+      str := (curLine.Configuration.ChangedValueDestination as TNullableColor).AsString
     else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
     else if ((curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard))) and (curLine.Configuration.ChangedValueDestination.NotNull) then
@@ -978,6 +1011,7 @@ begin
     FLinesByRowIndex.Add(curLine.RowIndex, curLine);
     FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
     if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
+      or (curLine.Configuration.EditorKind = ekColorDialog)
       or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard)) then
         FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
 
@@ -1202,6 +1236,27 @@ begin
     begin
       aNewStringValue := aOldStringValue;
       TmToast.ShowText(SErrorNotANumber);
+    end;
+  end
+  else
+    aActualValue := null;
+end;
+
+procedure TmEditingPanel.CheckColor(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant);
+var
+  tmpColor : TColor;
+begin
+  if aNewStringValue <> '' then
+  begin
+    if TryToUndestandColorString(aNewStringValue, tmpColor) then
+    begin
+      aNewStringValue := ColorToString(tmpColor);
+      aActualValue:= aNewStringValue;
+    end
+    else
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotAColor);
     end;
   end
   else

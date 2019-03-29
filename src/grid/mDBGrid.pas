@@ -354,51 +354,62 @@ end;
 procedure TmDBGrid.InternalOnPrepareCanvas(sender: TObject; DataCol: Integer; Column: TColumn; AState: TGridDrawState);
 var
   tmpCellDecoration : TmCellDecoration;
+  tmpListOfDecorations : TmListOfDecorations;
   PerformCustomizedDraw : boolean;
   tmpValue : double;
+  i : integer;
 begin
-  tmpCellDecoration := FCellDecorations.FindByFieldName(Column.FieldName);
-  if Assigned(tmpCellDecoration) then
+  FCellDecorations.FindByFieldName(Column.FieldName, tmpListOfDecorations);
+  if not Assigned(tmpListOfDecorations) then
+    FCellDecorations.FindByFieldName(DECORATE_ALL_FIELDS_FIELDNAME, tmpListOfDecorations);
+  if Assigned(tmpListOfDecorations) then
   begin
-    PerformCustomizedDraw := true;
-    if tmpCellDecoration.Condition.NotNull then
+    for i := 0 to tmpListOfDecorations.Count - 1 do
     begin
-      if not Assigned(FParser) then
-      begin
-        FParser := TKAParser.Create;
-        FParser.OnGetValue:= Self.OnParserGetValue;
-        FParser.OnGetStrValue:= OnParserGetStrValue;
-      end;
-      try
-        if FParser.Calculate(tmpCellDecoration.Condition.Value, tmpValue) then
-          PerformCustomizedDraw:= round(tmpValue) = 1;
-      except
-        on e:Exception do
-        begin
-          PerformCustomizedDraw:= false;
-        end;
-      end;
-    end;
-    if PerformCustomizedDraw then
-    begin
-      if tmpCellDecoration.BackgroundColor.NotNull then
-      begin
-        if gdSelected in AState then
-        begin
-          if IsDark(tmpCellDecoration.BackgroundColor.Value) then
-            Canvas.Brush.Color := LighterColor(tmpCellDecoration.BackgroundColor.Value, 70)
-          else
-            Canvas.Brush.Color := DarkerColor(tmpCellDecoration.BackgroundColor.Value, 20);
-        end
-        else
-          Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
-      end;
-      if tmpCellDecoration.TextColor.NotNull then
-        Canvas.Font.Color:= tmpCellDecoration.TextColor.Value;
-      if tmpCellDecoration.TextBold.NotNull and tmpCellDecoration.TextBold.Value then
-        Canvas.Font.Style:= Canvas.Font.Style + [fsBold];
-      if tmpCellDecoration.TextItalic.NotNull and tmpCellDecoration.TextItalic.Value then
-        Canvas.Font.Style:= Canvas.Font.Style + [fsItalic];
+     tmpCellDecoration := tmpListOfDecorations.Get(i);
+
+     PerformCustomizedDraw := true;
+     if tmpCellDecoration.Condition.NotNull then
+     begin
+       if not Assigned(FParser) then
+       begin
+         FParser := TKAParser.Create;
+         FParser.OnGetValue:= Self.OnParserGetValue;
+         FParser.OnGetStrValue:= OnParserGetStrValue;
+       end;
+       try
+         if FParser.Calculate(tmpCellDecoration.Condition.Value, tmpValue) then
+           PerformCustomizedDraw:= round(tmpValue) = 1;
+       except
+         on e:Exception do
+         begin
+           PerformCustomizedDraw:= false;
+         end;
+       end;
+     end;
+     if PerformCustomizedDraw then
+     begin
+       if tmpCellDecoration.BackgroundColor.NotNull then
+       begin
+         if gdSelected in AState then
+         begin
+           if IsDark(tmpCellDecoration.BackgroundColor.Value) then
+             Canvas.Brush.Color := LighterColor(tmpCellDecoration.BackgroundColor.Value, 70)
+           else
+             Canvas.Brush.Color := DarkerColor(tmpCellDecoration.BackgroundColor.Value, 20);
+         end
+         else
+           Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
+       end;
+       if tmpCellDecoration.TextColor.NotNull then
+         Canvas.Font.Color:= tmpCellDecoration.TextColor.Value;
+       if tmpCellDecoration.TextBold.NotNull and tmpCellDecoration.TextBold.Value then
+         Canvas.Font.Style:= Canvas.Font.Style + [fsBold];
+       if tmpCellDecoration.TextItalic.NotNull and tmpCellDecoration.TextItalic.Value then
+         Canvas.Font.Style:= Canvas.Font.Style + [fsItalic];
+
+       break;
+     end;
     end;
   end;
 

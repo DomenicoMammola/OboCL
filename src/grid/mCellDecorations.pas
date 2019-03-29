@@ -17,13 +17,16 @@ interface
 
 uses
   Classes, Graphics, contnrs,
-  mNullables, StrHashMap;
+  mNullables, mMaps;
 
 resourcestring
   SDecorationBackgroundColor = 'background-color';
   SDecorationTextColor = 'text-color';
   SDecorationBold = 'bold';
   SDecorationItalic = 'italic';
+
+const
+  DECORATE_ALL_FIELDS_FIELDNAME = '*';
 
 type
 
@@ -55,12 +58,25 @@ type
     property TextItalic: TNullableBoolean read FTextItalic;
   end;
 
+  { TmListOfDecorations }
+
+  TmListOfDecorations = class
+  strict private
+    FList : TList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Count : integer;
+    function Get(const aIndex : integer) : TmCellDecoration;
+    procedure Add(aCellDecoration: TmCellDecoration);
+  end;
+
   { TmCellDecorations }
 
   TmCellDecorations = class
   strict private
     FList: TObjectList;
-    FIndex: TStringHashMap;
+    FIndex: TmStringDictionary;
     procedure OnChangeFieldName (aSender : TObject);
   public
     constructor Create;
@@ -69,13 +85,41 @@ type
     function Count: integer;
     function Get(const aIndex: integer): TmCellDecoration;
     procedure Clear;
-    function FindByFieldName (const aFieldName: string): TmCellDecoration;
+    procedure FindByFieldName (const aFieldName: string; out aList : TmListOfDecorations);
   end;
 
 implementation
 
 uses
   SysUtils;
+
+{ TmListOfDecorations }
+
+constructor TmListOfDecorations.Create;
+begin
+  FList := TList.Create;
+end;
+
+destructor TmListOfDecorations.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TmListOfDecorations.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+function TmListOfDecorations.Get(const aIndex: integer): TmCellDecoration;
+begin
+  Result := TmCellDecoration(FList.Items[aIndex]);
+end;
+
+procedure TmListOfDecorations.Add(aCellDecoration: TmCellDecoration);
+begin
+  FList.Add(aCellDecoration);
+end;
 
 { TmCellDecorations }
 
@@ -87,7 +131,7 @@ end;
 constructor TmCellDecorations.Create;
 begin
   FList:= TObjectList.Create(true);
-  FIndex:= TStringHashMap.Create();
+  FIndex:= TmStringDictionary.Create(true);
 end;
 
 destructor TmCellDecorations.Destroy;
@@ -121,20 +165,25 @@ begin
   FIndex.Clear;
 end;
 
-function TmCellDecorations.FindByFieldName(const aFieldName: string): TmCellDecoration;
+procedure TmCellDecorations.FindByFieldName (const aFieldName: string; out aList : TmListOfDecorations);
 var
   i : integer;
-  tmp : pointer;
+  tmpList : TmListOfDecorations;
 begin
   if FIndex.Count = 0 then
   begin
     for i := 0 to Self.Count -1 do
-      FIndex.Add(Self.Get(i).FieldName, Self.Get(i));
+    begin
+      tmpList := FIndex.Find(Self.Get(i).FieldName) as TmListOfDecorations;
+      if not Assigned(tmpList) then
+      begin
+        tmpList := TmListOfDecorations.Create;
+        FIndex.Add(Self.Get(i).FieldName, tmpList);
+      end;
+      tmpList.Add(Self.Get(i));
+    end;
   end;
-  if FIndex.Find(Uppercase(aFieldName), tmp) then
-    Result := TmCellDecoration(tmp)
-  else
-    Result := nil;
+  aList := FIndex.Find(aFieldName) as TmListOfDecorations;
 end;
 
 { TmCellDecoration }

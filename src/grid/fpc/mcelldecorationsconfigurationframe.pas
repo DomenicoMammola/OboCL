@@ -109,7 +109,10 @@ begin
     begin
       (Editor as TCustomComboBox).Style:= csDropDownList;
       if (Editor as TCustomComboBox).Items.Count = 0 then
+      begin
+        (Editor as TCustomComboBox).Items.Add(DECORATE_ALL_FIELDS_FIELDNAME);
         (Editor as TCustomComboBox).Items.AddStrings(FFields);
+      end;
     end;
   end;
 end;

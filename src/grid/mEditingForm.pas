@@ -601,6 +601,10 @@ begin
         begin
           curLine.ActualValue:= NewValue;
         end;
+      end
+      else
+      begin
+        curLine.ActualValue:= null;
       end;
     end
     else if (curLine.Configuration.DataType = dtYear) or (curLine.Configuration.DataType = dtCurrentYearOrInThePast) or

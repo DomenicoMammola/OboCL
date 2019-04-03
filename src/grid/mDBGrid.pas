@@ -695,7 +695,17 @@ begin
       if Assigned(tmpField) then
       begin
         if not tmpField.IsNull then
-          Value := tmpField.AsFloat;
+        begin
+          if tmpField.DataType = ftBoolean then
+          begin
+            if tmpField.AsBoolean then
+              Value := 1
+            else
+              Value := 0;
+          end
+          else
+            Value := tmpField.AsFloat;
+        end;
         Successfull:= true;
       end;
     end;

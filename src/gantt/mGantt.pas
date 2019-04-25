@@ -169,7 +169,7 @@ end;
 procedure TmGantt.PaintBars(aCanvas: TCanvas; const aDrawingRect: TRect);
 begin
   FCurrentDrawingStartDate := FTimeRuler.MainTimeline.Scale.TruncDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Left));
-  FCurrentDrawingEndDate := FTimeRuler.MainTimeline.Scale.TruncDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Right));
+  FCurrentDrawingEndDate := FTimeRuler.MainTimeline.Scale.CeilDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Right));
   DoForEveryRow(aCanvas, aDrawingRect, DrawRowBars);
 end;
 

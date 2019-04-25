@@ -30,6 +30,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; virtual; abstract;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; virtual; abstract;
     class function TruncDate(start: TDateTime): TDateTime; virtual; abstract;
+    class function CeilDate(start: TDateTime): TDateTime; virtual; abstract;
     class function NextBucket(start: TDateTime) : TDateTime;
     class function RoundDate(start: TDateTime): TDateTime;
     class function isMajorThan(other : TmScale): boolean; virtual; abstract;
@@ -50,6 +51,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -64,6 +66,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -78,6 +81,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -92,6 +96,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -106,6 +111,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -118,17 +124,21 @@ type
      class function TicksBetween(start, stop: TDateTime): integer; override;
      class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
      class function TruncDate(start: TDateTime): TDateTime; override;
+     class function CeilDate(start: TDateTime): TDateTime; override;
      class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
      class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
    end;
 
    { TmScaleNotSaturdaySunday }
 
+   { TmScaleDayNotSaturdaySunday }
+
    TmScaleDayNotSaturdaySunday = class (TmScaleDay)
    public
      class function TicksBetween(start, stop: TDateTime): integer; override;
      class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
      class function TruncDate(start: TDateTime): TDateTime; override;
+     class function CeilDate(start: TDateTime): TDateTime; override;
      class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
      class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
    end;
@@ -142,6 +152,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -156,6 +167,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -170,6 +182,7 @@ type
     class function TicksBetween(start, stop: TDateTime): integer; override;
     class function AddTicks(start: TDateTime; ticks: integer): TDateTime; override;
     class function TruncDate(start: TDateTime): TDateTime; override;
+    class function CeilDate(start: TDateTime): TDateTime; override;
     class function isMajorThan(other : TmScale): boolean; override;
     class function intervalToPixels(startDate, endDate: TDateTime; tickWidth : integer): integer; override;
     class function pixelsToDateTime(pixels : integer; start : TDateTime; tickWidth : integer): TDateTime; override;
@@ -248,7 +261,20 @@ begin
     Result := TmScaleDay.TruncDate(start + 2)
   else
     Result := TmScaleDay.TruncDate(start);
+end;
 
+class function TmScaleDayNotSaturdaySunday.CeilDate(start: TDateTime): TDateTime;
+var
+  dow : integer;
+begin
+  dow := DayOfTheWeek(start);
+  if (dow = 7) then
+    Result := TmScaleDay.CeilDate(start + 1)
+  else
+  if (dow = 6) then
+    Result := TmScaleDay.CeilDate(start + 2)
+  else
+    Result := TmScaleDay.CeilDate(start);
 end;
 
 class function TmScaleDayNotSaturdaySunday.intervalToPixels(startDate, endDate: TDateTime; tickWidth: integer): integer;
@@ -346,6 +372,13 @@ begin
     Result := TmScaleDay.TruncDate(start);
 end;
 
+class function TmScaleDayNotSunday.CeilDate(start: TDateTime): TDateTime;
+begin
+  Result := TmScaleDay.CeilDate(start);
+  if (DayOfTheWeek(Result) = 7) then
+    Result := TmScaleDay.CeilDate(start + 1);
+end;
+
 class function TmScaleDayNotSunday.intervalToPixels(startDate, endDate: TDateTime; tickWidth: integer): integer;
 var
   dow, f : integer;
@@ -381,7 +414,7 @@ end;
 
 { TmScaleSecond }
 
-constructor TmScaleSecond.Create;
+constructor TmScaleSecond.Create();
 begin
   FDisplayFormat := 'dd';
 end;
@@ -404,6 +437,14 @@ begin
   Result :=  RecodeTime(start, Hour, Min, Sec, 0);
 end;
 
+class function TmScaleSecond.CeilDate(start: TDateTime): TDateTime;
+var
+  Hour, Min, Sec, MSec: word;
+begin
+  DecodeTime(start, Hour, Min, Sec, MSec);
+  Result :=  RecodeTime(start, Hour, Min, Sec, 999);
+end;
+
 class function TmScaleSecond.isMajorThan(other: TmScale): boolean;
 begin
   Result :=  false;
@@ -421,7 +462,7 @@ end;
 
 { TmScaleMinute }
 
-constructor TmScaleMinute.Create;
+constructor TmScaleMinute.Create();
 begin
   FDisplayFormat := 'dd';
 end;
@@ -444,6 +485,14 @@ begin
   Result :=  RecodeTime(start, Hour, Min, 0, 0);
 end;
 
+class function TmScaleMinute.CeilDate(start: TDateTime): TDateTime;
+var
+  Hour, Min, Sec, MSec: word;
+begin
+  DecodeTime(start, Hour, Min, Sec, MSec);
+  Result :=  RecodeTime(start, Hour, Min, 59, 999);
+end;
+
 class function TmScaleMinute.isMajorThan(other: TmScale): boolean;
 begin
   Result :=  (other is TmScaleSecond);
@@ -461,7 +510,7 @@ end;
 
 { TmScaleHour }
 
-constructor TmScaleHour.Create;
+constructor TmScaleHour.Create();
 begin
   FDisplayFormat := 'dd';
 end;
@@ -484,6 +533,14 @@ begin
   Result :=  RecodeTime(start, Hour, 0, 0, 0);
 end;
 
+class function TmScaleHour.CeilDate(start: TDateTime): TDateTime;
+var
+  Hour, Min, Sec, MSec: word;
+begin
+  DecodeTime(start, Hour, Min, Sec, MSec);
+  Result :=  RecodeTime(start, Hour, 59, 59, 999);
+end;
+
 class function TmScaleHour.isMajorThan(other: TmScale): boolean;
 begin
   Result :=  (other is TmScaleSecond) or (other is TmScaleMinute);
@@ -501,7 +558,7 @@ end;
 
 { TmScaleDay }
 
-constructor TmScaleDay.Create;
+constructor TmScaleDay.Create();
 begin
   FDisplayFormat:= 'dd';
 end;
@@ -521,6 +578,11 @@ begin
   Result := StartOfTheDay(start);
 end;
 
+class function TmScaleDay.CeilDate(start: TDateTime): TDateTime;
+begin
+  Result := EndOfTheDay(start);
+end;
+
 class function TmScaleDay.isMajorThan(other: TmScale): boolean;
 begin
   Result :=  (other is TmScaleSecond) or (other is TmScaleMinute) or (other is TmScaleHour);
@@ -538,7 +600,7 @@ end;
 
 { TmScaleWeek }
 
-constructor TmScaleWeek.Create;
+constructor TmScaleWeek.Create();
 begin
   FDisplayFormat:='x (yyyy)';
 end;
@@ -558,6 +620,11 @@ begin
   Result := StartOfTheWeek(start);
 end;
 
+class function TmScaleWeek.CeilDate(start: TDateTime): TDateTime;
+begin
+  Result := EndOfTheWeek(start);
+end;
+
 class function TmScaleWeek.isMajorThan(other: TmScale): boolean;
 begin
   Result := (other is TmScaleSecond) or (other is TmScaleMinute) or (other is TmScaleHour) or (other is TmScaleDay);
@@ -575,7 +642,7 @@ end;
 
 { TmScaleMonth }
 
-constructor TmScaleMonth.Create;
+constructor TmScaleMonth.Create();
 begin
   FDisplayFormat:= 'mm/yyyy';
 end;
@@ -595,6 +662,11 @@ begin
   Result := StartOfTheMonth(start);
 end;
 
+class function TmScaleMonth.CeilDate(start: TDateTime): TDateTime;
+begin
+  Result := EndOfTheMonth(start);
+end;
+
 class function TmScaleMonth.isMajorThan(other: TmScale): boolean;
 begin
   Result := not ((other is TmScaleYear) or (other is TmScaleQuarter));
@@ -612,7 +684,7 @@ end;
 
 { TmScaleQuarter }
 
-constructor TmScaleQuarter.Create;
+constructor TmScaleQuarter.Create();
 begin
   FDisplayFormat:= 'mm/yyyy';
 end;
@@ -641,6 +713,19 @@ begin
   Result := EncodeDate(Year, Month, Day);
 end;
 
+class function TmScaleQuarter.CeilDate(start: TDateTime): TDateTime;
+var
+  Day, Month, Year: word;
+  M: integer;
+begin
+  DecodeDate(start, Year, Month, Day);
+  Dec(Month, (Month - 1) mod 3);
+  M := (Month - 1 ) mod 3;
+  if M <> 0 then
+    Dec(Month, M);
+  Result := EndOfAMonth(Year, Month);
+end;
+
 class function TmScaleQuarter.isMajorThan(other: TmScale): boolean;
 begin
   Result :=  not (other is TmScaleYear);
@@ -658,7 +743,7 @@ end;
 
 { TmScaleYear }
 
-constructor TmScaleYear.Create;
+constructor TmScaleYear.Create();
 begin
   FDisplayFormat:= 'yyyy';
 end;
@@ -676,6 +761,11 @@ end;
 class function TmScaleYear.TruncDate(start: TDateTime): TDateTime;
 begin
   Result := StartOfTheYear(start);
+end;
+
+class function TmScaleYear.CeilDate(start: TDateTime): TDateTime;
+begin
+  Result := EndOfTheYear(start);
 end;
 
 class function TmScaleYear.isMajorThan(other: TmScale): boolean;

@@ -40,6 +40,10 @@ var
 
 implementation
 
+{$IFDEF FPC}
+{$IFDEF DEBUG}uses LazLogger;{$ENDIF}
+{$ENDIF}
+
 {$R *.lfm}
 
 { TTestDataProvider }
@@ -85,7 +89,13 @@ begin
   aGanttBars.Clear;
   curBar := FBars.Items[aRowIndex] as TmGanttBarDatum;
   if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
+  begin
     aGanttBars.Add(curBar);
+    {$IFDEF DEBUG}
+    DebugLn('Intersect OK - curBar.StartTime:' + DateTimeToStr(curBar.StartTime) + ' curBar.EndTime:' + DateTimeToStr(curBar.EndTime) +
+      ' aStartDate:' + DateTimeToStr(aStartDate) + ' aEndDate:' + DateTimeToStr(aEndDate));
+    {$ENDIF}
+  end;
 (*  curBar := FBars.Items[aRowIndex * 2 - 1] as TmGanttBarDatum;
   if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
     aGanttBars.Add(curBar);*)

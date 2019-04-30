@@ -148,7 +148,7 @@ begin
   FTabs.OptTabHeight:= ScaleForDPI(ScaleForMagnification(18));
   FTabs.OptTabWidthNormal:= ScaleForDPI(ScaleForMagnification(200));
   FTabs.ColorBg:= clMenu;
-  FTabs.ColorFont:= clText;
+  FTabs.ColorFont:= clInfoText;
   FTabs.OptMouseDragEnabled:= false; //enable drag-drop
   FTabs.OptMouseDragOutEnabled:= false; //also enable drag-drop to another controls
   FTabs.OptShowArrowsNear:= false;

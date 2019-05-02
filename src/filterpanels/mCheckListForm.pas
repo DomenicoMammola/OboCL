@@ -120,6 +120,7 @@ var
   separator : string;
 begin
   Result := '';
+  separator := '';
   for i := 0 to CheckListBox.Count - 1 do
   begin
     if CheckListBox.Checked[i] then

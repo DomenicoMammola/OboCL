@@ -193,7 +193,8 @@ begin
 
   FGrid.Options := [goEditing,goTabs, goVertLine, goHorzLine, goDblClickAutoSize];
   FGrid.FixedCols:= 0;
-  FGrid.RowCount:= 0;
+  FGrid.RowCount:= 1;
+  FGrid.FixedRows := 1;
   FGrid.AlternateColor:= clMoneyGreen;
 
   FGrid.OnSelectEditor:= @OnSelectEditor;

@@ -1,0 +1,374 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+unit mPerformedOperationResultsDialog;
+
+{$mode objfpc}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel,
+  ExtCtrls, StdCtrls, contnrs,
+  attabs,
+  mPerformedOperationResults;
+
+resourcestring
+  rsSummaryTabCaption = 'Summary';
+  rsInfoTabCaption = 'Infos';
+  rsWarningTabCaption = 'Warnings';
+  rsErrorTabCaption = 'Errors';
+  rsResultTabCaption = 'Results';
+  rsCopyToClipboardMenuItem = 'Copy to clipboard';
+  rsSaveToFileMenuItem = 'Save to file';
+  rsRowsMustBeValidatedMsg = '%d rows still must be validated';
+  rsTextCopiedMsg = 'Text copied to clipboard';
+  rsFileExistsCaptionDlg = 'File exists';
+  rsFileExistsMsgDlg = 'A file with the same name already exists. Do you want to overwrite it?';
+
+type
+  { TPerformedOperationResultsDlg }
+
+  TPerformedOperationResultsDlg = class(TForm)
+    ButtonPanel1: TButtonPanel;
+    MainLabel: TLabel;
+    BodyPanel: TPanel;
+    TopPanel: TPanel;
+    procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+  private
+    const TAB_SUMMARY_INDEX = 0;
+    const TAB_RESULT_INDEX = 1;
+    const TAB_ERROR_INDEX = 2;
+    const TAB_WARNING_INDEX = 3;
+    const TAB_INFO_INDEX = 4;
+  private
+    FGarbage : TObjectList;
+    FTabs : TATTabs;
+    FClicks : integer;
+    FNotebook : TNotebook;
+    procedure OnTabClick (Sender: TObject);
+    procedure OnDrawLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+    procedure OnDblClickLB (Sender : TObject);
+    procedure OnCopyToClipboard (Sender : TObject);
+    procedure OnSaveToFile (Sender : TObject);
+  public
+    { public declarations }
+    procedure Init (const aMessage : string; const aLog : TPerformedOperationResultsAsLog); overload;
+    procedure Init (const aMessage : string; const aLog : TStrings); overload;
+
+
+    class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TPerformedOperationResultsAsLog); overload;
+    class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TStrings); overload;
+  end;
+
+
+implementation
+
+uses
+  LCLType, Menus, Clipbrd,
+  mFormSetup, mMagnificationFactor, mGraphicsUtility, mBaseClassesAsObjects, mToast;
+
+{$R *.lfm}
+
+{ TPerformedOperationResultsDlg }
+
+procedure TPerformedOperationResultsDlg.FormCreate(Sender: TObject);
+begin
+  SetupFormAndCenter(Self, GetMagnificationFactor);
+  FTabs := TATTabs.Create(BodyPanel);
+  FTabs.Parent := BodyPanel;
+  FTabs.Align:= alTop;
+  FTabs.OptShowScrollMark:= false;
+  FTabs.OnTabClick:= @OnTabClick;
+  FTabs.OptMouseDoubleClickClose:= false;
+  FTabs.OptShowPlusTab:= false;
+  FTabs.OptShowXButtons:= atbxShowNone;
+  FTabs.OptMouseDoubleClickClose:= false;
+  FTabs.OptShowEntireColor:= true;
+  FTabs.Height:= ScaleForDPI(ScaleForMagnification(32));
+  FTabs.OptTabHeight:= ScaleForDPI(ScaleForMagnification(24));
+  FTabs.OptTabWidthNormal:= ScaleForDPI(ScaleForMagnification(200));
+  FTabs.ColorBg:= clMenu;
+  FTabs.ColorFont:= clInfoText;
+  ScaleFontForMagnification(FTabs.Font);
+  FTabs.OptMouseDragEnabled:= false; //enable drag-drop
+  FTabs.OptMouseDragOutEnabled:= false; //also enable drag-drop to another controls
+  FTabs.OptShowArrowsNear:= false;
+  FTabs.OptShowDropMark:= false;
+  FTabs.OptShowScrollMark:= false;
+//  FTabs.OptButtonLayout:= '';
+  FTabs.OptShowFlat:= false;
+  FTabs.OptShowAngled:= true;
+  FTabs.OptSpaceBetweenTabs:= 5;
+
+  FNotebook := TNotebook.Create(BodyPanel);
+  FNotebook.Parent := BodyPanel;
+  FNotebook.Align:= alClient;
+
+  FGarbage := TObjectList.Create(true);
+
+  ScaleFontForMagnification(MainLabel.Font);
+end;
+
+procedure TPerformedOperationResultsDlg.FormCloseQuery(Sender: TObject; var CanClose: boolean);
+begin
+  CanClose := (FClicks = 0);
+  if not CanClose then
+    TmToast.ShowText(Format(rsRowsMustBeValidatedMsg, [FClicks]));
+end;
+
+procedure TPerformedOperationResultsDlg.FormDestroy(Sender: TObject);
+begin
+  FGarbage.Free;
+end;
+
+procedure TPerformedOperationResultsDlg.OnTabClick(Sender: TObject);
+begin
+  FNotebook.PageIndex := FTabs.TabIndex;
+end;
+
+procedure TPerformedOperationResultsDlg.OnDrawLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+var
+  tmpColor: TColor;                       //Background color
+begin
+  if odSelected in State then
+    tmpColor := clHighlight
+  else
+    tmpColor:= clWhite;
+
+  if Assigned((Control as TListBox).Items.Objects[Index]) and ((Control as TListBox).Items.Objects[Index] is TBooleanObject) then
+    if ((Control as TListBox).Items.Objects[Index] as TBooleanObject).Value then
+    begin
+      if odSelected in State then
+        tmpColor := DarkerColor(clYellow, 20)
+      else
+        tmpColor := clYellow;
+    end;
+  (Control as TListBox).Canvas.Brush.Color:=tmpColor;  //Set background color
+  (Control as TListBox).Canvas.FillRect(ARect);      //Draw a filled rectangle
+  (Control as TListBox).Canvas.TextRect(ARect, 2, ARect.Top, (Control as TListBox).Items[Index]);  //Draw Itemtext
+end;
+
+procedure TPerformedOperationResultsDlg.OnDblClickLB(Sender: TObject);
+var
+  i : integer;
+  lb : TListBox;
+begin
+  lb := (Sender as TListBox);
+  i := lb.ItemIndex;
+  if i >= 0 then
+  begin
+    if Assigned(lb.Items.Objects[i]) and (lb.Items.Objects[i] is TBooleanObject) then
+       if (lb.Items.Objects[i] as TBooleanObject).Value then
+       begin
+          (lb.Items.Objects[i] as TBooleanObject).Value := false;
+          dec (FClicks);
+          lb.Invalidate;
+       end;
+  end;
+end;
+
+procedure TPerformedOperationResultsDlg.OnCopyToClipboard(Sender: TObject);
+var
+  lb : TListBox;
+  i : integer;
+  str, sep : String;
+begin
+  if (Sender is TMenuItem) and ((Sender as TMenuItem).Tag > 0) then
+  begin
+    lb := TListBox((Sender as TMenuItem).Tag);
+
+    if lb.Items.Count > 0 then
+    begin
+      str := '';
+      sep := '';
+      for i := 0 to lb.Items.Count - 1 do
+      begin
+        str := str + sep + lb.Items.Strings[i];
+        sep := sLineBreak;
+      end;
+
+      Clipboard.AsText:= str;
+      TmToast.ShowText(rsTextCopiedMsg);
+    end;
+  end;
+end;
+
+procedure TPerformedOperationResultsDlg.OnSaveToFile(Sender: TObject);
+var
+  dlg : TSaveDialog;
+  lb : TListBox;
+begin
+  if (Sender is TMenuItem) and ((Sender as TMenuItem).Tag > 0) then
+  begin
+    lb := TListBox((Sender as TMenuItem).Tag);
+
+    if lb.Items.Count > 0 then
+    begin
+      dlg := TSaveDialog.Create(Self);
+      try
+        dlg.DefaultExt:='txt';
+        dlg.Filter:='Text files|*.txt';
+        if dlg.Execute then
+        begin
+          if (not FileExists(dlg.FileName)) or (MessageDlg(rsFileExistsCaptionDlg, rsFileExistsMsgDlg, mtConfirmation, mbYesNoCancel, 0) = mrYes) then
+            lb.Items.SaveToFile(dlg.FileName);
+        end;
+      finally
+        dlg.Free;
+      end;
+    end;
+  end;
+end;
+
+procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TPerformedOperationResultsAsLog);
+  procedure AddMemo (aIndex : integer; aLines : TStrings);
+  var
+    memo : TMemo;
+  begin
+    memo := TMemo.Create(FNotebook.Page[aIndex]);
+    memo.Parent := FNotebook.Page[aIndex];
+    memo.Align := alClient;
+    memo.ScrollBars:= ssAutoBoth;
+    memo.Lines.AddStrings(aLines);
+    memo.ReadOnly:= true;
+    memo.Font.Size:= 12;
+    ScaleFontForMagnification(memo.Font);
+  end;
+
+  procedure AddMemoOperations (aIndex : integer; aOperations : TPerformedOperations);
+  var
+    lb : TListBox;
+    i : integer;
+    shell : TBooleanObject;
+    pm : TPopupMenu;
+    mi : TMenuItem;
+  begin
+    lb := TListBox.Create(FNotebook.Page[aIndex]);
+    lb.Style := lbOwnerDrawFixed;
+    lb.OnDrawItem:= @OnDrawLBItem;
+    lb.OnDblClick:= @OnDblClickLB;
+    lb.Parent := FNotebook.Page[aIndex];
+    lb.Align := alClient;
+    lb.Font.Size:= 12;
+    ScaleFontForMagnification(lb.Font);
+    for i := 0 to aOperations.Count - 1 do
+    begin
+      if aOperations.Get(i).MustBeValidated then
+      begin
+        inc(FClicks);
+        shell := TBooleanObject.Create(true);
+        FGarbage.Add(shell);
+        lb.AddItem(aOperations.Get(i).Message, shell);
+      end
+      else
+        lb.AddItem(aOperations.Get(i).Message, nil);
+    end;
+
+    pm := TPopupMenu.Create(lb);
+    lb.PopupMenu := pm;
+    mi := TMenuItem.Create(pm);
+    pm.Items.Add(mi);
+    mi.Caption:= rsCopyToClipboardMenuItem;
+    mi.Tag:=PtrInt(lb);
+    mi.OnClick:= @OnCopyToClipboard;
+
+    mi := TMenuItem.Create(pm);
+    pm.Items.Add(mi);
+    mi.Caption:= rsSaveToFileMenuItem;
+    mi.OnClick:= @OnSaveToFile;
+    mi.Tag:=PtrInt(lb);
+  end;
+var
+  clr : TColor;
+begin
+  MainLabel.Caption:= sLineBreak + aMessage;
+
+  FTabs.AddTab(TAB_SUMMARY_INDEX, rsSummaryTabCaption, nil, false, clLtGray);
+  FNotebook.Pages.Add(rsSummaryTabCaption);
+  AddMemo(TAB_SUMMARY_INDEX, aLog.Messages);
+
+  if aLog.Results.Count > 0 then
+    clr := RGBToColor(234,218,104)
+  else
+    clr := clDkGray;
+  FTabs.AddTab(TAB_RESULT_INDEX, rsResultTabCaption + ' (' + IntToStr(aLog.Results.Count) + ')', nil, false, clr);
+  FNotebook.Pages.Add(rsResultTabCaption);
+  AddMemoOperations(TAB_RESULT_INDEX, aLog.Results);
+
+  if aLog.Errors.Count > 0 then
+    clr := clRed
+  else
+    clr := clDkGray;
+  FTabs.AddTab(TAB_ERROR_INDEX,  rsErrorTabCaption + ' (' + IntToStr(aLog.Errors.Count) + ')', nil, false, clr);
+  FNotebook.Pages.Add(rsErrorTabCaption);
+  AddMemoOperations(TAB_ERROR_INDEX, aLog.Errors);
+
+  if aLog.Warnings.Count > 0 then
+    clr := RGBToColor(255,156,108)
+  else
+    clr := clDkGray;
+  FTabs.AddTab(TAB_WARNING_INDEX,  rsWarningTabCaption + ' (' + IntToStr(aLog.Warnings.Count) + ')', nil, false, clr);
+  FNotebook.Pages.Add(rsWarningTabCaption);
+  AddMemoOperations(TAB_WARNING_INDEX, aLog.Warnings);
+
+  if aLog.Infos.Count > 0 then
+    clr := RGBToColor(191,255,255)
+  else
+    clr := clDkGray;
+  FTabs.AddTab(TAB_INFO_INDEX,  rsInfoTabCaption  + ' (' + IntToStr(aLog.Infos.Count) + ')', nil, false, clr);
+  FNotebook.Pages.Add(rsInfoTabCaption);
+  AddMemoOperations(TAB_INFO_INDEX, aLog.Infos);
+end;
+
+procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TStrings);
+var
+  memo : TMemo;
+begin
+  MainLabel.Caption:= sLineBreak + aMessage;
+  FNotebook.Visible:= false;
+  FTabs.Visible:= false;
+  memo := TMemo.Create(BodyPanel);
+  memo.Parent := BodyPanel;
+  memo.Align := alClient;
+  memo.ScrollBars:= ssAutoBoth;
+  memo.Lines.AddStrings(aLog);
+  memo.ReadOnly:= true;
+end;
+
+class procedure TPerformedOperationResultsDlg.ShowResults(const aOwnerForm: TForm; const aMessage: string; const aLog: TPerformedOperationResultsAsLog);
+var
+  Dlg : TPerformedOperationResultsDlg;
+begin
+  Dlg := TPerformedOperationResultsDlg.Create(aOwnerForm);
+  try
+    Dlg.Init(aMessage, aLog);
+    Dlg.ShowModal;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+class procedure TPerformedOperationResultsDlg.ShowResults(const aOwnerForm: TForm; const aMessage: string; const aLog: TStrings);
+var
+  Dlg : TPerformedOperationResultsDlg;
+begin
+  Dlg := TPerformedOperationResultsDlg.Create(aOwnerForm);
+  try
+    Dlg.Init(aMessage, aLog);
+    Dlg.ShowModal;
+  finally
+    Dlg.Free;
+  end;
+end;
+
+end.
+

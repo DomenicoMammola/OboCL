@@ -1,0 +1,67 @@
+object PerformedOperationResultsDlg: TPerformedOperationResultsDlg
+  Left = 496
+  Height = 462
+  Top = 239
+  Width = 681
+  Caption = 'Result'
+  ClientHeight = 462
+  ClientWidth = 681
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Position = poScreenCenter
+  LCLVersion = '2.0.2.0'
+  object ButtonPanel1: TButtonPanel
+    Left = 6
+    Height = 34
+    Top = 422
+    Width = 669
+    OKButton.Name = 'OKButton'
+    OKButton.DefaultCaption = True
+    HelpButton.Name = 'HelpButton'
+    HelpButton.DefaultCaption = True
+    CloseButton.Name = 'CloseButton'
+    CloseButton.DefaultCaption = True
+    CancelButton.Name = 'CancelButton'
+    CancelButton.DefaultCaption = True
+    TabOrder = 0
+    ShowButtons = [pbOK]
+  end
+  object TopPanel: TPanel
+    Left = 0
+    Height = 66
+    Top = 0
+    Width = 681
+    Align = alTop
+    ClientHeight = 66
+    ClientWidth = 681
+    TabOrder = 1
+    object MainLabel: TLabel
+      Left = 1
+      Height = 64
+      Top = 1
+      Width = 679
+      Align = alClient
+      Alignment = taCenter
+      AutoSize = False
+      Font.CharSet = ANSI_CHARSET
+      Font.Color = clBlack
+      Font.Height = -16
+      Font.Name = 'Segoe UI'
+      Font.Pitch = fpVariable
+      Font.Quality = fqDraft
+      ParentColor = False
+      ParentFont = False
+      WordWrap = True
+    end
+  end
+  object BodyPanel: TPanel
+    Left = 0
+    Height = 350
+    Top = 66
+    Width = 681
+    Align = alClient
+    BevelOuter = bvNone
+    TabOrder = 2
+  end
+end

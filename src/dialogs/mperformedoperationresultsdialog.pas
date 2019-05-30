@@ -32,7 +32,12 @@ resourcestring
   rsFileExistsCaptionDlg = 'File exists';
   rsFileExistsMsgDlg = 'A file with the same name already exists. Do you want to overwrite it?';
 
+
+
 type
+
+  TPerformedOperationResultsDlgType = (porTabbed, porSingleList);
+
   { TPerformedOperationResultsDlg }
 
   TPerformedOperationResultsDlg = class(TForm)
@@ -54,8 +59,14 @@ type
     FTabs : TATTabs;
     FClicks : integer;
     FNotebook : TNotebook;
+    FResultsColor : TColor;
+    FInfosColor : TColor;
+    FWarningsColor : TColor;
+    FErrorsColor : TColor;
+
     procedure OnTabClick (Sender: TObject);
     procedure OnDrawLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+    procedure OnDrawSingleListLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
     procedure OnDblClickLB (Sender : TObject);
     procedure OnCopyToClipboard (Sender : TObject);
     procedure OnSaveToFile (Sender : TObject);
@@ -63,9 +74,9 @@ type
     { public declarations }
     procedure Init (const aMessage : string; const aLog : TPerformedOperationResultsAsLog); overload;
     procedure Init (const aMessage : string; const aLog : TStrings); overload;
+    procedure InitWithSingleList (const aMessage : string; const aLog : TPerformedOperationResultsAsLog);
 
-
-    class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TPerformedOperationResultsAsLog); overload;
+    class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType); overload;
     class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TStrings); overload;
   end;
 
@@ -116,6 +127,11 @@ begin
   FGarbage := TObjectList.Create(true);
 
   ScaleFontForMagnification(MainLabel.Font);
+
+  FResultsColor := RGBToColor(234,218,104);
+  FInfosColor := RGBToColor(191,255,255);
+  FWarningsColor := RGBToColor(255,156,108);
+  FErrorsColor := clRed;
 end;
 
 procedure TPerformedOperationResultsDlg.FormCloseQuery(Sender: TObject; var CanClose: boolean);
@@ -155,6 +171,33 @@ begin
   (Control as TListBox).Canvas.Brush.Color:=tmpColor;  //Set background color
   (Control as TListBox).Canvas.FillRect(ARect);      //Draw a filled rectangle
   (Control as TListBox).Canvas.TextRect(ARect, 2, ARect.Top, (Control as TListBox).Items[Index]);  //Draw Itemtext
+end;
+
+procedure TPerformedOperationResultsDlg.OnDrawSingleListLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+var
+  tmpColor: TColor;                       //Background color
+  prefix : string;
+begin
+  if odSelected in State then
+    tmpColor := clHighlight
+  else
+    tmpColor:= clWhite;
+
+  prefix := '';
+  if Assigned((Control as TListBox).Items.Objects[Index]) and ((Control as TListBox).Items.Objects[Index] is TPerformedOperation) then
+  begin
+    if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level <> '' then
+      prefix := '[' + ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level + '] ';
+    if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level = TPerformedOperation.ERROR then
+      tmpColor := FErrorsColor
+    else if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level = TPerformedOperation.WARNING then
+      tmpColor := FWarningsColor
+    else if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level = TPerformedOperation.RESULT then
+      tmpColor := FResultsColor;
+  end;
+  (Control as TListBox).Canvas.Brush.Color:=tmpColor;  //Set background color
+  (Control as TListBox).Canvas.FillRect(ARect);      //Draw a filled rectangle
+  (Control as TListBox).Canvas.TextRect(ARect, 2, ARect.Top, prefix + (Control as TListBox).Items[Index]);  //Draw Itemtext
 end;
 
 procedure TPerformedOperationResultsDlg.OnDblClickLB(Sender: TObject);
@@ -244,7 +287,7 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
     ScaleFontForMagnification(memo.Font);
   end;
 
-  procedure AddMemoOperations (aIndex : integer; aOperations : TPerformedOperations);
+  procedure AddListBoxOperations (aIndex : integer; aOperations : TPerformedOperations);
   var
     lb : TListBox;
     i : integer;
@@ -289,6 +332,7 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
   end;
 var
   clr : TColor;
+  tabCaption : String;
 begin
   MainLabel.Caption:= sLineBreak + aMessage;
 
@@ -296,37 +340,53 @@ begin
   FNotebook.Pages.Add(rsSummaryTabCaption);
   AddMemo(TAB_SUMMARY_INDEX, aLog.Messages);
 
+  tabCaption := rsResultTabCaption;
   if aLog.Results.Count > 0 then
-    clr := RGBToColor(234,218,104)
+  begin
+    clr := FResultsColor;
+    tabCaption := tabCaption + ' (!)';
+  end
   else
     clr := clDkGray;
-  FTabs.AddTab(TAB_RESULT_INDEX, rsResultTabCaption + ' (' + IntToStr(aLog.Results.Count) + ')', nil, false, clr);
+  FTabs.AddTab(TAB_RESULT_INDEX, tabCaption, nil, false, clr);
   FNotebook.Pages.Add(rsResultTabCaption);
-  AddMemoOperations(TAB_RESULT_INDEX, aLog.Results);
+  AddListBoxOperations(TAB_RESULT_INDEX, aLog.Results);
 
+  tabCaption := rsErrorTabCaption;
   if aLog.Errors.Count > 0 then
-    clr := clRed
+  begin
+    clr := FErrorsColor;
+    tabCaption := tabCaption + ' (!)';
+  end
   else
     clr := clDkGray;
-  FTabs.AddTab(TAB_ERROR_INDEX,  rsErrorTabCaption + ' (' + IntToStr(aLog.Errors.Count) + ')', nil, false, clr);
+  FTabs.AddTab(TAB_ERROR_INDEX,  tabCaption, nil, false, clr);
   FNotebook.Pages.Add(rsErrorTabCaption);
-  AddMemoOperations(TAB_ERROR_INDEX, aLog.Errors);
+  AddListBoxOperations(TAB_ERROR_INDEX, aLog.Errors);
 
+  tabCaption := rsWarningTabCaption;
   if aLog.Warnings.Count > 0 then
-    clr := RGBToColor(255,156,108)
+  begin
+    clr := FWarningsColor;
+    tabCaption := tabCaption + ' (!)';
+  end
   else
     clr := clDkGray;
-  FTabs.AddTab(TAB_WARNING_INDEX,  rsWarningTabCaption + ' (' + IntToStr(aLog.Warnings.Count) + ')', nil, false, clr);
+  FTabs.AddTab(TAB_WARNING_INDEX, tabCaption, nil, false, clr);
   FNotebook.Pages.Add(rsWarningTabCaption);
-  AddMemoOperations(TAB_WARNING_INDEX, aLog.Warnings);
+  AddListBoxOperations(TAB_WARNING_INDEX, aLog.Warnings);
 
+  tabCaption := rsInfoTabCaption;
   if aLog.Infos.Count > 0 then
-    clr := RGBToColor(191,255,255)
+  begin
+    clr := FInfosColor;
+    tabCaption := tabCaption + ' (!)';
+  end
   else
     clr := clDkGray;
-  FTabs.AddTab(TAB_INFO_INDEX,  rsInfoTabCaption  + ' (' + IntToStr(aLog.Infos.Count) + ')', nil, false, clr);
+  FTabs.AddTab(TAB_INFO_INDEX,  tabCaption, nil, false, clr);
   FNotebook.Pages.Add(rsInfoTabCaption);
-  AddMemoOperations(TAB_INFO_INDEX, aLog.Infos);
+  AddListBoxOperations(TAB_INFO_INDEX, aLog.Infos);
 end;
 
 procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TStrings);
@@ -344,13 +404,51 @@ begin
   memo.ReadOnly:= true;
 end;
 
-class procedure TPerformedOperationResultsDlg.ShowResults(const aOwnerForm: TForm; const aMessage: string; const aLog: TPerformedOperationResultsAsLog);
+procedure TPerformedOperationResultsDlg.InitWithSingleList(const aMessage: string; const aLog: TPerformedOperationResultsAsLog);
+var
+  lb : TListBox;
+  i : integer;
+  pm : TPopupMenu;
+  mi : TMenuItem;
+begin
+  MainLabel.Caption:= sLineBreak + aMessage;
+  FNotebook.Visible:= false;
+  FTabs.Visible:= false;
+  lb := TListBox.Create(BodyPanel);
+  lb.Parent := BodyPanel;
+  lb.Align := alClient;
+  lb.Style := lbOwnerDrawFixed;
+  lb.OnDrawItem:= @OnDrawSingleListLBItem;
+  lb.Font.Size:= 12;
+  ScaleFontForMagnification(lb.Font);
+  for i := 0 to aLog.PerformedOperations.Count - 1 do
+    lb.AddItem(aLog.PerformedOperations.Get(i).Message, aLog.PerformedOperations.Get(i));
+
+  pm := TPopupMenu.Create(lb);
+  lb.PopupMenu := pm;
+  mi := TMenuItem.Create(pm);
+  pm.Items.Add(mi);
+  mi.Caption:= rsCopyToClipboardMenuItem;
+  mi.Tag:=PtrInt(lb);
+  mi.OnClick:= @OnCopyToClipboard;
+
+  mi := TMenuItem.Create(pm);
+  pm.Items.Add(mi);
+  mi.Caption:= rsSaveToFileMenuItem;
+  mi.OnClick:= @OnSaveToFile;
+  mi.Tag:=PtrInt(lb);
+end;
+
+class procedure TPerformedOperationResultsDlg.ShowResults(const aOwnerForm: TForm; const aMessage: string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType);
 var
   Dlg : TPerformedOperationResultsDlg;
 begin
   Dlg := TPerformedOperationResultsDlg.Create(aOwnerForm);
   try
-    Dlg.Init(aMessage, aLog);
+    if aDialogType = porTabbed then
+      Dlg.Init(aMessage, aLog)
+    else if aDialogType = porSingleList then
+      Dlg.InitWithSingleList(aMessage, aLog);
     Dlg.ShowModal;
   finally
     Dlg.Free;
@@ -369,6 +467,7 @@ begin
     Dlg.Free;
   end;
 end;
+
 
 end.
 

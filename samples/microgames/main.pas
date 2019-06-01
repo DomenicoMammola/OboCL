@@ -42,7 +42,7 @@ end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-  FGamesPanel.State:= Arcanoid;
+  FGamesPanel.State:= Scramble;
   FGamesPanel.TRows:= 20;
   FGamesPanel.Start:= true;
 end;

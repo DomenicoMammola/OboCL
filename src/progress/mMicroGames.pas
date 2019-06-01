@@ -49,7 +49,9 @@ type
     FRowsColumns: word;
     But: array[1..8, 1..8] of TBitBtn;
     FScrambleKeyDown: word;
+    {$ifdef windows}
     procedure WMNCHitTest(var Mes: TWMNCHitTest); message WM_NCHitTest;
+    {$endif}
     procedure ButtonClick(Sender: TObject);
     procedure ButtonKeyDown(i, j: integer);
     procedure TimerOnTimer(Sender: TObject);
@@ -155,7 +157,9 @@ type
     procedure SetNextSColor(Value: boolean);
     procedure SetTetrisKey(Value: TTSAKey);
     procedure SetTetrisKeyDown(Value: word);
+    {$ifdef windows}
     procedure WMNCHitTest(var Mes: TWMNCHitTest); message WM_NCHitTest;
+    {$endif}
     procedure TimerOnTimer(Sender: TObject);
     procedure CreateShapes;
     procedure Left; virtual;
@@ -281,7 +285,9 @@ type
     procedure SetImmDelShapes(Value: boolean);
     procedure SetArcanoidKey(Value: TTSAKey);
     procedure SetArcanoidKeyDown(Value: word);
+    {$ifdef windows}
     procedure WMNCHitTest(var Mes: TWMNCHitTest); message WM_NCHitTest;
+    {$endif}
     procedure TimerOnTimer(Sender: TObject);
     procedure Timer2OnTimer(Sender: TObject);
     procedure CreateShapes; virtual;
@@ -437,7 +443,9 @@ type
     procedure Time; dynamic;
     procedure Over; dynamic;
     procedure TimerOnTimer(Sender: TObject);
+    {$ifdef windows}
     procedure WMNCHitTest(var Mes: TWMNCHitTest); message WM_NCHitTest;
+    {$endif}
   protected
     procedure Paint; override;
     procedure Resize; override;
@@ -3181,6 +3189,7 @@ begin
   Detect;
 end;
 
+{$ifdef windows}
 procedure TScrambler.WMNCHitTest(var Mes: TWMNCHitTest);
 begin
   inherited;
@@ -3188,6 +3197,7 @@ begin
     Mes.Result := htCaption;
   SetFocus;
 end;
+{$endif}
 
 procedure TScrambler.Move;
 begin
@@ -4204,6 +4214,7 @@ begin
     Panel1.SetBounds(0, FRows * he, Width, Height - FRows * he);
 end;
 
+{$ifdef windows}
 procedure TTetris.WMNCHitTest(var Mes: TWMNCHitTest);
 begin
   inherited;
@@ -4211,6 +4222,7 @@ begin
     Mes.Result := htCaption;
   SetFocus;
 end;
+{$endif}
 
 { A r c a n o i d }
 
@@ -5515,6 +5527,7 @@ begin
   end;
 end;
 
+{$ifdef windows}
 procedure TArkanoid.WMNCHitTest(var Mes: TWMNCHitTest);
 begin
   inherited;
@@ -5522,6 +5535,7 @@ begin
     Mes.Result := htCaption;
   SetFocus;
 end;
+{$endif}
 
 { F i g u r e s }
 
@@ -5885,6 +5899,7 @@ begin
     Time;
 end;
 
+{$ifdef windows}
 procedure TFigures.WMNCHitTest(var Mes: TWMNCHitTest);
 begin
   inherited;
@@ -5893,6 +5908,7 @@ begin
       Mes.Result := htCaption;
   SetFocus;
 end;
+{$endif}
 
 constructor TFigure.Create(AOwner: TComponent);
 begin

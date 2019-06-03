@@ -16,7 +16,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
   StdCtrls, LCLIntf, contnrs,
-  mProgressClasses, mBaseClassesAsObjects, mMaps,
+  mProgressClasses, mBaseClassesAsObjects, mMaps, mMicroGames,
   Biru_FreshFruit, Biru;
 
 type
@@ -28,8 +28,10 @@ type
   strict private
     FListBox : TListBox;
     FAnimation : TBiruFreshFruit;
+    FGames: TExtraGPan;
     FProgresses : TmStringDictionary;
     FGarbage : TObjectList;
+    FStartTime : TDateTime;
   private
     { private declarations }
     procedure Advance (const aMsg : string; const aIndex : integer);
@@ -42,6 +44,9 @@ type
   end;
 
 implementation
+
+uses
+  dateutils;
 
 {$R *.lfm}
 
@@ -58,7 +63,18 @@ end;
 procedure TProgressForm.Advance(const aMsg: string; const aIndex : integer);
 begin
   if FListBox.Count >= aIndex then
+  begin
     FListBox.Items[aIndex] := aMsg;
+
+    if (not FGames.Visible) and (SecondsBetween(Now, FStartTime) > 120) then
+    begin
+      FGames.Visible:= true;
+      FGames.State:= Scramble;
+      FGames.Start:= true;
+      FAnimation.StopAnimation;
+      FAnimation.Visible:= false;
+    end;
+  end;
 end;
 
 procedure TProgressForm.AddProgress(aProgress: TmAbstractProgress);
@@ -80,7 +96,10 @@ begin
   if not Self.Visible then
   begin
     Self.Show;
+    FAnimation.Visible:= true;
+    FGames.Visible := false;
     FAnimation.PlayAnimation;
+    FStartTime:= Now;
   end;
   tmp := FProgresses.Find(aProgress.Id) as TIntegerObject;
   if Assigned(tmp) then
@@ -92,7 +111,10 @@ begin
   FProgresses.Remove(aProgress.Id);
   if FProgresses.Count = 0 then
   begin
-    FAnimation.StopAnimation;
+    if FAnimation.Visible then
+      FAnimation.StopAnimation;
+    if FGames.Visible then
+      FGames.Start:= false;
     Self.Hide;
     FListBox.Clear;
     FGarbage.Clear;
@@ -116,6 +138,13 @@ begin
     3 : FAnimation.Shape:= bsKiwi;
   end;
   FAnimation.Animation:= tatBouncing;
+
+  FGames := TExtraGPan.Create(Self);
+  FGames.Parent := Self;
+  FGames.Align:= alLeft;
+  FGames.Width:= FAnimation.Width;
+  FGames.Visible := false;
+
   FListBox := TListBox.Create(Self);
   FListBox.Parent := Self;
   FListBox.Align := alClient;

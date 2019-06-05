@@ -3303,6 +3303,12 @@ var
   ii, jj: array [1..4] of shortint;
   Cont: boolean;
 begin
+  for i := 1 to 4 do
+  begin
+    ii[i] := 0;
+    jj[i] := 0;
+  end;
+
   k := 0;
   Cont := False;
   for j := 1 to FColumns do

@@ -208,12 +208,14 @@ begin
       Dlg.GetValues(newCaption, newColor);
       Ref.TabCaption := newCaption;
       Ref.TabColor := newColor;
-      if IsDark(newColor) then
-        FTabs.Font.Color:= clWhite
-      else
-        FTabs.Font.Color:= clDefault;
       if Assigned(FTabs) then
+      begin
+        if IsDark(newColor) then
+          FTabs.Font.Color:= clWhite
+        else
+          FTabs.Font.Color:= clDefault;
         FTabs.Invalidate;
+      end;
     end;
   finally
     Dlg.Free;

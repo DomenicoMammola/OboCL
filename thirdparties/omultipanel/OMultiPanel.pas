@@ -566,22 +566,30 @@ end;
 procedure TOCustomMultiPanel.DrawSizingLine(X, Y: Integer);
 var
   xRect: TRect;
+  got : boolean;
 begin
+  xRect := Rect(0, 0, 0, 0);
+  got := false;
   if fSizing and (fPanelType = ptHorizontal) then
   begin
     xRect := Rect(Left + X-fSplitterSize div 2, Top, fSplitterSize, Height);
     fLastSizingLinePx := X;
+    got := true;
   end else
   if fSizing and (fPanelType = ptVertical) then
   begin
     xRect := Rect(Left, Top + Y-fSplitterSize div 2, Width, fSplitterSize);
     fLastSizingLinePx := Y;
+    got := true;
   end;
   {$IFDEF FPC}
-  xRect.TopLeft := Parent.ClientToScreen(xRect.TopLeft);
-  xRect.Right:=xRect.Left+xRect.Right;
-  xRect.Bottom:=xRect.Top+xRect.Bottom;
-  SetRubberBandRect(fSplitterWindow, xRect);
+  if got then
+  begin
+    xRect.TopLeft := Parent.ClientToScreen(xRect.TopLeft);
+    xRect.Right:=xRect.Left+xRect.Right;
+    xRect.Bottom:=xRect.Top+xRect.Bottom;
+    SetRubberBandRect(fSplitterWindow, xRect);
+  end;
   {$ELSE}
   PatBlt(FLineDC, xRect.Left, xRect.Top, xRect.Right, xRect.Bottom, PATINVERT);
   {$ENDIF}
@@ -1381,11 +1389,18 @@ begin
 end;
 
 function TOMultiPanelCollection.IndexOf(AControl: TControl): Integer;
+var
+  k : integer;
 begin
-  for Result := 0 to Count - 1 do
-    if Items[Result].Control = AControl then
-      Exit;
   Result := -1;
+  for k := 0 to Count - 1 do
+  begin
+    if Items[k].Control = AControl then
+    begin
+      Result := k;
+      Exit;
+    end;
+  end;
 end;
 
 procedure TOMultiPanelCollection.InsertAfter(AAnchor, AControl: TControl);

@@ -27,6 +27,7 @@ type
     FStartDate : TDateTime;
     FDayAlignment: TAlignment;
     FTitlesColor: TColor;
+    FDaysColor : TColor;
 
     // internal properties
     FItemWidth : integer;
@@ -45,6 +46,7 @@ type
     procedure DoInternalSizeCalculation;
     procedure SetBorderSize(AValue: integer);
     procedure SetDayAlignment(AValue: TAlignment);
+    procedure SetDaysColor(AValue: TColor);
     procedure SetHorizontalItems(AValue: integer);
     procedure SetItemType(AValue: TmCalendarItemType);
     procedure SetTitlesColor(AValue: TColor);
@@ -61,6 +63,7 @@ type
     property BorderSize : integer read FBorderSize write SetBorderSize;
     property DayAlignment : TAlignment read FDayAlignment write SetDayAlignment;
     property TitlesColor : TColor read FTitlesColor write SetTitlesColor;
+    property DaysColor : TColor read FDaysColor write SetDaysColor;
   end;
 
 implementation
@@ -157,7 +160,39 @@ begin
 end;
 
 procedure TmCalendar.Paint_Month(aX, aY: integer);
+var
+  i, k : integer;
+  x1 , y1 , x2 , y2 : integer;
+  r : TRect;
+  tmpYear, tmpMonth, tmpDay : word;
+  curDate : TDateTime;
 begin
+  Canvas.Font := Self.Font;
+  Canvas.Font.Color := FDaysColor;
+  if FItemType = itMonth then
+  begin
+    curDate := GetItemRefDate(aX, aY);
+    DecodeDate(curDate, tmpYear, tmpMonth, tmpDay);
+    for k := 0 to 5 do
+    begin
+      y1 := (aY * FItemHeight) + FCaptionSize + FTitleSize + (k * FDayHeight);
+      y2 := y1 + FDayHeight;
+      for i := 0 to 6 do
+      begin
+        x1 := (i * FDayWidth) + FBorderSize + (aX * FItemWidth);
+        x2 := x1 + FDayWidth;
+        r := Classes.Rect (x1, y1, x2, y2);
+        if DayOfTheWeek(curDate) = i + 1 then
+        begin
+          WriteText(Canvas, r, IntToStr(tmpDay), FDayAlignment);
+          curDate := curDate + 1;
+          inc(tmpDay);
+        end;
+        if MonthOf(curDate) <> tmpMonth then
+          break;
+      end;
+    end;
+  end;
 
 end;
 
@@ -242,6 +277,13 @@ begin
   Self.Invalidate;
 end;
 
+procedure TmCalendar.SetDaysColor(AValue: TColor);
+begin
+  if FDaysColor=AValue then Exit;
+  FDaysColor:=AValue;
+  Invalidate;
+end;
+
 procedure TmCalendar.SetHorizontalItems(AValue: integer);
 begin
   if FHorizontalItems=AValue then Exit;
@@ -302,6 +344,8 @@ begin
   FTitleSize:= 16;
   FStartDate:= Date;
   FDayAlignment:= taCenter;
+  FTitlesColor:= clBlack;
+  FDaysColor:= clBlack;
 end;
 
 

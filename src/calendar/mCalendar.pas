@@ -28,6 +28,7 @@ type
     FDayAlignment: TAlignment;
     FTitlesColor: TColor;
     FDaysColor : TColor;
+    FCaptionsColor : TColor;
 
     // internal properties
     FItemWidth : integer;
@@ -39,13 +40,14 @@ type
 
     procedure Paint_FillBackground(aCanvas : TCanvas; const aRect : TRect);
     procedure Paint_Items(aCanvas : TCanvas);
-    procedure Paint_Caption (aCanvas: TCanvas; aX, aY : integer);
+    procedure Paint_Captions (aCanvas: TCanvas; aX, aY : integer);
     procedure Paint_Titles (aCanvas: TCanvas; aX, aY : integer);
     procedure Paint_Month(aCanvas: TCanvas; aX, aY : integer);
     function GetItemRefDate (aX, aY : integer) : TDateTime;
     procedure DrawFlatFrame (aCanvas : TCanvas ; const Rect : TRect );
     procedure DoInternalSizeCalculation;
     procedure SetBorderSize(AValue: integer);
+    procedure SetCaptionsColor(AValue: TColor);
     procedure SetDayAlignment(AValue: TAlignment);
     procedure SetDaysColor(AValue: TColor);
     procedure SetHorizontalItems(AValue: integer);
@@ -71,6 +73,7 @@ type
     property DayAlignment : TAlignment read FDayAlignment write SetDayAlignment;
     property TitlesColor : TColor read FTitlesColor write SetTitlesColor;
     property DaysColor : TColor read FDaysColor write SetDaysColor;
+    property CaptionsColor : TColor read FCaptionsColor write SetCaptionsColor;
   end;
 
 implementation
@@ -100,7 +103,7 @@ begin
   begin
     for x := 0 to FHorizontalItems - 1 do
     begin
-      Paint_Caption (aCanvas, x, y);
+      Paint_Captions (aCanvas, x, y);
       Paint_Titles (aCanvas, x, y);
       Paint_Month (aCanvas, x, y);
       //Paint_Dividers(x, y);
@@ -109,7 +112,7 @@ begin
 
 end;
 
-procedure TmCalendar.Paint_Caption(aCanvas: TCanvas; aX, aY: integer);
+procedure TmCalendar.Paint_Captions(aCanvas: TCanvas; aX, aY: integer);
 var
   tmpRect : TRect;
   str : String;
@@ -132,15 +135,12 @@ begin
     str := DefaultFormatSettings.LongMonthNames[tmpMonth] + ' ' + IntToStr(tmpYear);
   end;
   aCanvas.Font := Self.Font;
-  aCanvas.Font.Color := clBlack; //FCaptionsColor;
+  aCanvas.Font.Color := FCaptionsColor;
   aCanvas.Brush.Style := bsClear;
-  Canvas.GetTextSize(str, w, h);
-  Canvas.TextOut(tmpRect.Left + ((FItemWidth - w) div 2), tmpRect.Top, str);
-
-  (*
-  DrawTextEx ( Handle , PChar(str) , Length(str) ,tmpRect , DT_CENTER or
-                 DT_END_ELLIPSIS or DT_RTLREADING or DT_VCENTER or
-                 DT_SINGLELINE , nil );*)
+  w := 0;
+  h := 0;
+  aCanvas.GetTextSize(str, w, h);
+  aCanvas.TextOut(tmpRect.Left + ((FItemWidth - w) div 2), tmpRect.Top, str);
 end;
 
 procedure TmCalendar.Paint_Titles(aCanvas: TCanvas; aX, aY: integer);
@@ -290,11 +290,18 @@ begin
   end;
 end;
 
+procedure TmCalendar.SetCaptionsColor(AValue: TColor);
+begin
+  if FCaptionsColor=AValue then Exit;
+  FCaptionsColor:=AValue;
+  Invalidate;
+end;
+
 procedure TmCalendar.SetDayAlignment(AValue: TAlignment);
 begin
   if FDayAlignment=AValue then Exit;
   FDayAlignment:=AValue;
-  Self.Invalidate;
+  Invalidate;
 end;
 
 procedure TmCalendar.SetDaysColor(AValue: TColor);
@@ -400,6 +407,7 @@ begin
   FDayAlignment:= taCenter;
   FTitlesColor:= clBlack;
   FDaysColor:= clBlack;
+  FCaptionsColor := clBlack;
   Self.Color:= clWhite;
 end;
 

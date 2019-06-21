@@ -35,14 +35,15 @@ type
     FDayWidth : integer;
     FDayHeight : integer;
     FMustCalculate : boolean;
+    FDoubleBufferedBitmap: Graphics.TBitmap;
 
-    procedure Paint_FillBackground;
-    procedure Paint_Items;
-    procedure Paint_Caption (aX, aY : integer);
-    procedure Paint_Titles (aX, aY : integer);
-    procedure Paint_Month(aX, aY : integer);
+    procedure Paint_FillBackground(aCanvas : TCanvas; const aRect : TRect);
+    procedure Paint_Items(aCanvas : TCanvas);
+    procedure Paint_Caption (aCanvas: TCanvas; aX, aY : integer);
+    procedure Paint_Titles (aCanvas: TCanvas; aX, aY : integer);
+    procedure Paint_Month(aCanvas: TCanvas; aX, aY : integer);
     function GetItemRefDate (aX, aY : integer) : TDateTime;
-    procedure DrawFlatFrame ( aCanvas : TCanvas ; const Rect : TRect );
+    procedure DrawFlatFrame (aCanvas : TCanvas ; const Rect : TRect );
     procedure DoInternalSizeCalculation;
     procedure SetBorderSize(AValue: integer);
     procedure SetDayAlignment(AValue: TAlignment);
@@ -51,11 +52,17 @@ type
     procedure SetItemType(AValue: TmCalendarItemType);
     procedure SetTitlesColor(AValue: TColor);
     procedure SetVerticalItems(AValue: integer);
+
+    procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
   protected
     procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    {$ifdef linux}
+    // explanation here: https://forum.lazarus.freepascal.org/index.php?topic=38041.0
+    procedure SetBounds(aLeft, aTop, aWidth, aHeight: integer); override;
+    {$endif}
 
     property VerticalItems : integer read FVerticalItems write SetVerticalItems default 1;
     property HorizontalItems : integer read FHorizontalItems write SetHorizontalItems default 1;
@@ -69,19 +76,23 @@ type
 implementation
 
 uses
-  SysUtils, DateUtils
+  SysUtils, DateUtils, Math, Forms
   {$ifdef windows}, Windows{$endif}
   , mGraphicsUtility;
 
+
 { TmCalendar }
 
-procedure TmCalendar.Paint_FillBackground;
+procedure TmCalendar.Paint_FillBackground(aCanvas : TCanvas; const aRect : TRect);
 begin
-  Self.Canvas.Brush.Color:= Self.Color;
-  Self.Canvas.FillRect(Self.ClientRect);
+  aCanvas.Brush.Color:= Self.Color;
+  aCanvas.Pen.Mode := pmCopy;
+  aCanvas.Brush.Style := bsSolid;
+
+  aCanvas.FillRect(aRect);
 end;
 
-procedure TmCalendar.Paint_Items;
+procedure TmCalendar.Paint_Items(aCanvas : TCanvas);
 var
   x, y : integer;
 begin
@@ -89,16 +100,16 @@ begin
   begin
     for x := 0 to FHorizontalItems - 1 do
     begin
-      Paint_Caption (x, y);
-      Paint_Titles (x, y);
-      Paint_Month (x, y);
+      Paint_Caption (aCanvas, x, y);
+      Paint_Titles (aCanvas, x, y);
+      Paint_Month (aCanvas, x, y);
       //Paint_Dividers(x, y);
     end;
   end;
 
 end;
 
-procedure TmCalendar.Paint_Caption(aX, aY: integer);
+procedure TmCalendar.Paint_Caption(aCanvas: TCanvas; aX, aY: integer);
 var
   tmpRect : TRect;
   str : String;
@@ -106,12 +117,12 @@ var
   tmpYear, tmpMonth, tmpDay : word;
   w, h : integer;
 begin
-  Canvas.Pen.Color := cl3DDkShadow;
-  Canvas.Pen.Style := psSolid;
+  aCanvas.Pen.Color := cl3DDkShadow;
+  aCanvas.Pen.Style := psSolid;
   tmpRect := Classes.Rect (aX * FItemWidth, aY * FItemHeight, (aX + 1) * FItemWidth, aY * FItemHeight + FCaptionSize);
-  Self.DrawFlatFrame(Self.Canvas, tmpRect);
-  Self.Canvas.MoveTo(tmpRect.Left, tmpRect.Top -1);
-  Self.Canvas.LineTo(tmpRect.Right, tmpRect.Top -1);
+  Self.DrawFlatFrame(aCanvas, tmpRect);
+  aCanvas.MoveTo(tmpRect.Left, tmpRect.Top -1);
+  aCanvas.LineTo(tmpRect.Right, tmpRect.Top -1);
 
   str := '';
   if FItemType = itMonth then
@@ -120,9 +131,9 @@ begin
     DecodeDate(tmpRefDate, tmpYear, tmpMonth, tmpDay);
     str := DefaultFormatSettings.LongMonthNames[tmpMonth] + ' ' + IntToStr(tmpYear);
   end;
-  Self.Canvas.Font := Self.Font;
-  Self.Canvas.Font.Color := clBlack; //FCaptionsColor;
-  Self.Canvas.Brush.Style := bsClear;
+  aCanvas.Font := Self.Font;
+  aCanvas.Font.Color := clBlack; //FCaptionsColor;
+  aCanvas.Brush.Style := bsClear;
   Canvas.GetTextSize(str, w, h);
   Canvas.TextOut(tmpRect.Left + ((FItemWidth - w) div 2), tmpRect.Top, str);
 
@@ -132,14 +143,14 @@ begin
                  DT_SINGLELINE , nil );*)
 end;
 
-procedure TmCalendar.Paint_Titles(aX, aY: integer);
+procedure TmCalendar.Paint_Titles(aCanvas: TCanvas; aX, aY: integer);
 var
   x1 , y1 , x2 , y2 , i : integer;
   r : TRect;
 begin
-  Canvas.Font := Self.Font;
-  Canvas.Font.Color := FTitlesColor;
-  Canvas.Brush.Style := bsClear;
+  aCanvas.Font := Self.Font;
+  aCanvas.Font.Color := FTitlesColor;
+  aCanvas.Brush.Style := bsClear;
   for i := 0 to 6 do
   begin
     x1 := i*FDayWidth + FBorderSize + aX*FItemWidth;
@@ -147,19 +158,19 @@ begin
     x2 := x1+FDayWidth;
     y2 := y1+FTitleSize;
     r := Classes.Rect ( x1 , y1 , x2 , y2 );
-    WriteText(Canvas, r, Uppercase(DefaultFormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment);
+    WriteText(aCanvas, r, Uppercase(DefaultFormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment);
   end;
 
-  Canvas.Pen.Color := clWhite; //FLinesColor;
-  Canvas.Pen.Style := psSolid;
-  Canvas.Pen.Width := 0;
-  Canvas.MoveTo ( aX*FItemWidth + FBorderSize-1 ,
+  aCanvas.Pen.Color := clWhite; //FLinesColor;
+  aCanvas.Pen.Style := psSolid;
+  aCanvas.Pen.Width := 0;
+  aCanvas.MoveTo ( aX*FItemWidth + FBorderSize-1 ,
            aY*FItemHeight + FCaptionSize + FTitleSize - 1 );
-  Canvas.LineTo ( (aX+1)*FItemWidth - FBorderSize ,
+  aCanvas.LineTo ( (aX+1)*FItemWidth - FBorderSize ,
            aY*FItemHeight + FCaptionSize + FTitleSize - 1 );
 end;
 
-procedure TmCalendar.Paint_Month(aX, aY: integer);
+procedure TmCalendar.Paint_Month(aCanvas: TCanvas; aX, aY: integer);
 var
   i, k : integer;
   x1 , y1 , x2 , y2 : integer;
@@ -167,8 +178,8 @@ var
   tmpYear, tmpMonth, tmpDay : word;
   curDate : TDateTime;
 begin
-  Canvas.Font := Self.Font;
-  Canvas.Font.Color := FDaysColor;
+  aCanvas.Font := Self.Font;
+  aCanvas.Font.Color := FDaysColor;
   if FItemType = itMonth then
   begin
     curDate := GetItemRefDate(aX, aY);
@@ -184,7 +195,7 @@ begin
         r := Classes.Rect (x1, y1, x2, y2);
         if DayOfTheWeek(curDate) = i + 1 then
         begin
-          WriteText(Canvas, r, IntToStr(tmpDay), FDayAlignment);
+          WriteText(aCanvas, r, IntToStr(tmpDay), FDayAlignment);
           curDate := curDate + 1;
           inc(tmpDay);
         end;
@@ -214,8 +225,17 @@ end;
 
 destructor TmCalendar.Destroy;
 begin
+  FDoubleBufferedBitmap.Free;
   inherited Destroy;
 end;
+
+{$ifdef linux}
+procedure TmCalendar.SetBounds(aLeft, aTop, aWidth, aHeight: integer);
+begin
+  inherited SetBounds(aLeft, aTop, aWidth, aHeight);
+  Invalidate;
+end;
+{$endif}
 
 procedure TmCalendar.DrawFlatFrame(aCanvas: TCanvas; const Rect: TRect);
 begin
@@ -321,20 +341,54 @@ begin
   end;
 end;
 
-procedure TmCalendar.Paint;
+procedure TmCalendar.DoPaintTo(aCanvas: TCanvas; aRect: TRect);
 begin
-  //if FMustCalculate then
-    DoInternalSizeCalculation;
-  Paint_FillBackground;
-  Paint_Items;
+  aCanvas.Lock;
+  try
+    Paint_FillBackground(aCanvas, aRect);
+    Paint_Items(aCanvas);
+  finally
+    aCanvas.Unlock;
+  end;
+end;
 
-  //PaintPrevMonthButton;
-  //PaintNextMonthButton;
+procedure TmCalendar.Paint;
+var
+  drawingRect : TRect;
+  tmpCanvas : TCanvas;
+begin
+  drawingRect := ClientRect;
+
+  if DoubleBuffered then
+  begin
+    tmpCanvas := FDoubleBufferedBitmap.Canvas;
+    tmpCanvas.Font.Assign(Self.Font);
+  end
+  else
+    tmpCanvas := Self.Canvas;
+
+  DoInternalSizeCalculation;
+  DoPaintTo(tmpCanvas, drawingRect);
+
+  if DoubleBuffered then
+  begin
+    Brush.Style := bsClear;
+    Self.Canvas.CopyRect(drawingRect, tmpCanvas, drawingRect);
+  end;
 end;
 
 constructor TmCalendar.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+
+  FDoubleBufferedBitmap := Graphics.TBitmap.Create;
+  {$ifdef fpc}
+  DoubleBuffered:= IsDoubleBufferedNeeded;
+  {$endif}
+  // 4096 * 2160 = 4K
+  // 7680 * 4320 = 8K
+  FDoubleBufferedBitmap.SetSize(max(Screen.Width,4096), max(Screen.Height,2160));
+
   FMustCalculate := true;
   FHorizontalItems:= 1;
   FVerticalItems:= 1;
@@ -346,6 +400,7 @@ begin
   FDayAlignment:= taCenter;
   FTitlesColor:= clBlack;
   FDaysColor:= clBlack;
+  Self.Color:= clWhite;
 end;
 
 

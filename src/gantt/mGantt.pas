@@ -291,8 +291,9 @@ begin
   {$ifdef fpc}
   DoubleBuffered:= IsDoubleBufferedNeeded;
   {$endif}
-
-  FDoubleBufferedBitmap.SetSize(max(Screen.Width,3000), max(Screen.Height,2000));
+  // 4096 * 2160 = 4K
+  // 7680 * 4320 = 8K
+  FDoubleBufferedBitmap.SetSize(max(Screen.Width,4096), max(Screen.Height,2160));
   Self.Color:= clWhite;
   FVerticalLinesColor:= clDkGray;
   FHorizontalLinesColor:= clLtGray;

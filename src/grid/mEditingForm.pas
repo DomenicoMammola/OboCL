@@ -23,7 +23,8 @@ uses
   Classes, Controls, Forms, ValEdit, Graphics, Grids, contnrs, ExtCtrls,
   SysUtils, variants, StdCtrls, Buttons, CheckLst,
   oMultiPanelSetup, OMultiPanel,
-  mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupForm,
+  mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility,
+  mLookupForm, mlookupformInstantQuery,
   mQuickReadOnlyVirtualDataSet, mDataProviderFieldDefs, mNullables,
   mISO6346Utility, mDataProviderInterfaces, mBooleanDataProvider;
 
@@ -46,7 +47,7 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog);
+  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog, ekLookupInstantQuery);
   TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth, dtColor);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
@@ -62,6 +63,7 @@ type
   TmEditorLineConfiguration = class
   strict private
     FDataProvider: IVDDataProvider;
+    FInstantQueryManager: IVDInstantQueryManager;
     FLookupFieldNames : TStringList;
     FDisplayLabelFieldNames: TStringList;
     FAlternativeKeyFieldName : string;
@@ -89,6 +91,7 @@ type
     property DataType : TmEditorLineDataType read FDataType write FDataType;
     property TimeMaxDistanceInMonths : integer read FTimeMaxDistanceInMonths write FTimeMaxDistanceInMonths;
     property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
+    property InstantQueryManager: IVDInstantQueryManager read FInstantQueryManager write FInstantQueryManager;
 
     property Caption: String read FCaption write FCaption;
     property ReadOnly: TmEditorLineReadOnlyMode read FReadOnly write FReadOnly;
@@ -285,6 +288,7 @@ end;
 constructor TmEditorLineConfiguration.Create;
 begin
   FDataProvider := nil;
+  FInstantQueryManager := nil;
   FDisplayLabelFieldNames := TStringList.Create;
   FAlternativeKeyFieldName:= '';
   FLookupFieldNames := TStringList.Create;
@@ -491,7 +495,7 @@ begin
     Editor := FButtonCellEditor;
     FButtonCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
   end
-  else if (curLine.Configuration.EditorKind = ekLookup) then
+  else if (curLine.Configuration.EditorKind = ekLookup) or (curLine.Configuration.EditorKind = ekLookupInstantQuery) then
   begin
     FButtonCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FButtonCellEditor;
@@ -653,6 +657,7 @@ var
   keyFieldName, errorMessage : String;
   curLine : TEditorLine;
   lookupFrm : TmLookupFrm;
+  lookupFrmInstantQuery : TmLookupInstantQueryFrm;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
   OldStringValue : string;
   OldActualValue : Variant;
@@ -723,6 +728,48 @@ begin
     begin
       FLastEditorUsed:= curLine.Name;
       Result := FOnActivateWizardEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
+    end;
+  end
+  else if (curLine.Configuration.EditorKind = ekLookupInstantQuery) then
+  begin
+    lookupFrmInstantQuery := TmLookupInstantQueryFrm.Create(Self);
+    try
+      assert (Assigned(curLine.Configuration.InstantQueryManager));
+
+      if curLine.Configuration.LookupFieldNames.Count = 0 then
+        curLine.Configuration.InstantQueryManager.GetDataProvider.GetMinimumFields(curLine.Configuration.LookupFieldNames);
+      if curLine.Configuration.LookupFieldNames.Count = 0 then
+      begin
+        tmpVirtualFieldDefs := TmVirtualFieldDefs.Create;
+        try
+          curLine.Configuration.InstantQueryManager.GetDataProvider.FillVirtualFieldDefs(tmpVirtualFieldDefs, '');
+          tmpVirtualFieldDefs.ExtractFieldNames(curLine.Configuration.LookupFieldNames);
+        finally
+          tmpVirtualFieldDefs.Free;;
+        end;
+      end;
+
+      if curLine.Configuration.DisplayLabelFieldNames.Count = 0 then
+        curLine.Configuration.InstantQueryManager.GetDataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+
+      if curLine.Configuration.AlternativeKeyFieldName <> '' then
+        keyFieldName := curLine.Configuration.AlternativeKeyFieldName
+      else
+        keyFieldName := curLine.Configuration.InstantQueryManager.GetDataProvider.GetKeyFieldName;
+
+      lookupFrmInstantQuery.Init(curLine.Configuration.InstantQueryManager, curLine.Configuration.LookupFieldNames,
+        keyFieldName, curLine.Configuration.DisplayLabelFieldNames);
+      if lookupFrmInstantQuery.ShowModal = mrOk then
+      begin
+        aNewDisplayValue:= lookupFrmInstantQuery.SelectedDisplayLabel;
+        curLine.ActualValue:= lookupFrmInstantQuery.SelectedValue;
+
+        FLastEditorUsed:= curLine.Name;
+
+        Result := true;
+      end;
+    finally
+      lookupFrmInstantQuery.Free;
     end;
   end
   else if (curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard) and (aSource = sMainButton)) then
@@ -1015,7 +1062,7 @@ begin
     FLinesByRowIndex.Add(curLine.RowIndex, curLine);
     FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
     if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
-      or (curLine.Configuration.EditorKind = ekColorDialog)
+      or (curLine.Configuration.EditorKind = ekColorDialog) or (curLine.Configuration.EditorKind = ekLookupInstantQuery)
       or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard)) then
         FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
 

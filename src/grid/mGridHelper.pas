@@ -57,6 +57,8 @@ type
   { TmAbstractGridHelper }
 
   TmAbstractGridHelper = class abstract
+  strict private
+    const DEFAULT_XLS_HEADER_COLOR : DWord = $00EED7BD;
   protected
     FGrid: TCustomGrid;
 
@@ -138,7 +140,7 @@ implementation
 
 uses
   SysUtils, variants,
-  mCSV, mFloatsManagement,
+  mCSV, mFloatsManagement, mSpreadsheetUtils,
   mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml,
   mCellDecorationsToXml;
 
@@ -706,83 +708,103 @@ var
   columns : TmGridColumns;
   curValue : Variant;
   d : double;
+  helper : TmSpreadsheetHelper;
 begin
   fields := TmFields.Create;
   columns := TmGridColumns.Create;
   MyWorkbook := TsWorkbook.Create;
   try
     MyWorksheet := MyWorkbook.AddWorksheet('Sheet1');
+    helper := TmSpreadsheetHelper.Create(MyWorksheet);
+    try
+      {$IFDEF WINDOWS}
+      helper.DefaultFont.FontName:= 'Calibri';
+      {$ELSE}
+      helper.DefaultFont.FontName:= 'Arial';
+      {$ENDIF}
+      helper.DefaultFont.FontSize:= 10;
+      helper.DefaultRowHeight:= 14;
 
-    if FGrid.GetInterface(SImGridInterface, Intf) then
-    begin
+      if FGrid.GetInterface(SImGridInterface, Intf) then
+      begin
+        Intf.GetFields(fields);
+        Intf.GetColumns(columns);
 
-      Intf.GetFields(fields);
-      Intf.GetColumns(columns);
-
-      Intf.GetDataCursor.StartBrowsing;
-      try
-        col := 0;
-        for i := 0 to columns.Count - 1 do
-        begin
-          if columns.Get(i).Visible then
-          begin
-            MyWorksheet.WriteText(0, col, columns.Get(i).Title);
-            MyWorksheet.WriteBackgroundColor(0, col, $00D0D0D0);
-            inc (col);
-          end;
-        end;
-
-        row := 1;
-
-        Intf.GetDataCursor.First;
-        while not Intf.GetDataCursor.EOF do
-        begin
+        Intf.GetDataCursor.StartBrowsing;
+        try
           col := 0;
-
           for i := 0 to columns.Count - 1 do
           begin
             if columns.Get(i).Visible then
             begin
-              curField := fields.FieldByName(columns.Get(i).FieldName);
-              curValue:= Intf.GetDataCursor.GetValueByFieldName(curField.FieldName);
-              if not VarIsNull(curValue) then
-              begin
-                if (curField.DataType = ftSmallint) or (curField.DataType = ftInteger) or (curField.DataType = ftLargeint) then
-                  MyWorksheet.WriteNumber(row, col, curValue, nfGeneral, 0)
-                else
-                if (curField.DataType = ftFloat) then
-                  MyWorksheet.WriteNumber(row, col, curValue)
-                else
-                if (curField.DataType = ftDate) then
-                begin
-                  d := curValue;
-                  MyWorksheet.WriteDateTime(row, col, round(d), nfShortDate);
-                end
-                else
-                if (curField.DataType = ftDateTime) or (curField.DataType = ftTime) or (curField.DataType = ftTimeStamp) then
-                begin
-                  d := curValue;
-                  if DoublesAreEqual(0, abs(d - round(d))) then
-                    MyWorksheet.WriteDateTime(row, col, curValue, nfShortDate)
-                  else
-                    MyWorksheet.WriteDateTime(row, col, curValue, nfShortDateTime);
-                end
-                else
-                if (curField.DataType = ftBoolean) then
-                  MyWorksheet.WriteBoolValue(row, col, curValue)
-                else
-                  MyWorksheet.WriteText(row, col, VarToStr(curValue));
-              end;
-              inc(col);
+              helper.WriteText(0, col, columns.Get(i).Title, false, true, DEFAULT_XLS_HEADER_COLOR);
+              helper.WriteSouthBorder(0, col);
+              inc (col);
             end;
           end;
 
-          inc(row);
-          Intf.GetDataCursor.Next;
+          row := 1;
+
+          Intf.GetDataCursor.First;
+          while not Intf.GetDataCursor.EOF do
+          begin
+            col := 0;
+
+            for i := 0 to columns.Count - 1 do
+            begin
+              if columns.Get(i).Visible then
+              begin
+                curField := fields.FieldByName(columns.Get(i).FieldName);
+                curValue:= Intf.GetDataCursor.GetValueByFieldName(curField.FieldName);
+                if not VarIsNull(curValue) then
+                begin
+                  if (curField.DataType = ftSmallint) or (curField.DataType = ftInteger) then
+                    helper.WriteInteger(row, col, curValue)
+                  else
+                  if (curField.DataType = ftLargeint) then
+                    helper.WriteInt64(row, col, curValue)
+                  else
+                  if (curField.DataType = ftFloat) then
+                  begin
+                    if curField.DisplayFormat <> '' then
+                      helper.WriteFloat(row, col, curValue, curField.DisplayFormat)
+                    else
+                      helper.WriteFloat(row, col, curValue);
+                  end
+                  else
+                  if (curField.DataType = ftDate) then
+                  begin
+                    d := curValue;
+                    helper.WriteDate(row, col, round(d));
+                  end
+                  else
+                  if (curField.DataType = ftDateTime) or (curField.DataType = ftTime) or (curField.DataType = ftTimeStamp) then
+                  begin
+                    d := curValue;
+                    if DoublesAreEqual(0, abs(d - round(d))) then
+                      helper.WriteDate(row, col, curValue)
+                    else
+                      helper.WriteDateTime(row, col, curValue);
+                  end
+                  else
+                  if (curField.DataType = ftBoolean) then
+                    helper.WriteBoolean(row, col, curValue)
+                  else
+                    helper.WriteText(row, col, VarToStr(curValue));
+                end;
+                inc(col);
+              end;
+            end;
+
+            inc(row);
+            Intf.GetDataCursor.Next;
+          end;
+        finally
+          Intf.GetDataCursor.EndBrowsing;
         end;
-      finally
-        Intf.GetDataCursor.EndBrowsing;
       end;
+    finally
+      helper.Free;
     end;
     MyWorkbook.WriteToStream(aStream, sfExcel8);
   finally

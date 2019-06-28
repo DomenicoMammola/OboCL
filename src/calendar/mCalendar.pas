@@ -94,8 +94,18 @@ implementation
 
 uses
   SysUtils, DateUtils, Math, Forms
+
+  {$ifdef fpc}
+  ,LCLIntf
+  ,LclType
+  ,LclProc
+  ,LResources
+  ,LMessages
+  {$ifdef debug}, LazLogger
+  {$endif}
+  {$else}
   {$ifdef windows}, Windows{$endif}
-  {$ifdef fpc}{$ifdef debug}, LazLogger{$endif}{$endif}
+  {$endif}
   , mGraphicsUtility;
 
 
@@ -397,14 +407,16 @@ begin
     DecodeDate(refDate, refYear, refMonth, refDay);
     {$ifdef debug}
     debugln('Click - Item ref date: ' + DateToStr(refDate));
+    writeln('Click - Item ref date: ' + DateToStr(refDate));
     {$endif}
 
-    row := (Y - ClientRect.Top - (itemY * FItemHeight) - FCaptionSize - FTitleSize) div FDayHeight;
-    col := (X - ClientRect.Left - (itemX * FItemWidth)) div FDayWidth;
+    row := (Y - ClientRect.Top + 1 - (itemY * FItemHeight) - FCaptionSize - FTitleSize) div FDayHeight;
+    col := (X - ClientRect.Left + 1 - (itemX * FItemWidth)) div FDayWidth;
 
-    day := col + (row * 7) - DayOfTheWeek(refDate) + 1;
+    day := col + (row * 7) - DayOfTheWeek(refDate) + 2;
     {$ifdef debug}
     debugln('Click - day: ' + IntToStr(day));
+    writeln('Click - day: ' + IntToStr(day));
     {$endif}
 
     if (day >= 1) and (day <= DaysInAMonth(refYear, refMonth)) then
@@ -412,6 +424,7 @@ begin
       clickedDate := EncodeDate(refYear, refMonth, day);
       {$ifdef debug}
       debugln('Click - clicked date: ' + DateToStr(clickedDate));
+      writeln('Click - clicked date: ' + DateToStr(clickedDate));
       {$endif}
     end;
   end;

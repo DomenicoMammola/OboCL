@@ -6,6 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs,
+  {$ifdef fpc}{$ifdef debug} LazLogger,{$endif}{$endif}
   mCalendar;
 
 type

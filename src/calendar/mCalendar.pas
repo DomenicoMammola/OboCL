@@ -9,14 +9,15 @@
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 unit mCalendar;
 
-{$IFDEF FPC}
-  {$MODE DELPHI}
-{$ENDIF}
+{$ifdef fpc}
+  {$mode delphi}
+{$endif}
 
 interface
 
 uses
-  Classes, Controls, Graphics;
+  Classes, Controls, Graphics,
+  mDoubleList, mCalendarGUIClasses;
 
 type
 
@@ -46,12 +47,14 @@ type
     FDayHeight : integer;
     FMustCalculate : boolean;
     FDoubleBufferedBitmap: Graphics.TBitmap;
+    FSelectedBuckets : TDoubleList;
+    FMouseMoveData : TmCalendarMouseMoveData;
 
     procedure Paint_FillBackground(aCanvas : TCanvas; const aRect : TRect);
     procedure Paint_Items(aCanvas : TCanvas);
-    procedure Paint_Captions (aCanvas: TCanvas; aX, aY : integer);
-    procedure Paint_Titles (aCanvas: TCanvas; aX, aY : integer);
-    procedure Paint_Month(aCanvas: TCanvas; aX, aY : integer);
+    procedure Paint_MonthCaptions (aCanvas: TCanvas; aX, aY : integer);
+    procedure Paint_Titles_WeekDays (aCanvas: TCanvas; aX, aY : integer);
+    procedure Paint_MonthDays(aCanvas: TCanvas; aX, aY : integer);
     function GetItemRefDate (aX, aY : integer) : TDateTime;
     procedure DrawFlatFrame (aCanvas : TCanvas ; const Rect : TRect );
     procedure DoInternalSizeCalculation;
@@ -65,8 +68,10 @@ type
     procedure SetVerticalItems(AValue: integer);
 
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
+    procedure SaveMouseMoveData(X, Y: integer);
   protected
     procedure Paint; override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -90,6 +95,7 @@ implementation
 uses
   SysUtils, DateUtils, Math, Forms
   {$ifdef windows}, Windows{$endif}
+  {$ifdef fpc}{$ifdef debug}, LazLogger{$endif}{$endif}
   , mGraphicsUtility;
 
 
@@ -112,16 +118,17 @@ begin
   begin
     for x := 0 to FHorizontalItems - 1 do
     begin
-      Paint_Captions (aCanvas, x, y);
-      Paint_Titles (aCanvas, x, y);
-      Paint_Month (aCanvas, x, y);
-      //Paint_Dividers(x, y);
+      if FItemType = itMonth then
+      begin
+        Paint_MonthCaptions (aCanvas, x, y);
+        Paint_Titles_WeekDays (aCanvas, x, y);
+        Paint_MonthDays (aCanvas, x, y);
+      end;
     end;
   end;
-
 end;
 
-procedure TmCalendar.Paint_Captions(aCanvas: TCanvas; aX, aY: integer);
+procedure TmCalendar.Paint_MonthCaptions(aCanvas: TCanvas; aX, aY: integer);
 var
   tmpRect : TRect;
   str : String;
@@ -137,12 +144,11 @@ begin
   aCanvas.LineTo(tmpRect.Right, tmpRect.Top -1);
 
   str := '';
-  if FItemType = itMonth then
-  begin
-    tmpRefDate:= GetItemRefDate(aX, aY);
-    DecodeDate(tmpRefDate, tmpYear, tmpMonth, tmpDay);
-    str := DefaultFormatSettings.LongMonthNames[tmpMonth] + ' ' + IntToStr(tmpYear);
-  end;
+
+  tmpRefDate:= GetItemRefDate(aX, aY);
+  DecodeDate(tmpRefDate, tmpYear, tmpMonth, tmpDay);
+  str := DefaultFormatSettings.LongMonthNames[tmpMonth] + ' ' + IntToStr(tmpYear);
+
   aCanvas.Font := Self.Font;
   aCanvas.Font.Color := FCaptionsColor;
   aCanvas.Brush.Style := bsClear;
@@ -152,7 +158,7 @@ begin
   aCanvas.TextOut(tmpRect.Left + ((FItemWidth - w) div 2), tmpRect.Top, str);
 end;
 
-procedure TmCalendar.Paint_Titles(aCanvas: TCanvas; aX, aY: integer);
+procedure TmCalendar.Paint_Titles_WeekDays(aCanvas: TCanvas; aX, aY: integer);
 var
   x1 , y1 , x2 , y2 , i : integer;
   r : TRect;
@@ -173,13 +179,11 @@ begin
   aCanvas.Pen.Color := clWhite; //FLinesColor;
   aCanvas.Pen.Style := psSolid;
   aCanvas.Pen.Width := 0;
-  aCanvas.MoveTo ( aX*FItemWidth + FBorderSize-1 ,
-           aY*FItemHeight + FCaptionSize + FTitleSize - 1 );
-  aCanvas.LineTo ( (aX+1)*FItemWidth - FBorderSize ,
-           aY*FItemHeight + FCaptionSize + FTitleSize - 1 );
+  aCanvas.MoveTo ( aX*FItemWidth + FBorderSize-1, aY*FItemHeight + FCaptionSize + FTitleSize - 1 );
+  aCanvas.LineTo ( (aX+1)*FItemWidth - FBorderSize, aY*FItemHeight + FCaptionSize + FTitleSize - 1 );
 end;
 
-procedure TmCalendar.Paint_Month(aCanvas: TCanvas; aX, aY: integer);
+procedure TmCalendar.Paint_MonthDays(aCanvas: TCanvas; aX, aY: integer);
 var
   i, k : integer;
   x1 , y1 , x2 , y2 : integer;
@@ -235,6 +239,8 @@ end;
 destructor TmCalendar.Destroy;
 begin
   FDoubleBufferedBitmap.Free;
+  FSelectedBuckets.Free;
+  FMouseMoveData.Free;
   inherited Destroy;
 end;
 
@@ -368,6 +374,49 @@ begin
   end;
 end;
 
+procedure TmCalendar.SaveMouseMoveData(X, Y: integer);
+var
+  singleItemWidth, singleItemHeight : integer;
+  itemX, itemY, row, col : integer;
+  refDate, clickedDate : TDateTime;
+  refYear, refMonth, refDay : word;
+  day : integer;
+begin
+  FMouseMoveData.Clear;
+  if not PtInRect(ClientRect, Classes.Point(X, Y)) then
+    exit;
+
+  if FItemType = itMonth then
+  begin
+    singleItemWidth := ClientRect.Width div FHorizontalItems;
+    singleItemHeight := ClientRect.Height div FVerticalItems;
+
+    itemX := (X - ClientRect.Left) div singleItemWidth;
+    itemY := (Y - ClientRect.Top) div singleItemHeight;
+    refDate := GetItemRefDate(itemX, itemY);
+    DecodeDate(refDate, refYear, refMonth, refDay);
+    {$ifdef debug}
+    debugln('Click - Item ref date: ' + DateToStr(refDate));
+    {$endif}
+
+    row := (Y - ClientRect.Top - (itemY * FItemHeight) - FCaptionSize - FTitleSize) div FDayHeight;
+    col := (X - ClientRect.Left - (itemX * FItemWidth)) div FDayWidth;
+
+    day := col + (row * 7) - DayOfTheWeek(refDate) + 1;
+    {$ifdef debug}
+    debugln('Click - day: ' + IntToStr(day));
+    {$endif}
+
+    if (day >= 1) and (day <= DaysInAMonth(refYear, refMonth)) then
+    begin
+      clickedDate := EncodeDate(refYear, refMonth, day);
+      {$ifdef debug}
+      debugln('Click - clicked date: ' + DateToStr(clickedDate));
+      {$endif}
+    end;
+  end;
+end;
+
 procedure TmCalendar.Paint;
 var
   drawingRect : TRect;
@@ -393,6 +442,13 @@ begin
   end;
 end;
 
+procedure TmCalendar.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
+begin
+  if (Button = mbLeft) then
+    SaveMouseMoveData(X, Y);
+  inherited MouseDown(Button, Shift, X, Y);
+end;
+
 constructor TmCalendar.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -404,6 +460,8 @@ begin
   // 4096 * 2160 = 4K
   // 7680 * 4320 = 8K
   FDoubleBufferedBitmap.SetSize(max(Screen.Width,4096), max(Screen.Height,2160));
+  FSelectedBuckets := TDoubleList.Create;
+  FMouseMoveData := TmCalendarMouseMoveData.Create;
 
   FMustCalculate := true;
   FHorizontalItems:= 1;

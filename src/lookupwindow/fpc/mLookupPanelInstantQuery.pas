@@ -64,17 +64,25 @@ type
 implementation
 
 uses
-  Variants;
+  Variants, Forms;
 
 { TmLookupPanelInstantQuery }
 
 procedure TmLookupPanelInstantQuery.OnClickSearch(aSender: TObject);
+var
+  OldCursor : TCursor;
 begin
   if Assigned(FInstantQueryManager) then
   begin
-    FInstantQueryManager.FilterDataProvider(FEditText.Text);
-    FVirtualDataset.Refresh;
-    FGrid.AutoAdjustColumns;
+    OldCursor := Screen.Cursor;
+    try
+      Screen.Cursor := crHourGlass;
+      FInstantQueryManager.FilterDataProvider(FEditText.Text);
+      FVirtualDataset.Refresh;
+      FGrid.AutoAdjustColumns;
+    finally
+      Screen.Cursor := OldCursor;
+    end;
   end;
 end;
 
@@ -93,6 +101,7 @@ end;
 constructor TmLookupPanelInstantQuery.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+
   FDatasource := TDataSource.Create(Self);
   FVirtualDataset := TmVirtualDataset.Create(Self);
   FInstantQueryManager := nil;
@@ -150,33 +159,39 @@ var
   i : integer;
 begin
   FInstantQueryManager := aInstantQueryManager;
-  FDatasetProvider.Init(FInstantQueryManager.GetDataProvider);
-  FInstantQueryManager.GetDataProvider.FillVirtualFieldDefs(FDatasetProvider.VirtualFieldDefs, '');
-  FVirtualDataset.Active:= true;
-  FVirtualDataset.Refresh;
-  fields := TStringList.Create;
+  FInstantQueryManager.Clear;
+  FGrid.DataSource.DataSet.DisableControls;
   try
-    if aFieldNames <> nil then
-      fields.AddStrings(aFieldNames)
-    else
-      FInstantQueryManager.GetDataProvider.GetMinimumFields(fields);
-    for i := 0 to FVirtualDataset.Fields.Count - 1 do
-    begin
-      if fields.IndexOf(FVirtualDataset.Fields[i].FieldName) < 0 then
-        FVirtualDataset.Fields[i].Visible:= false;
+    FDatasetProvider.Init(FInstantQueryManager.GetDataProvider);
+    FInstantQueryManager.GetDataProvider.FillVirtualFieldDefs(FDatasetProvider.VirtualFieldDefs, '');
+    FVirtualDataset.Active:= true;
+    FVirtualDataset.Refresh;
+    fields := TStringList.Create;
+    try
+      if aFieldNames <> nil then
+        fields.AddStrings(aFieldNames)
+      else
+        FInstantQueryManager.GetDataProvider.GetMinimumFields(fields);
+      for i := 0 to FVirtualDataset.Fields.Count - 1 do
+      begin
+        if fields.IndexOf(FVirtualDataset.Fields[i].FieldName) < 0 then
+          FVirtualDataset.Fields[i].Visible:= false;
+      end;
+    finally
+      fields.Free;
     end;
-  finally
-    fields.Free;
-  end;
-  FDisplayFieldNames.Clear;
-  if aDisplayFieldNames <> nil then
-    FDisplayFieldNames.AddStrings(aDisplayFieldNames)
-  else
-    FInstantQueryManager.GetDataProvider.GetMinimumFields(FDisplayFieldNames);
+    FDisplayFieldNames.Clear;
+    if aDisplayFieldNames <> nil then
+      FDisplayFieldNames.AddStrings(aDisplayFieldNames)
+    else
+      FInstantQueryManager.GetDataProvider.GetMinimumFields(FDisplayFieldNames);
 
-  FKeyFieldName:= aKeyFieldName;
-  if FKeyFieldName = '' then
-    FKeyFieldName:= aInstantQueryManager.GetDataProvider.GetKeyFieldName;
+    FKeyFieldName:= aKeyFieldName;
+    if FKeyFieldName = '' then
+      FKeyFieldName:= aInstantQueryManager.GetDataProvider.GetKeyFieldName;
+  finally
+    FGrid.DataSource.DataSet.EnableControls;
+  end;
 end;
 
 procedure TmLookupPanelInstantQuery.SetFocusOnFilter;

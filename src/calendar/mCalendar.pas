@@ -216,7 +216,10 @@ begin
     x2 := x1 + FDayWidth;
     y2 := y1 + FTitleSize;
     r := Classes.Rect (x1, y1, x2, y2);
-    WriteText(aCanvas, r, Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment);
+    if r.Width < 30 then
+      WriteText(aCanvas, r, LeftStr(Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]),1), FDayAlignment)
+    else
+      WriteText(aCanvas, r, Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment);
   end;
 
   aCanvas.Pen.Color := FLinesColor;

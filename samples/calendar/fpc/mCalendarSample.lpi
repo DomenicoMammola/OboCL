@@ -25,7 +25,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="..\..\..\src\calendar;..\..\..\thirdparties\Mommon\src"/>
+            <OtherUnitFiles Value="..\..\..\src\calendar;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\StrHashMap"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -57,9 +57,6 @@
           </Linking>
           <Other>
             <CustomOptions Value="-dDEBUG"/>
-            <OtherDefines Count="1">
-              <Define0 Value="DEBUG"/>
-            </OtherDefines>
           </Other>
         </CompilerOptions>
       </Item2>
@@ -72,7 +69,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="..\..\..\src\calendar;..\..\..\thirdparties\Mommon\src"/>
+            <OtherUnitFiles Value="..\..\..\src\calendar;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\StrHashMap"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -139,7 +136,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\src\calendar;..\..\..\thirdparties\Mommon\src"/>
+      <OtherUnitFiles Value="..\..\..\src\calendar;..\..\..\thirdparties\Mommon\src;..\..\..\thirdparties\Mommon\src\maps;..\..\..\thirdparties\Mommon\thirdparties\StrHashMap"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

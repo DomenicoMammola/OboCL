@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, Controls, Graphics,
-  mDoubleList, mCalendarGUIClasses;
+  mMaps, mCalendarGUIClasses;
 
 type
 
@@ -38,6 +38,7 @@ type
     FDayAlignment: TAlignment;
     FTitlesColor: TColor;
     FDaysColor : TColor;
+    FSelectedDaysColor : TColor;
     FCaptionsColor : TColor;
 
     // internal properties
@@ -47,7 +48,7 @@ type
     FDayHeight : integer;
     FMustCalculate : boolean;
     FDoubleBufferedBitmap: Graphics.TBitmap;
-    FSelectedBuckets : TDoubleList;
+    FSelectedBuckets : TmIntegerDictionary;
     FMouseMoveData : TmCalendarMouseMoveData;
 
     procedure Paint_FillBackground(aCanvas : TCanvas; const aRect : TRect);
@@ -64,6 +65,7 @@ type
     procedure SetDaysColor(AValue: TColor);
     procedure SetHorizontalItems(AValue: integer);
     procedure SetItemType(AValue: TmCalendarItemType);
+    procedure SetSelectedDaysColor(AValue: TColor);
     procedure SetTitlesColor(AValue: TColor);
     procedure SetVerticalItems(AValue: integer);
 
@@ -72,6 +74,8 @@ type
   protected
     procedure Paint; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: integer); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -87,6 +91,7 @@ type
     property DayAlignment : TAlignment read FDayAlignment write SetDayAlignment;
     property TitlesColor : TColor read FTitlesColor write SetTitlesColor;
     property DaysColor : TColor read FDaysColor write SetDaysColor;
+    property SelectedDaysColor : TColor read FSelectedDaysColor write SetSelectedDaysColor;
     property CaptionsColor : TColor read FCaptionsColor write SetCaptionsColor;
   end;
 
@@ -218,6 +223,10 @@ begin
         r := Classes.Rect (x1, y1, x2, y2);
         if DayOfTheWeek(curDate) = i + 1 then
         begin
+          if FSelectedBuckets.Contains(round(curDate)) then
+            aCanvas.Font.Color:= FSelectedDaysColor
+          else
+            aCanvas.Font.Color := FDaysColor;
           WriteText(aCanvas, r, IntToStr(tmpDay), FDayAlignment);
           curDate := curDate + 1;
           inc(tmpDay);
@@ -355,6 +364,13 @@ begin
   Invalidate;
 end;
 
+procedure TmCalendar.SetSelectedDaysColor(AValue: TColor);
+begin
+  if FSelectedDaysColor=AValue then Exit;
+  FSelectedDaysColor:=AValue;
+  Invalidate;
+end;
+
 procedure TmCalendar.SetTitlesColor(AValue: TColor);
 begin
   if FTitlesColor=AValue then Exit;
@@ -415,6 +431,8 @@ begin
 
     day := col + (row * 7) - DayOfTheWeek(refDate) + 2;
     {$ifdef debug}
+    writeln('Row: ' + IntToStr(row));
+    writeln('Col: ' + IntToStr(row));
     debugln('Click - day: ' + IntToStr(day));
     writeln('Click - day: ' + IntToStr(day));
     {$endif}
@@ -422,6 +440,8 @@ begin
     if (day >= 1) and (day <= DaysInAMonth(refYear, refMonth)) then
     begin
       clickedDate := EncodeDate(refYear, refMonth, day);
+      FMouseMoveData.ClickOnDays:= true;
+      FMouseMoveData.Day:= round(clickedDate);
       {$ifdef debug}
       debugln('Click - clicked date: ' + DateToStr(clickedDate));
       writeln('Click - clicked date: ' + DateToStr(clickedDate));
@@ -462,6 +482,28 @@ begin
   inherited MouseDown(Button, Shift, X, Y);
 end;
 
+procedure TmCalendar.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
+begin
+  if FMouseMoveData.ClickOnDays then
+  begin
+    if FSelectedBuckets.Contains(FMouseMoveData.Day) then
+      FSelectedBuckets.Remove(FMouseMoveData.Day)
+    else
+    begin
+      if not ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_CONTROL) and $8000 <> 0) then
+        FSelectedBuckets.Clear;
+      FSelectedBuckets.Add(FMouseMoveData.Day, FSelectedBuckets);
+    end;
+  end;
+  inherited MouseUp(Button, Shift, X, Y);
+  Self.Paint;
+end;
+
+procedure TmCalendar.MouseMove(Shift: TShiftState; X, Y: integer);
+begin
+  inherited MouseMove(Shift, X, Y);
+end;
+
 constructor TmCalendar.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -473,7 +515,7 @@ begin
   // 4096 * 2160 = 4K
   // 7680 * 4320 = 8K
   FDoubleBufferedBitmap.SetSize(max(Screen.Width,4096), max(Screen.Height,2160));
-  FSelectedBuckets := TDoubleList.Create;
+  FSelectedBuckets := TmIntegerDictionary.Create(false);
   FMouseMoveData := TmCalendarMouseMoveData.Create;
 
   FMustCalculate := true;
@@ -487,6 +529,7 @@ begin
   FDayAlignment:= taCenter;
   FTitlesColor:= clBlack;
   FDaysColor:= clBlack;
+  FSelectedDaysColor:= clBlue;
   FCaptionsColor := clBlack;
   Self.Color:= clWhite;
 end;

@@ -42,7 +42,7 @@ end;
 
 procedure TmCalendarMouseMoveData.Clear;
 begin
-  FClickOnDays:= false;;
+  FClickOnDays:= false;
   FDay := 0;
 end;
 

@@ -35,8 +35,8 @@ begin
   FCalendar := TmCalendar.Create(Self);
   FCalendar.Parent := Self;
   FCalendar.Align := alClient;
-  FCalendar.HorizontalItems:= 2;
-  FCalendar.VerticalItems:= 2;
+  FCalendar.Rows:= 2;
+  FCalendar.Cols:= 3;
 end;
 
 end.

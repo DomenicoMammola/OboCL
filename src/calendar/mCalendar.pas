@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, Controls, Graphics,
-  mMaps, mCalendarGUIClasses;
+  mMaps, mCalendarGUIClasses, mIntList;
 
 type
 
@@ -52,7 +52,8 @@ type
     FDayHeight : integer;
     FMustCalculate : boolean;
     FDoubleBufferedBitmap: Graphics.TBitmap;
-    FSelectedBuckets : TmIntegerDictionary;
+    FSelectedBucketsDictionary : TmIntegerDictionary;
+    FSelectedBuckets: TIntegerList;
     FMouseMoveData : TmCalendarMouseMoveData;
 
     // events
@@ -60,8 +61,8 @@ type
 
     procedure Paint_Box(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 
-    procedure GetMonthCaptionRect(var aRect : TRect; const aRow, aCol : integer);
-    procedure GetMonthWeekDaysTitleRect(var aRect : TRect; const aRow, aCol : integer);
+    procedure GetMonthCaptionRect(out aRect : TRect; const aRow, aCol : integer);
+    procedure GetMonthWeekDaysTitleRect(out aRect : TRect; const aRow, aCol : integer);
 
     procedure Paint_FillBackground(aCanvas : TCanvas; const aRect : TRect);
     procedure Paint_Items(aCanvas : TCanvas);
@@ -81,6 +82,10 @@ type
     procedure SetSelectedDaysColor(AValue: TColor);
     procedure SetWeekdaysColor(AValue: TColor);
     procedure SetCols(AValue: integer);
+
+    procedure InternalSelectDay(const aDay: integer);
+    procedure InternalUnselectDay(const aDay: integer);
+    procedure InternalClearSelection;
 
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
     procedure SaveMouseMoveData(X, Y: integer);
@@ -128,7 +133,7 @@ uses
   {$else}
   {$ifdef windows}, Windows{$endif}
   {$endif}
-  , mGraphicsUtility;
+  , mGraphicsUtility, mUtility;
 
 
 { TmCalendar }
@@ -156,12 +161,12 @@ begin
   end;
 end;
 
-procedure TmCalendar.GetMonthCaptionRect(var aRect: TRect; const aRow, aCol: integer);
+procedure TmCalendar.GetMonthCaptionRect(out aRect: TRect; const aRow, aCol: integer);
 begin
   aRect := Classes.Rect (aCol * FItemWidth, aRow * FItemHeight, (aCol + 1) * FItemWidth, aRow * FItemHeight + FCaptionSize);
 end;
 
-procedure TmCalendar.GetMonthWeekDaysTitleRect(var aRect: TRect; const aRow, aCol: integer);
+procedure TmCalendar.GetMonthWeekDaysTitleRect(out aRect: TRect; const aRow, aCol: integer);
 begin
   GetMonthCaptionRect(aRect, aRow, aCol);
   aRect.Top:= aRect.Bottom;
@@ -256,7 +261,7 @@ begin
   aCanvas.Font.Color := FDaysColor;
   if FItemType = itMonth then
   begin
-    curDate := GetItemRefDate(aCol, aRow);
+    curDate := GetItemRefDate(aRow, aCol);
     DecodeDate(curDate, tmpYear, tmpMonth, tmpDay);
     for k := 0 to 5 do
     begin
@@ -269,7 +274,7 @@ begin
         r := Classes.Rect (x1, y1, x2, y2);
         if DayOfTheWeek(curDate) = i + 1 then
         begin
-          if FSelectedBuckets.Contains(round(curDate)) then
+          if FSelectedBucketsDictionary.Contains(round(curDate)) then
           begin
             aCanvas.Font.Color:= FSelectedDaysColor;
             aCanvas.Brush.Color:= FSelectedColor;
@@ -311,6 +316,7 @@ end;
 destructor TmCalendar.Destroy;
 begin
   FDoubleBufferedBitmap.Free;
+  FSelectedBucketsDictionary.Free;
   FSelectedBuckets.Free;
   FMouseMoveData.Free;
   inherited Destroy;
@@ -439,6 +445,24 @@ begin
   end;
 end;
 
+procedure TmCalendar.InternalSelectDay(const aDay: integer);
+begin
+  FSelectedBucketsDictionary.Add(aDay, FSelectedBucketsDictionary);
+  FSelectedBuckets.Add(aDay);
+end;
+
+procedure TmCalendar.InternalUnselectDay(const aDay: integer);
+begin
+  FSelectedBucketsDictionary.Remove(aDay);
+  FSelectedBuckets.Remove(aDay);
+end;
+
+procedure TmCalendar.InternalClearSelection;
+begin
+  FSelectedBucketsDictionary.Clear;
+  FSelectedBuckets.Clear;
+end;
+
 procedure TmCalendar.DoPaintTo(aCanvas: TCanvas; aRect: TRect);
 begin
   aCanvas.Lock;
@@ -453,7 +477,7 @@ end;
 procedure TmCalendar.SaveMouseMoveData(X, Y: integer);
 var
   singleItemWidth, singleItemHeight : integer;
-  itemX, itemY, row, col : integer;
+  row, col, monthRow, monthCol : integer;
   refDate, clickedDate : TDateTime;
   refYear, refMonth, refDay : word;
   day : integer;
@@ -462,14 +486,15 @@ begin
   if not PtInRect(ClientRect, Classes.Point(X, Y)) then
     exit;
 
+  singleItemWidth := ClientRect.Width div FCols;
+  singleItemHeight := ClientRect.Height div FRows;
+
+  col := (X - ClientRect.Left) div singleItemWidth;
+  row := (Y - ClientRect.Top) div singleItemHeight;
+  refDate := GetItemRefDate(row, col);
+
   if FItemType = itMonth then
   begin
-    singleItemWidth := ClientRect.Width div FCols;
-    singleItemHeight := ClientRect.Height div FRows;
-
-    itemX := (X - ClientRect.Left) div singleItemWidth;
-    itemY := (Y - ClientRect.Top) div singleItemHeight;
-    refDate := GetItemRefDate(itemX, itemY);
     DecodeDate(refDate, refYear, refMonth, refDay);
     {$ifdef debug}
     debugln('Click - Item ref date: ' + DateToStr(refDate));
@@ -478,10 +503,10 @@ begin
     {$endif}
     {$endif}
 
-    row := (Y - ClientRect.Top + 1 - (itemY * FItemHeight) - FCaptionSize - FTitleSize) div FDayHeight;
-    col := (X - ClientRect.Left + 1 - (itemX * FItemWidth)) div FDayWidth;
+    monthRow := (Y - 1 - ClientRect.Top - (row * FItemHeight) - FCaptionSize - FTitleSize) div FDayHeight;
+    monthCol := (X - 2 -  ClientRect.Left - (col * FItemWidth)) div FDayWidth;
 
-    day := col + (row * 7) - DayOfTheWeek(refDate) + 2;
+    day := monthCol + (monthRow * 7) - DayOfTheWeek(refDate) + 2;
     {$ifdef debug}
     debugln('Click - day: ' + IntToStr(day));
     {$ifdef linux}
@@ -541,26 +566,55 @@ end;
 procedure TmCalendar.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
 var
   mustPaint : boolean;
+  i, curDay : integer;
 begin
   mustPaint := false;
   if FMouseMoveData.ClickOnDays then
   begin
-    if FSelectedBuckets.Contains(FMouseMoveData.Day) then
+    if CtrlPressed then
     begin
-      if not ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_CONTROL) and $8000 <> 0) then
-      begin
-        FSelectedBuckets.Clear;
-        FSelectedBuckets.Add(FMouseMoveData.Day, FSelectedBuckets);
-      end
+      if FSelectedBucketsDictionary.Contains(FMouseMoveData.Day) then
+        InternalUnselectDay(FMouseMoveData.Day)
       else
-        FSelectedBuckets.Remove(FMouseMoveData.Day);
+        InternalSelectDay(FMouseMoveData.Day);
       mustPaint := true;
+    end
+    else if ShiftPressed then
+    begin
+      if FSelectedBuckets.Count = 0 then
+        InternalSelectDay(FMouseMoveData.Day)
+      else if FSelectedBuckets.Count >= 1 then
+      begin
+        i := FSelectedBuckets.Count;
+        while i > 1 do
+        begin
+          InternalUnselectDay(FSelectedBuckets.Items[i - 1]);
+          dec(i);
+        end;
+        curDay := FSelectedBuckets.Items[0];
+        if curDay < FMouseMoveData.Day then
+        begin
+          {$ifdef debug}
+          debugln('Select from ' + DateToStr(curDay + 1) + ' to ' + DateToStr(FMouseMoveData.Day));
+          {$endif}
+          for i := curDay + 1 to FMouseMoveData.Day do
+            InternalSelectDay(i);;
+        end
+        else if curDay > FMouseMoveData.Day then
+        begin
+          {$ifdef debug}
+          debugln('Select from ' + DateToStr(FMouseMoveData.Day + 1) + ' to ' + DateToStr(curDay));
+          {$endif}
+          for i := FMouseMoveData.Day + 1 to curDay do
+            InternalSelectDay(i);
+        end;
+        mustPaint := true;
+      end;
     end
     else
     begin
-      if not ({$ifndef fpc}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_CONTROL) and $8000 <> 0) then
-        FSelectedBuckets.Clear;
-      FSelectedBuckets.Add(FMouseMoveData.Day, FSelectedBuckets);
+      InternalClearSelection;
+      InternalSelectDay(FMouseMoveData.Day);
       mustPaint := true;
     end;
   end;
@@ -587,7 +641,8 @@ begin
   // 4096 * 2160 = 4K
   // 7680 * 4320 = 8K
   FDoubleBufferedBitmap.SetSize(max(Screen.Width,4096), max(Screen.Height,2160));
-  FSelectedBuckets := TmIntegerDictionary.Create(false);
+  FSelectedBucketsDictionary := TmIntegerDictionary.Create(false);
+  FSelectedBuckets:= TIntegerList.Create;
   FMouseMoveData := TmCalendarMouseMoveData.Create;
 
   FMustCalculate := true;

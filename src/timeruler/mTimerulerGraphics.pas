@@ -81,7 +81,7 @@ procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string;
     ACanvas.Line(ARect.Left, ARect.Bottom, ARect.Left, ARect.Top);
     ACanvas.Line(ARect.Right-1, ARect.Bottom, ARect.Right-1, ARect.Top);
     if AIsFirst then
-      ACanvas.Line(ARect.Left, ARect.Top, ARect.Right, ARect.Top);;
+      ACanvas.Line(ARect.Left, ARect.Top, ARect.Right, ARect.Top);
   end;
 var
   BoxRect : TRect;

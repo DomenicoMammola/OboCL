@@ -17,11 +17,14 @@ uses
 function GetMagnificationFactor : double;
 procedure SetMagnificationFactor (const aValue : double);
 
-function ScaleForMagnification (const aOriginalSize : integer): integer;
+function ScaleForMagnification (const aOriginalSize : integer; const aScaleForDPI : boolean): integer;
 procedure ScaleFontForMagnification (aFont : TFont);
 
 
 implementation
+
+uses
+  mGraphicsUtility;
 
 var
   _MagnificationFactor : double = 1;
@@ -37,9 +40,11 @@ begin
     _MagnificationFactor:= aValue;
 end;
 
-function ScaleForMagnification(const aOriginalSize: integer): integer;
+function ScaleForMagnification(const aOriginalSize: integer; const aScaleForDPI : boolean): integer;
 begin
   Result := round (aOriginalSize * _MagnificationFactor);
+  if aScaleForDPI then
+    Result := ScaleForDPI(Result);
 end;
 
 procedure ScaleFontForMagnification (aFont : TFont);
@@ -57,7 +62,7 @@ begin
       aFont.Size := trunc (RealFontSize * _MagnificationFactor);
     end
     else
-      aFont.Size := trunc(aFont.Size * _MagnificationFactor);
+      aFont.Height := trunc(aFont.Height * _MagnificationFactor);
   end;
 end;
 

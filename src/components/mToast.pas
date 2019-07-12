@@ -73,7 +73,8 @@ type
 implementation
 
 uses
-  sysutils, Controls;
+  sysutils, Controls,
+  mMagnificationFactor;
 
 const
   INT_NOTIFIER_FORM_WIDTH  = 325;
@@ -100,13 +101,15 @@ begin
   inherited Create(AOwner);
   BorderStyle := bsNone;
 
-  Width := INT_NOTIFIER_FORM_WIDTH;
-  Height := INT_NOTIFIER_FORM_HEIGHT;
+  Width := ScaleForMagnification(INT_NOTIFIER_FORM_WIDTH, true);
+  Height := ScaleForMagnification(INT_NOTIFIER_FORM_HEIGHT, true);
 
   // Check for small screens. An extra spacing is necessary
   // in the Windows Mobile 5 emulator
   if Screen.Width - INT_NOTIFIER_SCREEN_SPACING < Width then
     Width := Screen.Width - INT_NOTIFIER_SCREEN_SPACING;
+  if Screen.Height - INT_NOTIFIER_SCREEN_SPACING < Height then
+    Height := Screen.Height - INT_NOTIFIER_SCREEN_SPACING;
 
   lblText := TLabel.Create(Self);
   lblText.Parent := Self;
@@ -119,6 +122,7 @@ begin
   lblText.OnClick := HideForm;
   lblText.Font.Color:= clWhite;
   lblText.Layout:= tlCenter;
+  ScaleFontForMagnification(lblText.Font);
 
   // $DCFFFF
   Color := clDkGray; // Doesn't work on Gtk

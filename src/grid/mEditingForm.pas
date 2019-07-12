@@ -225,7 +225,7 @@ uses
   {$ENDIF}
   LCLType,
   Dialogs, dateutils,
-  mToast;
+  mToast, mFormSetup, mMagnificationFactor;
 
 type
 
@@ -386,9 +386,6 @@ constructor TmEditingForm.CreateNew(AOwner: TComponent; Num: Integer = 0);
 begin
   inherited CreateNew(AOwner, Num);
 
-  Self.Height:= trunc (Screen.Height * 0.80);
-  Self.Width:= 800;
-  //Self.BorderStyle:= bsDialog;
   Self.OnShow:= FormShow;
   Self.Caption:= SDefaultCaption;
   Self.Position:= poMainFormCenter;
@@ -396,18 +393,18 @@ begin
   FBottomPanel := TPanel.Create(Self);
   FBottomPanel.Parent := Self;
   FBottomPanel.Align:= alBottom;
-  FBottomPanel.Height:= 50;
+  FBottomPanel.Height:= ScaleForMagnification(50, true);
   FBottomPanel.BevelInner:= bvNone;
   FBottomPanel.BevelOuter:= bvNone;
 
   FOkBtn:= TBitBtn.Create(FBottomPanel);
   FOkBtn.Kind:= bkOK;
 
-  FOkBtn.Width := 75;
-  FOkBtn.Height := 30;
+  FOkBtn.Width := ScaleForMagnification(75, true);
+  FOkBtn.Height := ScaleForMagnification(30, true);
   FOkBtn.Parent:= FBottomPanel;
-  FOkBtn.Left := 0; // Self.Width - 150 - 30;
-  FOkBtn.Top := 8;
+  FOkBtn.Left := 0;
+  FOkBtn.Top := ScaleForMagnification(8, true);
   FOkBtn.Anchors:= [akTop, akRight];
   FOkBtn.DefaultCaption:= true;
   FOkBtn.OnClick:= OkBtnClick;
@@ -416,11 +413,11 @@ begin
   FCancelBtn:= TBitBtn.Create(FBottomPanel);
   FCancelBtn.Kind:= bkCancel;
 
-  FCancelBtn.Width := 75;
-  FOkBtn.Height := 30;
+  FCancelBtn.Width := ScaleForMagnification(75, true);
+  FCancelBtn.Height := ScaleForMagnification(30, true);
   FCancelBtn.Parent:= FBottomPanel;
-  FCancelBtn.Left := 80; //Self.Width - 75 - 15;
-  FCancelBtn.Top := 8;
+  FCancelBtn.Left := FOkBtn.Left + ScaleForMagnification(10, true) + FOkBtn.Width;
+  FCancelBtn.Top := FOkBtn.Top;
   FCancelBtn.Anchors:= [akTop, akRight];
   FCancelBtn.DefaultCaption:= true;
   FCancelBtn.OnClick:= OkBtnClick;
@@ -430,6 +427,9 @@ begin
   FEditingPanel.Parent := Self;
   FEditingPanel.Align:= alClient;
 
+  SetupFormAndCenter(Self, 0.8);
+  FCancelBtn.Left:= FBottomPanel.Width - ScaleForMagnification(10, true) - FCancelBtn.Width;
+  FOkBtn.Left:= FCancelBtn.Left - FOkBtn.Width - ScaleForMagnification(10, true);
 end;
 
 procedure TmEditingForm.SetReadOnly;
@@ -528,6 +528,9 @@ var
   OldActualValue : variant;
 begin
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
+
+  if not Assigned(curLine) then
+    exit;
 
   if (curLine.Configuration.ReadOnly = roAllowEditing) and (not curLine.ForceClear) then
     NewValue := Trim(NewValue)
@@ -1339,7 +1342,7 @@ begin
   FValueListEditor.Height:= 200;
   FValueListEditor.AlternateColor := clMoneyGreen;
   FValueListEditor.AutoAdvance := aaDown;
-  FValueListEditor.DefaultColWidth := 250;
+  FValueListEditor.DefaultColWidth := 400;
   FValueListEditor.FixedCols := 0;
   FValueListEditor.Flat := True;
   FValueListEditor.RowCount := 2;
@@ -1349,8 +1352,8 @@ begin
   FValueListEditor.OnValidateEntry := Self.OnValueListEditorValidateEntry;
   FValueListEditor.TitleCaptions.Add(SPropertyColumnTitle);
   FValueListEditor.TitleCaptions.Add(SValueColumnTitle);
-  FValueListEditor.ColWidths[0] := 250;
-  FValueListEditor.ColWidths[1] := 350;
+  FValueListEditor.ColWidths[0] := 400;
+  FValueListEditor.ColWidths[1] := 500;
 
   FDateCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FDateCellEditor.Visible := false;
@@ -1427,6 +1430,7 @@ begin
   FValueListEditor.Row:= 1;
   FValueListEditor.Col:= 1;
   FValueListEditor.EditorMode:= true;
+  FValueListEditor.ColWidths[0] := trunc(FValueListEditor.Width * 0.4);
 end;
 
 procedure TmEditingPanel.SetMultiEditMode(AValue: boolean);

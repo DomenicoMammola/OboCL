@@ -57,7 +57,7 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, Math;
 
 type
   TResultValues = class
@@ -94,18 +94,22 @@ end;
 procedure TmLookupPanel.AdjustColumnsWidth;
 var
   // ColWidth : integer;
-  i, eqWidth : integer;
+  i, eqWidth, tmp : integer;
   curFieldDef : TmVirtualFieldDef;
   flex : double;
 begin
   if FFieldsList.Count > 0 then
   begin
     eqWidth:= 0;
+    tmp := 0;
     for i := 0 to FFieldsList.Count - 1 do
     begin
       curFieldDef := FFieldDefs.FindByName(FFieldsList.Strings[i]);
       if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
-        eqWidth:= eqWidth + curFieldDef.Size div 6
+      begin
+        tmp := min(curFieldDef.Size div 4, 12) + max((curFieldDef.Size - 50) div 14, 0) + max((curFieldDef.Size - 100) div 28, 0);
+        eqWidth:= eqWidth + tmp
+      end
       else if curFieldDef.DataType = vftBoolean then
         eqWidth:= eqWidth + 2
       else if curFieldDef.DataType = vftInteger then
@@ -113,7 +117,7 @@ begin
       else if curFieldDef.DataType = vftFloat then
         eqWidth:= eqWidth + 7
       else
-        eqWidth:= eqWidth + 5;
+        eqWidth:= eqWidth + 6;
     end;
 
     flex := (Self.Width - 30) / eqWidth;
@@ -123,7 +127,10 @@ begin
       begin
         curFieldDef := FFieldDefs.FindByName(FFieldsList.Strings[i]);
         if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
-          LValues.Columns[i].Width:= trunc((curFieldDef.Size div 6) * flex)
+        begin
+          tmp := min(curFieldDef.Size div 4, 12) + max((curFieldDef.Size - 50) div 14, 0) + max((curFieldDef.Size - 100) div 28, 0);
+          LValues.Columns[i].Width:= trunc(tmp * flex);
+        end
         else if curFieldDef.DataType = vftBoolean then
           LValues.Columns[i].Width:= trunc(flex * 2)
         else if curFieldDef.DataType = vftInteger then
@@ -131,7 +138,7 @@ begin
         else if curFieldDef.DataType = vftFloat then
           LValues.Columns[i].Width:= trunc(flex * 7)
         else
-          LValues.Columns[i].Width:= trunc(flex * 5);
+          LValues.Columns[i].Width:= trunc(flex * 6);
       end;
     finally
       LValues.EndUpdate;

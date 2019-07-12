@@ -104,9 +104,9 @@ begin
   FTabs.OptShowXButtons:= atbxShowNone;
   FTabs.OptMouseDoubleClickClose:= false;
   FTabs.OptShowEntireColor:= true;
-  FTabs.Height:= ScaleForDPI(ScaleForMagnification(32));
-  FTabs.OptTabHeight:= ScaleForDPI(ScaleForMagnification(24));
-  FTabs.OptTabWidthNormal:= ScaleForDPI(ScaleForMagnification(200));
+  FTabs.Height:= ScaleForMagnification(32, true);
+  FTabs.OptTabHeight:= ScaleForMagnification(24, true);
+  FTabs.OptTabWidthNormal:= ScaleForMagnification(200, true);
   FTabs.ColorBg:= clMenu;
   FTabs.ColorFont:= clInfoText;
   ScaleFontForMagnification(FTabs.Font);

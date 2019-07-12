@@ -912,6 +912,7 @@ end;
 procedure TmComboFilterConditionPanel.AddItem(aValue: String);
 begin
   Self.AddItem(aValue, aValue);
+  OptimalWidth;
 end;
 
 procedure TmComboFilterConditionPanel.AddItem(aLabel: String; aValue: Variant);
@@ -923,6 +924,7 @@ begin
   FComboBox.AddItem(aLabel, sh);
   if (FDefaultItemIndex >= 0) and (FCombobox.Items.Count > FDefaultItemIndex) then
     FCombobox.ItemIndex:= FDefaultItemIndex;
+  OptimalWidth;
 end;
 
 procedure TmComboFilterConditionPanel.ClearItems;
@@ -947,6 +949,7 @@ begin
   begin
     itemWidth := FCombobox.Canvas.TextWidth(FCombobox.Items[idx]);
     Inc(itemWidth, 2 * HORIZONTAL_PADDING);
+    itemWidth := ScaleForMagnification(itemWidth, true);
     if (itemWidth > itemsFullWidth) then itemsFullWidth := itemWidth;
   end;
 
@@ -1016,14 +1019,14 @@ begin
   FBottomPanel.Height:= FDateEditMin.Height;
   FDateEditMin.Align:= alClient;
   FDateEditMin.Flat:= true;
-  FDateEditMin.Height:= ScaleForMagnification(FDateEditMin.Height);
+  FDateEditMin.Height:= ScaleForMagnification(FDateEditMin.Height, true);
   FDateEditMax := TmDateEdit.Create(Self);
   FDateEditMax.Parent := FBottomPanel;
   FDateEditMax.Align:= alRight;
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
   FDateEditMax.Flat:= false;
-  FDateEditMax.Height:= ScaleForMagnification(FDateEditMax.Height);
+  FDateEditMax.Height:= ScaleForMagnification(FDateEditMax.Height, true);
   FLabel := Self.CreateStandardLabel;
   CreateStandardFilterMenu(FLabel, true);
 end;
@@ -1283,9 +1286,9 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.FFlex := 2;
-  Self.Width := Self.FFlex * ScaleForDPI (ScaleForMagnification(DEFAULT_FLEX_WIDTH));
+  Self.Width := Self.FFlex * ScaleForMagnification(DEFAULT_FLEX_WIDTH, true);
   Self.Caption := '';
-  Self.Height := ScaleForDPI(ScaleForMagnification(DEFAULT_HEIGHT));
+  Self.Height := ScaleForMagnification(DEFAULT_HEIGHT, true);
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
   FOperatorsMenuItems := TList.Create;

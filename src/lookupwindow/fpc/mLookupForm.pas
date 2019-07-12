@@ -55,7 +55,7 @@ implementation
 
 uses
   variants,
-  mFormSetup;
+  mFormSetup, mMagnificationFactor;
 
 {$R *.lfm}
 
@@ -74,7 +74,17 @@ begin
   FLookupPanel.OnSelectAValue:= @OnSelectValue;
   FSelectedValue:= Null;
   FSelectedDisplayLabel:= '';
-  SetupFormAndCenter(Self, 0.8);
+  SetupFormAndCenter(Self, 0.85);
+  BottomPanel.Height:= ScaleForMagnification(BottomPanel.Height, true);
+  CancelBtn.Width := ScaleForMagnification(CancelBtn.Width, true);
+  CancelBtn.Height := ScaleForMagnification(CancelBtn.Height, true);
+  OkBtn.Width:= ScaleForMagnification(OkBtn.Width, true);
+  OkBtn.Height:= ScaleForMagnification(OkBtn.Height, true);
+  OkBtn.Anchors:= [akTop, akRight];
+  CancelBtn.Anchors:= [akTop, akRight];
+  CancelBtn.Left:= BottomPanel.Width - CancelBtn.Width - ScaleForMagnification(10, true);
+  OkBtn.Left:= CancelBtn.Left - OkBtn.Width  - ScaleForMagnification(10, true);
+  // OkBtn.Left:= CancelBtn.Left - OkBtn.Width - ScaleForMagnification(10, true);
 end;
 
 procedure TmLookupFrm.OkBtnClick(Sender: TObject);

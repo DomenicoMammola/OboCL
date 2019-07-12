@@ -144,9 +144,9 @@ begin
   FTabs.OptShowXButtons:= atbxShowNone;
   FTabs.OptMouseDoubleClickClose:= false;
   FTabs.OptShowEntireColor:= true;
-  FTabs.Height:= ScaleForDPI(ScaleForMagnification(24));
-  FTabs.OptTabHeight:= ScaleForDPI(ScaleForMagnification(18));
-  FTabs.OptTabWidthNormal:= ScaleForDPI(ScaleForMagnification(200));
+  FTabs.Height:= ScaleForMagnification(24, true);
+  FTabs.OptTabHeight:= ScaleForMagnification(18, true);
+  FTabs.OptTabWidthNormal:= ScaleForMagnification(200, true);
   FTabs.ColorBg:= clMenu;
   FTabs.ColorFont:= clInfoText;
   FTabs.OptMouseDragEnabled:= false; //enable drag-drop
@@ -161,7 +161,7 @@ begin
   FUpdatingLabel := TLabel.Create(Self);
   FUpdatingLabel.Parent:= Self;
   FUpdatingLabel.Align:= alTop;
-  FUpdatingLabel.Height:= ScaleForDPI(ScaleForMagnification(10));
+  FUpdatingLabel.Height:= ScaleForMagnification(10, true);
   FUpdatingLabel.Visible:= false;
   FUpdatingLabel.Caption:= SLabelUpdatingCaption;
 end;

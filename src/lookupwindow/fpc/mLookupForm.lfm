@@ -1,7 +1,7 @@
 object mLookupFrm: TmLookupFrm
-  Left = 2074
+  Left = 315
   Height = 548
-  Top = 307
+  Top = 62
   Width = 801
   Caption = 'Find a value'
   ClientHeight = 548
@@ -9,7 +9,7 @@ object mLookupFrm: TmLookupFrm
   OnCreate = FormCreate
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '1.8.4.0'
+  LCLVersion = '2.0.2.0'
   object BottomPanel: TPanel
     Left = 0
     Height = 50

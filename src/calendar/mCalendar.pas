@@ -571,51 +571,54 @@ begin
   mustPaint := false;
   if FMouseMoveData.ClickOnDays then
   begin
-    if CtrlPressed then
+    if Button = mbLeft then
     begin
-      if FSelectedBucketsDictionary.Contains(FMouseMoveData.Day) then
-        InternalUnselectDay(FMouseMoveData.Day)
-      else
-        InternalSelectDay(FMouseMoveData.Day);
-      mustPaint := true;
-    end
-    else if ShiftPressed then
-    begin
-      if FSelectedBuckets.Count = 0 then
-        InternalSelectDay(FMouseMoveData.Day)
-      else if FSelectedBuckets.Count >= 1 then
+      if CtrlPressed then
       begin
-        i := FSelectedBuckets.Count;
-        while i > 1 do
+        if FSelectedBucketsDictionary.Contains(FMouseMoveData.Day) then
+          InternalUnselectDay(FMouseMoveData.Day)
+        else
+          InternalSelectDay(FMouseMoveData.Day);
+        mustPaint := true;
+      end
+      else if ShiftPressed then
+      begin
+        if FSelectedBuckets.Count = 0 then
+          InternalSelectDay(FMouseMoveData.Day)
+        else if FSelectedBuckets.Count >= 1 then
         begin
-          InternalUnselectDay(FSelectedBuckets.Items[i - 1]);
-          dec(i);
+          i := FSelectedBuckets.Count;
+          while i > 1 do
+          begin
+            InternalUnselectDay(FSelectedBuckets.Items[i - 1]);
+            dec(i);
+          end;
+          curDay := FSelectedBuckets.Items[0];
+          if curDay < FMouseMoveData.Day then
+          begin
+            {$ifdef debug}
+            debugln('Select from ' + DateToStr(curDay + 1) + ' to ' + DateToStr(FMouseMoveData.Day));
+            {$endif}
+            for i := curDay + 1 to FMouseMoveData.Day do
+              InternalSelectDay(i);;
+          end
+          else if curDay > FMouseMoveData.Day then
+          begin
+            {$ifdef debug}
+            debugln('Select from ' + DateToStr(FMouseMoveData.Day + 1) + ' to ' + DateToStr(curDay));
+            {$endif}
+            for i := FMouseMoveData.Day + 1 to curDay do
+              InternalSelectDay(i);
+          end;
+          mustPaint := true;
         end;
-        curDay := FSelectedBuckets.Items[0];
-        if curDay < FMouseMoveData.Day then
-        begin
-          {$ifdef debug}
-          debugln('Select from ' + DateToStr(curDay + 1) + ' to ' + DateToStr(FMouseMoveData.Day));
-          {$endif}
-          for i := curDay + 1 to FMouseMoveData.Day do
-            InternalSelectDay(i);;
-        end
-        else if curDay > FMouseMoveData.Day then
-        begin
-          {$ifdef debug}
-          debugln('Select from ' + DateToStr(FMouseMoveData.Day + 1) + ' to ' + DateToStr(curDay));
-          {$endif}
-          for i := FMouseMoveData.Day + 1 to curDay do
-            InternalSelectDay(i);
-        end;
+      end
+      else
+      begin
+        InternalClearSelection;
+        InternalSelectDay(FMouseMoveData.Day);
         mustPaint := true;
       end;
-    end
-    else
-    begin
-      InternalClearSelection;
-      InternalSelectDay(FMouseMoveData.Day);
-      mustPaint := true;
     end;
   end;
   inherited MouseUp(Button, Shift, X, Y);

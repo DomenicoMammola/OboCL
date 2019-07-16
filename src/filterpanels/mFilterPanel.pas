@@ -17,7 +17,7 @@ unit mFilterPanel;
 interface
 
 uses
-  Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants,
+  Classes, Controls, Graphics, StdCtrls, StrUtils, Contnrs, Variants, Types,
   ExtCtrls, EditBtn, Menus, {$IFNDEF LINUX}Windows, {$ENDIF}
   ATButtons,
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
@@ -121,7 +121,10 @@ type
     FGarbage : TObjectList;
     FDefaultItemIndex : integer;
     FValueType : TmComboCheckLookupFilterValueType;
+    FWidthOptimized : boolean;
     procedure SetDefaultItemIndex(AValue: integer);
+    procedure OnDropDown(Sender : TObject);
+    procedure CustomDrawItem (Control: TWinControl; Index: Integer;ARect: TRect; State: StdCtrls.TOwnerDrawState);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -828,19 +831,37 @@ begin
     FCombobox.ItemIndex:= FDefaultItemIndex;
 end;
 
+procedure TmComboFilterConditionPanel.OnDropDown(Sender: TObject);
+begin
+  if not FWidthOptimized then
+  begin
+    OptimalWidth;
+    FWidthOptimized := true;
+  end;
+end;
+
+procedure TmComboFilterConditionPanel.CustomDrawItem(Control: TWinControl; Index: Integer; ARect: Types.TRect; State: StdCtrls.TOwnerDrawState);
+begin
+  (Control as TComboBox).Canvas.FillRect(ARect);                                         //first paint normal background
+  mGraphicsUtility.WriteText((Control as TComboBox).Canvas, ARect, (Control as TComboBox).Items[Index], taLeftJustify);
+end;
+
 constructor TmComboFilterConditionPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
   FCombobox := TComboBox.Create(Self);
-  FComboBox.Parent := Self;
-  FComboBox.Align:= alBottom;
-  FComboBox.Style:= csDropDownList;
-  FComboBox.DropDownCount:= 20;
+  FCombobox.Parent := Self;
+  FCombobox.Align:= alBottom;
+  FCombobox.Style:= csOwnerDrawFixed;
+  FCombobox.DropDownCount:= 20;
+  FCombobox.OnDropDown:= Self.OnDropDown;
+  // FCombobox.OnDrawItem:= CustomDrawItem();
   FLabel := Self.CreateStandardLabel;
   FGarbage := TObjectList.Create(true);
   FDefaultItemIndex:= -1;
   CreateStandardFilterMenu(FLabel, false);
   FValueType:= cfString;
+  FWidthOptimized := false;
 end;
 
 destructor TmComboFilterConditionPanel.Destroy;
@@ -924,7 +945,6 @@ begin
   FComboBox.AddItem(aLabel, sh);
   if (FDefaultItemIndex >= 0) and (FCombobox.Items.Count > FDefaultItemIndex) then
     FCombobox.ItemIndex:= FDefaultItemIndex;
-  OptimalWidth;
 end;
 
 procedure TmComboFilterConditionPanel.ClearItems;
@@ -947,7 +967,7 @@ begin
   // get the max needed with of the items in dropdown state
   for idx := 0 to -1 + FCombobox.Items.Count do
   begin
-    itemWidth := FCombobox.Canvas.TextWidth(FCombobox.Items[idx]);
+    itemWidth := GetTextWidth(FCombobox.Items[idx], FCombobox.Font); // FCombobox.Canvas.TextWidth(FCombobox.Items[idx]);
     Inc(itemWidth, 2 * HORIZONTAL_PADDING);
     itemWidth := ScaleForMagnification(itemWidth, true);
     if (itemWidth > itemsFullWidth) then itemsFullWidth := itemWidth;
@@ -960,11 +980,14 @@ begin
     if FCombobox.DropDownCount < FCombobox.Items.Count then
       itemsFullWidth := itemsFullWidth + {$IFDEF LINUX} 20 {$ELSE} GetSystemMetrics(SM_CXVSCROLL){$ENDIF};
 
-    {$IFDEF LINUX}
-    Perform(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth);
-    {$ELSE}
-    SendMessage(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth, 0);
-    {$ENDIF}
+    if FCombobox.Handle <> 0 then
+    begin
+      {$IFDEF LINUX}
+      Perform(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth);
+      {$ELSE}
+      SendMessage(FCombobox.Handle, CB_SETDROPPEDWIDTH, itemsFullWidth, 0);
+      {$ENDIF}
+    end;
   end;
 end;
 

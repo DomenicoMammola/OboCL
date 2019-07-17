@@ -127,7 +127,6 @@ uses
   ,LclType
   ,LclProc
   ,LResources
-  ,LMessages
   {$ifdef debug}, LazLogger
   {$endif}
   {$else}
@@ -157,7 +156,7 @@ begin
   begin
     BoxRect := aRect;
     InflateRect(BoxRect, -2, -2);
-    WriteText(ACanvas, BoxRect, AText, ATextAlignment);
+    WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
   end;
 end;
 
@@ -235,9 +234,9 @@ begin
     y2 := y1 + FTitleSize;
     r := Classes.Rect (x1, y1, x2, y2);
     if r.Width < 30 then
-      WriteText(aCanvas, r, LeftStr(Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]),1), FDayAlignment)
+      WriteText(aCanvas, r, LeftStr(Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]),1), FDayAlignment, true)
     else
-      WriteText(aCanvas, r, Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment);
+      WriteText(aCanvas, r, Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment, true);
   end;
 
   aCanvas.Pen.Color := FLinesColor;

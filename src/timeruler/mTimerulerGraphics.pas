@@ -34,8 +34,6 @@ implementation
 uses
   mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF} {$IFDEF FPC},graphutil{$ENDIF};
 
-{$ifdef fpc}
-
 procedure DrawBar(ACanvas: TCanvas; const ARect: TRect; aBar: TmGanttBarDatum);
 begin
   ACanvas.Brush.Color:= aBar.Color;
@@ -44,6 +42,7 @@ begin
   ACanvas.Rectangle(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom);
 end;
 
+{$ifdef fpc}
 function IsDoubleBufferedNeeded: boolean;
 begin
   Result:= WidgetSet.GetLCLCapability(lcCanDrawOutsideOnPaint) = LCL_CAPABILITY_YES;
@@ -67,7 +66,7 @@ begin
   BoxRect := ARect;
   DrawBox(ACanvas, BoxRect);
   InflateRect(BoxRect, -2, -2);
-  WriteText(ACanvas, BoxRect, AText, ATextAlignment);
+  WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
 end;
 
 procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
@@ -89,7 +88,7 @@ begin
   BoxRect := ARect;
   DrawBox;
   InflateRect(BoxRect, -2, -2);
-  WriteText(ACanvas, BoxRect, AText, ATextAlignment);
+  WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
 end;
 
 

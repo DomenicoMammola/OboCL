@@ -841,9 +841,13 @@ begin
 end;
 
 procedure TmComboFilterConditionPanel.CustomDrawItem(Control: TWinControl; Index: Integer; ARect: Types.TRect; State: StdCtrls.TOwnerDrawState);
+var
+  tmpRect : TRect;
 begin
   (Control as TComboBox).Canvas.FillRect(ARect);                                         //first paint normal background
-  mGraphicsUtility.WriteText((Control as TComboBox).Canvas, ARect, (Control as TComboBox).Items[Index], taLeftJustify);
+  tmpRect := ARect;
+  InflateRect(tmpRect, -2, 0);
+  mGraphicsUtility.WriteText((Control as TComboBox).Canvas, tmpRect, (Control as TComboBox).Items[Index], taLeftJustify, true);
 end;
 
 constructor TmComboFilterConditionPanel.Create(TheOwner: TComponent);
@@ -855,7 +859,7 @@ begin
   FCombobox.Style:= csOwnerDrawFixed;
   FCombobox.DropDownCount:= 20;
   FCombobox.OnDropDown:= Self.OnDropDown;
-  // FCombobox.OnDrawItem:= CustomDrawItem();
+  FCombobox.OnDrawItem:= CustomDrawItem();
   FLabel := Self.CreateStandardLabel;
   FGarbage := TObjectList.Create(true);
   FDefaultItemIndex:= -1;

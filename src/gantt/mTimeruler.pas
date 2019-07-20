@@ -31,8 +31,8 @@ uses
 
   mDateTimeUtility,
 
-  mTimerulerScales, mTimerulerTimelines, mGanttEvents,
-  mTimerulerGraphics, mGanttGUIClasses,
+  mTimerulerScales, mTimerulerTimelines,
+  mGanttGraphics, mGanttGUIClasses, mGanttEvents,
 
   Dialogs, Messages;
 type

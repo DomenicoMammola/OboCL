@@ -7,7 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-unit mTimerulerGraphics;
+unit mGanttGraphics;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -18,8 +18,8 @@ interface
 uses
   Classes,
   {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$endif}
-  Graphics,
-  mGanttDataProvider;
+  Graphics, mGanttDataProvider
+  ;
 
 procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);

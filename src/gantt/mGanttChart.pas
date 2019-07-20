@@ -33,8 +33,8 @@ type
     FGantt : TmGantt;
     FGanttHead : TmGanttHead;
     FRightPanel : TCustomPanel;
-    FHorizontalScrollbar : TATScroll;
-    FVerticalScrollbar : TATScroll;
+    FHorizontalScrollbar : TATScrollbar;
+    FVerticalScrollbar : TATScrollbar;
     FHorizontalScrollbarRelativeIncrement : double;
     function GetDataProvider: TmGanttDataProvider;
     procedure OnChangeHorizonalScrollbar (Sender : TObject);
@@ -67,9 +67,9 @@ begin
   FTimeruler.OnDateChanged:= nil;
   try
     {$IFDEF DEBUG}
-    DebugLn('OnChangeHorizontalScrollbar - position:' + IntToStr((Sender as TATScroll).Position));
+    DebugLn('OnChangeHorizontalScrollbar - position:' + IntToStr((Sender as TATScrollbar).Position));
     {$ENDIF}
-    FTimeRuler.CurrentDate:= FTimeruler.MinDate + (Sender as TATScroll).Position * FHorizontalScrollbarRelativeIncrement;
+    FTimeRuler.CurrentDate:= FTimeruler.MinDate + (Sender as TATScrollbar).Position * FHorizontalScrollbarRelativeIncrement;
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;
   end;
@@ -77,7 +77,7 @@ end;
 
 procedure TmGanttChart.OnChangeVerticalScrollbar(Sender: TObject);
 begin
-  FGanttHead.TopRow:= (Sender as TATScroll).Position;
+  FGanttHead.TopRow:= (Sender as TATScrollbar).Position;
 end;
 
 function TmGanttChart.GetDataProvider: TmGanttDataProvider;
@@ -113,14 +113,14 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
 
-  FHorizontalScrollbar := TATScroll.Create(Self);
+  FHorizontalScrollbar := TATScrollbar.Create(Self);
   FHorizontalScrollbar.Parent := Self;
   FHorizontalScrollbar.Align:= alBottom;
   FHorizontalScrollbar.Kind:= sbHorizontal;
   FHorizontalScrollbar.PageSize:= 1;
   FHorizontalScrollbar.OnChange:= Self.OnChangeHorizonalScrollbar;
 
-  FVerticalScrollbar := TATScroll.Create(Self);
+  FVerticalScrollbar := TATScrollbar.Create(Self);
   FVerticalScrollbar.Kind := sbVertical;
   FVerticalScrollbar.Parent := Self;
   FVerticalScrollbar.Align:= alRight;

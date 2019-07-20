@@ -76,7 +76,7 @@ implementation
 
 uses
   math, Forms, sysutils,
-  mTimerulerGraphics;
+  mGanttGraphics;
 
 const
   DELIMITER_CLICKING_AREA : integer = 4;

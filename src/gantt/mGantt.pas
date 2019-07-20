@@ -72,7 +72,7 @@ implementation
 
 uses
   math, Forms,
-  mGanttEvents, mTimerulerGraphics;
+  mGanttEvents, mGanttGraphics;
 
 type
 

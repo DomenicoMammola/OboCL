@@ -28,7 +28,8 @@ var
 implementation
 
 uses
-  mtimerulerScales, mTimerulerTimelines;
+  dateutils,
+  mTimerulerScales, mTimerulerTimelines;
 
 {$R *.lfm}
 
@@ -38,11 +39,13 @@ procedure TForm1.FormCreate(Sender: TObject);
 var
   tmp : TmTimeline;
 begin
-  timeruler := Tmtimeruler.Create(Self);
+  timeruler := TmTimeruler.Create(Self);
   timeruler.Parent := Self;
   timeruler.Align := alTop;
   timeruler.Font.Name:= 'Calibri';
   timeruler.Font.Size:= 8;
+  timeruler.MinDate:= EncodeDate(YearOf(Now),1,1);;
+  timeruler.MaxDate:= EncodeDate(YearOf(Now),12,31);;
 
   tmp := timeruler.AddTimeline(TmScaleMonth);
   tmp.Scale.DisplayFormat:= '<UPPERCASE>MMM yyyy';
@@ -57,13 +60,13 @@ begin
   tmp.Color:= clSkyBlue;
   tmp.Flex:=2;
   timeruler.Rebuild;
-  timeruler.CurrentDate := EncodeDate(2017,1,16);
+  timeruler.CurrentDate := EncodeDate(YearOf(Now),1,16);
   timeruler.Height:= 50;
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 begin
-  timeruler.CurrentDate:= EncodeDate(2016, 2, 1);
+  timeruler.CurrentDate:= EncodeDate(YearOf(Now), 2, 1);
 end;
 
 end.

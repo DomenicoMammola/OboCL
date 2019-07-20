@@ -1,19 +1,19 @@
 object Form1: TForm1
-  Left = 258
+  Left = 958
   Height = 240
-  Top = 134
+  Top = 177
   Width = 320
   Caption = 'Form1'
   ClientHeight = 240
   ClientWidth = 320
   OnCreate = FormCreate
-  LCLVersion = '1.6.2.0'
+  LCLVersion = '2.0.2.0'
   object Button1: TButton
     Left = 22
     Height = 25
     Top = 185
     Width = 147
-    Caption = 'Move to 01/02/2016'
+    Caption = 'Move to 1st February'
     OnClick = Button1Click
     TabOrder = 0
   end

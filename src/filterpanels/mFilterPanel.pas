@@ -42,9 +42,10 @@ type
     FFilterMenu : TPopupMenu;
     FOperatorsMenuItems : TList;
     FAllowedOperators : TmFilterOperatorsSet;
+    FStandardLabelFontSize : integer;
     function CreateStandardLabel: TLabel;
     function CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;
-    function FormatFilterCaption (aValue : String; const aShowOperator: boolean= true) : String;
+    procedure ApplyFilterCaption (aLabel : TLabel; const aValue : String; const aShowOperator: boolean= true);
     procedure UpdateCurrentOperatorCheck;
     procedure OperatorMenuItemClick (Sender : TObject);
     procedure ClearMenuItemClick (Sender : TObject);
@@ -319,7 +320,7 @@ end;
 procedure TmCheckListFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited;
-  FLabel.Caption := Self.FormatFilterCaption(aValue, False);
+  Self.ApplyFilterCaption(FLabel, aValue, False);
 end;
 
 procedure TmCheckListFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
@@ -466,7 +467,7 @@ end;
 procedure TmLookupFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited SetFilterCaption(aValue);
-  FLabel.Caption := Self.FormatFilterCaption(aValue, false);
+  Self.ApplyFilterCaption(FLabel, aValue, false);
 end;
 
 procedure TmLookupFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
@@ -716,7 +717,7 @@ end;
 procedure TmEditFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited;
-  FLabel.Caption := Self.FormatFilterCaption(aValue);
+  Self.ApplyFilterCaption(FLabel, aValue);
 end;
 
 procedure TmEditFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
@@ -877,7 +878,7 @@ end;
 procedure TmComboFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited;
-  FLabel.Caption := Self.FormatFilterCaption(aValue, False);
+  Self.ApplyFilterCaption(FLabel, aValue, False);
 end;
 
 procedure TmComboFilterConditionPanel.ExportToFilter (aFilter : TmFilter);
@@ -1061,7 +1062,7 @@ end;
 procedure TmDateFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited;
-  FLabel.Caption := Self.FormatFilterCaption(aValue);
+  Self.ApplyFilterCaption(FLabel, aValue);
 end;
 
 procedure TmDateFilterConditionPanel.SetFilterValue(aValue: Variant);
@@ -1177,6 +1178,7 @@ begin
   Result.Alignment:= taCenter;
   Result.Font.Size := Round((- Graphics.GetFontData(Result.Font.Handle).Height * 72 / Result.Font.PixelsPerInch));
   ScaleFontForMagnification(Result.Font);
+  FStandardLabelFontSize:= Result.Font.Size;
 end;
 
 function TmFilterConditionPanel.CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;
@@ -1256,14 +1258,21 @@ begin
   Result := FFilterMenu;
 end;
 
-function TmFilterConditionPanel.FormatFilterCaption(aValue: String; const aShowOperator: boolean = true) : String;
+procedure TmFilterConditionPanel.ApplyFilterCaption (aLabel : TLabel; const aValue : String; const aShowOperator: boolean= true);
+var
+  s : String;
 begin
   if not AnsiEndsText(':', aValue) then
-    Result := aValue + ':'
+    s := aValue + ':'
   else
-    Result := aValue;
+    s := aValue;
   if aShowOperator and (FFilterOperator <> foUnknown) and (FFilterOperator <> foEq) and (SizeOf(FAllowedOperators) > 1) then
-    Result := Result + ' [' + TmFilterOperatorToString(Self.FFilterOperator) + ']';
+    s := s + ' [' + TmFilterOperatorToString(Self.FFilterOperator) + ']';
+
+  aLabel.Caption:= s;
+  aLabel.Font.Size:= FStandardLabelFontSize;
+  if GetTextWidth(s, aLabel.Font) > aLabel.Width then
+    aLabel.Font.Size:= trunc(FStandardLabelFontSize * 0.8);
 end;
 
 procedure TmFilterConditionPanel.UpdateCurrentOperatorCheck;

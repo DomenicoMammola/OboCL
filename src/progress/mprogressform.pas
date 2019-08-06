@@ -15,7 +15,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
-  StdCtrls, LCLIntf, contnrs,
+  StdCtrls, LCLIntf, ExtCtrls, contnrs,
   mProgressClasses, mBaseClassesAsObjects, mMaps, mMicroGames,
   Biru_FreshFruit, Biru;
 
@@ -23,6 +23,7 @@ type
 
   { TProgressForm }
   TProgressForm = class(TForm)
+    Shape1: TShape;
     procedure FormHide(Sender: TObject);
     procedure FormShow(Sender: TObject);
   strict private
@@ -150,6 +151,8 @@ begin
   FListBox.Align := alClient;
   FProgresses := TmStringDictionary.Create();
   FGarbage := TObjectList.Create(true);
+
+  Self.ShowInTaskBar:= stNever;
 end;
 
 destructor TProgressForm.Destroy;

@@ -15,7 +15,7 @@ unit Biru;
 interface
 
 uses
-  {$ifdef windows}Windows,{$endif}
+  {$ifndef fpc}{$ifdef windows}Windows,{$endif}{$endif}
   {$ifdef fpc}LCLIntf, LCLType,{$endif}
   SysUtils, Classes, Graphics, Controls, ExtCtrls, contnrs;
 
@@ -57,6 +57,9 @@ type
     FBiruShape: TBitmap;
     FBiruImage: TBitmap;
 
+    FBorder: integer;
+    FBorderColor : TColor;
+
     procedure Paint; override;
     procedure Init;
   public
@@ -89,16 +92,19 @@ begin
   try
     if (not FPlayingAnimation) then
     begin
-      Temp.Width := FFixedBackground.Width;
-      Temp.Height := FFixedBackground.Height;
-      BitBlt(Temp.Canvas.Handle, 0, 0, FFixedBackground.Width, FFixedBackground.Height,
-        FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
-      BitBlt(Temp.Canvas.Handle, BiruDefaultX,
-        BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
-      BitBlt(Temp.Canvas.Handle, BiruDefaultX,
-        BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
-      BitBlt(DefImage.Canvas.Handle, 0, 0, FBiruImage.Width,
-        FBiruImage.Height, Temp.Canvas.Handle, 0, 0, SRCCOPY);
+      Temp.Width := DefImage.Width;
+      Temp.Height := DefImage.Height;
+      if FBorder > 0 then
+      begin
+        Temp.Canvas.Pen.Color:= FBorderColor;
+        Temp.Canvas.Pen.Width:= FBorder;
+        Temp.Canvas.Brush.Color:= clWhite;
+        Temp.Canvas.Rectangle(0, 0, DefImage.Width - 1, DefImage.Height - 1);
+      end;
+
+      BitBlt(Temp.Canvas.Handle, FBorder, FBorder, FFixedBackground.Width, FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
+      BitBlt(Temp.Canvas.Handle, BiruDefaultX, BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
+      BitBlt(Temp.Canvas.Handle, BiruDefaultX, BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
       Canvas.Draw(0, 0, Temp);
     end;
   finally
@@ -110,8 +116,8 @@ procedure TBiru.Init;
 var
   R: TRect;
 begin
-  Self.Height:= FFixedBackground.Height;
-  Self.Width:= FFixedBackground.Width;
+  Self.Height:= FFixedBackground.Height + (FBorder * 2);
+  Self.Width:= FFixedBackground.Width + (FBorder * 2);
 
   FBiruImage := FImages.Items[0] as TBitmap;
   FBiruShape := FMasks.Items[0] as TBitmap;
@@ -120,12 +126,18 @@ begin
   BiruDefaultX := (FFixedBackground.Width - FBiruImage.Width) div 2;
   BiruDefaultY := (FFixedBackground.Height - FBiruImage.Height) div 2;
   XPos := (FFixedBackground.Width - FBiruImage.Width) div 2;
-  DefImage.Width := FFixedBackground.Width;
-  DefImage.Height := FFixedBackground.Height;
-  R := Rect(0, 0, FFixedBackground.Width, FFixedBackground.Height);
+  DefImage.Width := FFixedBackground.Width + (FBorder  * 2);
+  DefImage.Height := FFixedBackground.Height + (FBorder * 2);
+  R := Rect(0, 0, DefImage.Width, DefImage.Height);
   DefImage.Canvas.Brush.Color := clWhite;
   DefImage.Canvas.FillRect(R);
-
+  if FBorder > 0 then
+  begin
+    DefImage.Canvas.Pen.Color:= FBorderColor;
+    DefImage.Canvas.Pen.Width:= FBorder;
+    DefImage.Canvas.Brush.Color:= clWhite;
+    DefImage.Canvas.Rectangle(0, 0, DefImage.Width, DefImage.Height);
+  end;
 end;
 
 procedure TBiru.SetAnimation(Value: TBiruAnimationType);
@@ -150,30 +162,26 @@ begin
       if ((XPos + FBiruImage.Width) = FFixedBackground.Width) then
         ShiftX := -1
       else
-      if (XPos = 0) then
+      if (XPos = FBorder) then
         ShiftX := 1;
-      if (YPos = 0) then
+      if (YPos = FBorder) then
         ShiftY := 1
       else
       if ((YPos + FBiruImage.Height) = FFixedBackground.Height) then
         ShiftY := -1;
       XPos := XPos + ShiftX;
       YPos := YPos + ShiftY;
-      BitBlt(DefImage.Canvas.Handle, 0, 0, FFixedBackground.Width,
-        FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
-      BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width,
-        FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
-      BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width,
-        FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
+      BitBlt(DefImage.Canvas.Handle, FBorder, FBorder, FFixedBackground.Width, FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
+      BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
+      BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
       Canvas.Draw(0, 0, DefImage);
-
     end;
     tatScrolling:
     begin
-      BitBlt(DefImage.Canvas.Handle, RollingX, 0,
+      BitBlt(DefImage.Canvas.Handle, RollingX, FBorder,
         (FFixedBackground.Width - RollingX), FFixedBackground.Height, FScrollingBackground.Canvas.Handle, 0, 0, SRCCOPY);
       if (RollingX > 0) then
-        BitBlt(DefImage.Canvas.Handle, 0, 0, RollingX,
+        BitBlt(DefImage.Canvas.Handle, FBorder, FBorder, RollingX,
           FFixedBackground.Height, FScrollingBackground.Canvas.Handle, (FFixedBackground.Width - RollingX), 0, SRCCOPY);
       BitBlt(DefImage.Canvas.Handle, BiruDefaultX,
         BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
@@ -181,7 +189,7 @@ begin
         BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
       Canvas.Draw(0, 0, DefImage);
       Inc(RollingX);
-      if (RollingX > DefImage.Width) then
+      if (RollingX > FFixedBackground.Width) then
         RollingX := 0;
     end;
     tatSizing:
@@ -201,12 +209,9 @@ begin
         StrX := (FFixedBackground.Width - StretchingX) div 2;
         StrY := (FFixedBackground.Height - StretchingY) div 2;
 
-        BitBlt(DefImage.Canvas.Handle, 0, 0, FFixedBackground.Width,
-          FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
-        BitBlt(DefImage.Canvas.Handle, StrX, StrY,
-          StretchingX, StretchingY, StretchShape.Canvas.Handle, 0, 0, SRCAND);
-        BitBlt(DefImage.Canvas.Handle, StrX, StrY,
-          StretchingX, StretchingY, StretchBiru.Canvas.Handle, 0, 0, SRCPAINT);
+        BitBlt(DefImage.Canvas.Handle, FBorder, FBorder, FFixedBackground.Width, FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
+        BitBlt(DefImage.Canvas.Handle, StrX, StrY, StretchingX, StretchingY, StretchShape.Canvas.Handle, 0, 0, SRCAND);
+        BitBlt(DefImage.Canvas.Handle, StrX, StrY, StretchingX, StretchingY, StretchBiru.Canvas.Handle, 0, 0, SRCPAINT);
         Canvas.Draw(0, 0, DefImage);
         if ((StretchingX = 2) or (StretchingY = 2)) then
           FStretchingDirection := 1;
@@ -241,6 +246,8 @@ begin
   FAnimation := tatBouncing;
   FStretchingDirection := -1;
   FPlayingAnimation := False;
+  FBorder := 0;
+  FBorderColor := clBlack;
   DefImage := TBitmap.Create;
 
   FFixedBackground := TBitmap.Create;

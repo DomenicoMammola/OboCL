@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  ExtCtrls, Biru, Biru_FreshFruit;
+  ExtCtrls, Spin, Biru, Biru_FreshFruit;
 
 type
 
@@ -15,6 +15,7 @@ type
   TForm1 = class(TForm)
     Button1: TButton;
     Button2: TButton;
+    Label1: TLabel;
     RadioGroup1: TRadioGroup;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);

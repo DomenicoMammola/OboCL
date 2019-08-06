@@ -107,6 +107,8 @@ begin
   FMasks.Add(tmpBitmap);
   tmpBitmap.LoadFromLazarusResource('cherry_mask');
 
+  Self.FBorderColor:= clBlack;
+  Self.FBorder:= 1;
   Self.Init;
 end;
 

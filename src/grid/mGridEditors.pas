@@ -48,8 +48,8 @@ type
 
   *)
 
-  TmOnCellEditorGetValueEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
-  TmOnCellEditorShowWizardEvent = function(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean of object;
+  TmOnCellEditorGetValueEvent = function(const aCol, aRow: integer; out aNewDisplayValue: string; out aNewActualValue: variant): boolean of object;
+  TmOnCellEditorShowWizardEvent = function(const aCol, aRow: integer; out aNewDisplayValue: string; out aNewActualValue: variant): boolean of object;
   TmOnCellEditorClearEvent = function(const aCol, aRow: integer): boolean of object;
 
   { TmExtDialogCellEditor }
@@ -475,8 +475,7 @@ begin
   inherited DblClick;
   if Assigned(FOnGetValueEvent) then
   begin
-    if FOnGetValueEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue,
-      newActualValue) then
+    if FOnGetValueEvent(FParentGrid.Col, FParentGrid.Row, newDisplayValue, newActualValue) then
       Self.Text := newDisplayValue;
   end;
 end;

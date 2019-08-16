@@ -108,7 +108,7 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
-    function OnShowDialog  (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnShowDialog  (const aCol, aRow : integer; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
@@ -128,7 +128,7 @@ type
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
     procedure SetFocusInEditor;
-    function CheckMandatoryLines(var aMissingValues: string): boolean;
+    function CheckMandatoryLines(out aMissingValues: string): boolean;
     procedure CommitChanges;
 
     procedure AddLine (const aName : string; const aCaption : string; const aDefaultDisplayValue : string; const aDefaultActualValue: variant; const aEditorKind : TmEditingPanelEditorKind; const aReadOnly : boolean = false; const aMandatory: boolean = false; const aChangedValueDestination : TAbstractNullable = nil);
@@ -574,7 +574,7 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnShowDialog(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnShowDialog(const aCol, aRow : integer; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
   str, tmpKeyFieldName, tmpDisplayLabelFieldName : String;
@@ -1036,7 +1036,7 @@ begin
   FValueListEditor.EditorMode:= true;
 end;
 
-function TmEditingPanel.CheckMandatoryLines(var aMissingValues: string): boolean;
+function TmEditingPanel.CheckMandatoryLines(out aMissingValues: string): boolean;
 var
   i : integer;
   tmpLine : TEditorLine;

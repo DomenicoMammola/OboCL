@@ -151,9 +151,9 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
-    function OnGetValueFromMainSource(const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
-    function OnGetValue (const aCol, aRow : integer; const aSource: TOnGetValueSource; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
-    function OnGetValueFromWizard (const aCol, aRow : integer; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+    function OnGetValueFromMainSource(const aCol, aRow : integer; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
+    function OnGetValue (const aCol, aRow : integer; const aSource: TOnGetValueSource; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
+    function OnGetValueFromWizard (const aCol, aRow : integer; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
     function OnValueListEditorClearValue (const aCol, aRow: integer): boolean;
     procedure OnClickClearValue(Sender: TObject);
     function ComposeCaption (const aCaption : string; const aMandatory : boolean): string;
@@ -172,7 +172,7 @@ type
     destructor Destroy; override;
 
     procedure SetFocusInEditor;
-    function CheckMandatoryLines(var aMissingValues: string): boolean;
+    function CheckMandatoryLines(out aMissingValues: string): boolean;
     procedure CommitChanges;
 
     function AddLine(const aName : String): TmEditorLineConfiguration;
@@ -648,12 +648,12 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnGetValueFromMainSource(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnGetValueFromMainSource(const aCol, aRow: integer; out aNewDisplayValue: string; out aNewActualValue: variant): boolean;
 begin
   Result := OnGetValue(aCol, aRow, sMainButton, aNewDisplayValue, aNewActualValue);
 end;
 
-function TmEditingPanel.OnGetValue(const aCol, aRow : integer; const aSource: TOnGetValueSource; var aNewDisplayValue : string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnGetValue(const aCol, aRow : integer; const aSource: TOnGetValueSource; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
 var
   calendarFrm : TmCalendarDialog;
   colorDialog : TColorDialog;
@@ -846,7 +846,7 @@ begin
   end;
 end;
 
-function TmEditingPanel.OnGetValueFromWizard(const aCol, aRow: integer; var aNewDisplayValue: string; var aNewActualValue: variant): boolean;
+function TmEditingPanel.OnGetValueFromWizard(const aCol, aRow: integer; out aNewDisplayValue: string; out aNewActualValue: variant): boolean;
 begin
   Result := OnGetValue(aCol, aRow, sWizardButton, aNewDisplayValue, aNewActualValue);
 end;
@@ -1474,7 +1474,7 @@ begin
   end;
 end;
 
-function TmEditingPanel.CheckMandatoryLines(var aMissingValues: string): boolean;
+function TmEditingPanel.CheckMandatoryLines(out aMissingValues: string): boolean;
 var
   i : integer;
   tmpLine : TEditorLine;

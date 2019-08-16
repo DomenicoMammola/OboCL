@@ -184,14 +184,16 @@ begin
   try
     for i := 0 to aFieldNames.Count -1 do
     begin
-      col := LValues.Columns.Add;
-      tmpField := aValues.FieldByName(aFieldNames.Strings[i]);
-      col.Caption:= tmpField.DisplayLabel;
-      col.Width:= 200;
-//      col.AutoSize:= true;
-      FFieldsList.Add(tmpField.FieldName);
-      if CompareText(aFieldNames.Strings[i], aKeyFieldName) = 0 then
-        FIdxKeyFieldName := FFieldsList.Count - 1;
+      tmpField := aValues.FindField(aFieldNames.Strings[i]);
+      if Assigned(tmpField) then
+      begin
+        col := LValues.Columns.Add;
+        col.Caption:= tmpField.DisplayLabel;
+        col.Width:= 200;
+        FFieldsList.Add(tmpField.FieldName);
+        if CompareText(aFieldNames.Strings[i], aKeyFieldName) = 0 then
+          FIdxKeyFieldName := FFieldsList.Count - 1;
+      end;
     end;
 
     if FIdxKeyFieldName < 0 then

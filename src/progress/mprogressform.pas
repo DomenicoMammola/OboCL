@@ -66,6 +66,7 @@ begin
   if FListBox.Count >= aIndex then
   begin
     FListBox.Items[aIndex] := aMsg;
+    FListBox.ItemIndex:= FListBox.Count - 1;
 
     if (not FGames.Visible) and (SecondsBetween(Now, FStartTime) > 120) then
     begin

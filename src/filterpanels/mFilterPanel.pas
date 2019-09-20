@@ -31,8 +31,6 @@ type
   { TmFilterConditionPanel }
 
   TmFilterConditionPanel = class (TCustomPanel)
-  private
-    procedure SetFlex(AValue: integer);
   protected
     FFlex : integer;
     FFieldName : String;
@@ -52,6 +50,7 @@ type
     procedure FilterMenuPopup (Sender : TObject);
     procedure SetFilterOperator(AValue: TmFilterOperator); virtual;
   protected
+    procedure SetFlex(AValue: integer); virtual;
     procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy; const AXProportion, AYProportion: Double); override;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -80,6 +79,9 @@ type
     FDateEditMax : TmDateEdit;
   protected
     procedure SetFilterOperator(AValue: TmFilterOperator); override;
+    procedure SetFlex(AValue: integer); override;
+    procedure DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy; const AXProportion, AYProportion: Double); override;
+    procedure DoOnResize; override;
   public
     constructor Create(TheOwner: TComponent); override;
     procedure SetFilterCaption (aValue : String); override;
@@ -1032,6 +1034,27 @@ begin
   end;
 end;
 
+procedure TmDateFilterConditionPanel.SetFlex(AValue: integer);
+begin
+  inherited SetFlex(AValue);
+  if FFilterOperator = foBetween then
+    FDateEditMax.Width:= FBottomPanel.Width div 2;
+end;
+
+procedure TmDateFilterConditionPanel.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy; const AXProportion, AYProportion: Double);
+begin
+  inherited DoAutoAdjustLayout(AMode, AXProportion, AYProportion);
+  if FFilterOperator = foBetween then
+    FDateEditMax.Width:= FBottomPanel.Width div 2;
+end;
+
+procedure TmDateFilterConditionPanel.DoOnResize;
+begin
+  if FFilterOperator = foBetween then
+    FDateEditMax.Width:= FBottomPanel.Width div 2;
+  inherited DoOnResize;
+end;
+
 constructor TmDateFilterConditionPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -1156,6 +1179,7 @@ end;
 
 procedure TmFilterConditionPanel.DoAutoAdjustLayout(const AMode: TLayoutAdjustmentPolicy; const AXProportion, AYProportion: Double);
 begin
+  inherited;
   Self.Width := Round(Self.Width * AXProportion);
   Self.Height:= Round(Self.Height * AYProportion);
 end;
@@ -1328,7 +1352,6 @@ begin
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
   FOperatorsMenuItems := TList.Create;
-
 end;
 
 destructor TmFilterConditionPanel.Destroy;

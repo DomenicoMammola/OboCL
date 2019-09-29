@@ -114,6 +114,8 @@ type
     property SelectedColor : TColor read FSelectedColor write SetSelectedColor;
     property SelectedDaysColor : TColor read FSelectedDaysColor write SetSelectedDaysColor;
 
+    property SelectedBuckets : TIntegerList read FSelectedBuckets;
+
     property OnClickOnDay : TOnClickOnDay read FOnClickOnDay write FOnClickOnDay;
   end;
 

@@ -249,6 +249,9 @@ begin
     FSaveDialog.Filter:=SHtmlFileDescription + '|*.html';
   end;
 
+  if FSaveDialog.FileName <> '' then
+    FSaveDialog.FileName := ChangeFileExt(FSaveDialog.FileName, FSaveDialog.DefaultExt);
+
   if GetLastUsedFolderForExport.NotNull and DirectoryExists(GetLastUsedFolderForExport.AsString) then
     FSaveDialog.InitialDir:= GetLastUsedFolderForExport.AsString;
 
@@ -629,48 +632,51 @@ begin
               if (curField.DataType = ftSmallint) or (curField.DataType = ftInteger) or (curField.DataType = ftLargeint) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell('')
+                  CSVBuilder.AppendCellRFC4180('')
                 else
-                  CSVBuilder.AppendCell(IntToStr(curValue));
+                  CSVBuilder.AppendCellRFC4180(IntToStr(curValue));
               end
               else
               if (curField.DataType = ftFloat) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell('')
+                  CSVBuilder.AppendCellRFC4180('')
                 else
-                  CSVBuilder.AppendCell(FloatToStr(curValue));
+                  if curField.DisplayFormat <> '' then
+                    CSVBuilder.AppendCellRFC4180(FormatFloat(curField.DisplayFormat, curValue))
+                  else
+                    CSVBuilder.AppendCellRFC4180(FloatToStr(curValue));
               end
               else
               if (curField.DataType = ftDate) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell('')
+                  CSVBuilder.AppendCellRFC4180('')
                 else
-                  CSVBuilder.AppendCell(DateToStr(curValue));
+                  CSVBuilder.AppendCellRFC4180(DateToStr(curValue));
               end
               else
               if (curField.DataType = ftDateTime) or (curField.DataType = ftTime) or (curField.DataType = ftTimeStamp) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell('')
+                  CSVBuilder.AppendCellRFC4180('')
                 else
-                  CSVBuilder.AppendCell(DateTimeToStr(curValue));
+                  CSVBuilder.AppendCellRFC4180(DateTimeToStr(curValue));
               end
               else
               if (curField.DataType = ftBoolean) then
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell('')
+                  CSVBuilder.AppendCellRFC4180('')
                 else
-                  CSVBuilder.AppendQuotedCell(BoolToStr(curValue, true));
+                  CSVBuilder.AppendCellRFC4180(BoolToStr(curValue, true));
               end
               else
               begin
                 if VarIsNull(curValue) then
-                  CSVBuilder.AppendCell('')
+                  CSVBuilder.AppendCellRFC4180('')
                 else
-                  CSVBuilder.AppendQuotedCell(VarToStr(curValue));
+                  CSVBuilder.AppendCellRFC4180(VarToStr(curValue));
               end;
             end;
           end;

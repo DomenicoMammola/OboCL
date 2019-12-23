@@ -15,10 +15,6 @@ http://www.kluug.net/omultipanel.php
 and put it in folder omultipanel
 
 Clone
-https://github.com/DomenicoMammola/ATTabs.git
-in folder ATTabs
-
-Clone
 https://github.com/DomenicoMammola/ATFlatControls.git
 in folder ATFlatControls
 

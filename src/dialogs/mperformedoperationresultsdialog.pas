@@ -117,8 +117,11 @@ begin
   FTabs.OptShowScrollMark:= false;
 //  FTabs.OptButtonLayout:= '';
   FTabs.OptShowFlat:= false;
-  FTabs.OptShowAngled:= true;
+  // FTabs.OptShowAngled:= true;
+  FTabs.OptSpaceSide := 0;
   FTabs.OptSpaceBetweenTabs:= 5;
+  FTabs.OptActiveFontStyle:= [fsBold];
+  FTabs.OptActiveFontStyleUsed:= true;
 
   FNotebook := TNotebook.Create(BodyPanel);
   FNotebook.Parent := BodyPanel;

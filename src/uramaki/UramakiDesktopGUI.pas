@@ -156,8 +156,11 @@ begin
   FTabs.OptShowScrollMark:= false;
   FTabs.OptButtonLayout:= '';
   FTabs.OptShowFlat:= false;
-  FTabs.OptShowAngled:= true;
+  FTabs.OptSpaceSide := 0;
+   // FTabs.OptShowAngled:= true;
   FTabs.OptSpaceBetweenTabs:= 5;
+  FTabs.OptActiveFontStyle:= [fsBold];
+  FTabs.OptActiveFontStyleUsed:= true;
   FUpdatingLabel := TLabel.Create(Self);
   FUpdatingLabel.Parent:= Self;
   FUpdatingLabel.Align:= alTop;

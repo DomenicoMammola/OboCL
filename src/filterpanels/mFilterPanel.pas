@@ -492,7 +492,7 @@ begin
   end;
   if FValueType = efInteger then
   begin
-    if VarIsNumeric(FCurrentValue) then
+    if IsNumeric(VarToStr(FCurrentValue), false) then
       aFilter.Value := FCurrentValue
     else
       aFilter.Value := null;
@@ -501,7 +501,7 @@ begin
   else
   if (FValueType = efFloat) then
   begin
-    if VarIsFloat(FCurrentValue) then
+    if IsNumeric(VarToStr(FCurrentValue), true) then
       aFilter.Value := FCurrentValue
     else
       aFilter.Value := null;

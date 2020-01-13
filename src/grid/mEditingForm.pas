@@ -1189,7 +1189,7 @@ procedure TmEditingPanel.CheckInteger(const aOldStringValue: string; var aNewStr
 begin
   if aNewStringValue <> '' then
   begin
-    if not IsNumeric(aNewStringValue, false) then
+    if not IsNumeric(aNewStringValue, false, true) then
     begin
       aNewStringValue := aOldStringValue;
       TmToast.ShowText(SErrorNotANumber);
@@ -1207,7 +1207,7 @@ var
 begin
   if aNewStringValue <> '' then
   begin
-    if not IsNumeric(aNewStringValue, false) then
+    if not IsNumeric(aNewStringValue, false, false) then
     begin
       aNewStringValue := aOldStringValue;
       TmToast.ShowText(SErrorNotANumber);
@@ -1249,7 +1249,7 @@ var
 begin
   if aNewStringValue <> '' then
   begin
-    if not IsNumeric(aNewStringValue, false) then
+    if not IsNumeric(aNewStringValue, false, false) then
     begin
       aNewStringValue := aOldStringValue;
       TmToast.ShowText(SErrorNotANumber);

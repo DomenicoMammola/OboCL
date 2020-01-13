@@ -487,7 +487,7 @@ begin
   begin
     if NewValue <> '' then
     begin
-      if not IsNumeric(NewValue, false) then
+      if not IsNumeric(NewValue, false, true) then
       begin
         NewValue := OldValue;
         TmToast.ShowText(SErrorNotANumber);

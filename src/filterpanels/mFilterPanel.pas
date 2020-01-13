@@ -492,7 +492,7 @@ begin
   end;
   if FValueType = efInteger then
   begin
-    if IsNumeric(VarToStr(FCurrentValue), false) then
+    if IsNumeric(VarToStr(FCurrentValue), false, true) then
       aFilter.Value := FCurrentValue
     else
       aFilter.Value := null;
@@ -501,7 +501,7 @@ begin
   else
   if (FValueType = efFloat) then
   begin
-    if IsNumeric(VarToStr(FCurrentValue), true) then
+    if IsNumeric(VarToStr(FCurrentValue), true, true) then
       aFilter.Value := FCurrentValue
     else
       aFilter.Value := null;
@@ -684,13 +684,13 @@ begin
     else
     if FValueType = efInteger then
     begin
-      if not IsNumeric(FEdit.Text, false) then
+      if not IsNumeric(FEdit.Text, false, true) then
         FEdit.Text := '';
     end
     else
     if FValueType = efFloat then
     begin
-      if not IsNumeric(FEdit.Text, true) then
+      if not IsNumeric(FEdit.Text, true, true) then
         FEdit.Text := '';
     end
     else
@@ -746,7 +746,7 @@ begin
   else
   if FValueType = efInteger then
   begin
-    if IsNumeric(FEdit.Text, false) then
+    if IsNumeric(FEdit.Text, false, true) then
       aFilter.Value := StrToInt(FEdit.Text)
     else
       aFilter.Value := null;
@@ -755,7 +755,7 @@ begin
   else
   if FValueType = efFloat then
   begin
-    if IsNumeric(FEdit.Text, true) then
+    if IsNumeric(FEdit.Text, true, true) then
     begin
       if TryToConvertToDouble(FEdit.Text, tmp) then
         aFilter.Value := tmp

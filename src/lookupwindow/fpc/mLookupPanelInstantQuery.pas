@@ -156,18 +156,19 @@ end;
 procedure TmLookupPanelInstantQuery.Init(const aInstantQueryManager: IVDInstantQueryManager; const aFieldNames: TStringList; const aKeyFieldName: string; const aDisplayFieldNames: TStringList);
 var
   fields : TStringList;
-  i : integer;
+  i, q : integer;
 begin
-  FInstantQueryManager := aInstantQueryManager;
-  FInstantQueryManager.Clear;
-  FGrid.DataSource.DataSet.DisableControls;
+  fields := TStringList.Create;
   try
-    FDatasetProvider.Init(FInstantQueryManager.GetDataProvider);
-    FInstantQueryManager.GetDataProvider.FillVirtualFieldDefs(FDatasetProvider.VirtualFieldDefs, '');
-    FVirtualDataset.Active:= true;
-    FVirtualDataset.Refresh;
-    fields := TStringList.Create;
+
+    FInstantQueryManager := aInstantQueryManager;
+    FInstantQueryManager.Clear;
+    FGrid.DataSource.DataSet.DisableControls;
     try
+      FDatasetProvider.Init(FInstantQueryManager.GetDataProvider);
+      FInstantQueryManager.GetDataProvider.FillVirtualFieldDefs(FDatasetProvider.VirtualFieldDefs, '');
+      FVirtualDataset.Active:= true;
+      FVirtualDataset.Refresh;
       if aFieldNames <> nil then
         fields.AddStrings(aFieldNames)
       else
@@ -177,21 +178,39 @@ begin
         if fields.IndexOf(FVirtualDataset.Fields[i].FieldName) < 0 then
           FVirtualDataset.Fields[i].Visible:= false;
       end;
-    finally
-      fields.Free;
-    end;
-    FDisplayFieldNames.Clear;
-    if aDisplayFieldNames <> nil then
-      FDisplayFieldNames.AddStrings(aDisplayFieldNames)
-    else
-      FInstantQueryManager.GetDataProvider.GetMinimumFields(FDisplayFieldNames);
+      FDisplayFieldNames.Clear;
+      if aDisplayFieldNames <> nil then
+        FDisplayFieldNames.AddStrings(aDisplayFieldNames)
+      else
+        FInstantQueryManager.GetDataProvider.GetMinimumFields(FDisplayFieldNames);
 
-    FKeyFieldName:= aKeyFieldName;
-    if FKeyFieldName = '' then
-      FKeyFieldName:= aInstantQueryManager.GetDataProvider.GetKeyFieldName;
+      FKeyFieldName:= aKeyFieldName;
+      if FKeyFieldName = '' then
+        FKeyFieldName:= aInstantQueryManager.GetDataProvider.GetKeyFieldName;
+    finally
+      FGrid.DataSource.DataSet.EnableControls;
+    end;
+
+    FGrid.BeginUpdate;
+    try
+      for i := 0 to fields.Count - 1 do
+      begin
+        for q := 0 to FGrid.Columns.Count -1 do
+        begin
+          if FGrid.Columns.Items[q].FieldName = fields.Strings[i] then
+          begin
+            FGrid.Columns.Items[q].Index:= i;
+            break;
+          end;
+        end;
+      end;
+    finally
+      FGrid.EndUpdate(true);
+    end;
   finally
-    FGrid.DataSource.DataSet.EnableControls;
+    fields.Free;
   end;
+
 end;
 
 procedure TmLookupPanelInstantQuery.SetFocusOnFilter;

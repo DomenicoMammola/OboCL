@@ -7,6 +7,7 @@ object mLookupInstantQueryFrm: TmLookupInstantQueryFrm
   ClientHeight = 548
   ClientWidth = 801
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   Position = poMainFormCenter
   LCLVersion = '2.0.2.0'

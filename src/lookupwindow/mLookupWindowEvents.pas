@@ -16,8 +16,12 @@ unit mLookupWindowEvents;
 
 interface
 
+uses
+  mDataProviderInterfaces;
+
 type
   TOnSelectAValue = procedure (const aKeyValue: variant; const aDisplayLabel: string) of object;
+  TOnSelectAValueDatum = procedure (const aKeyValue: variant; const aDisplayLabel: string; var aDatum : IVDDatum) of object;
 
 implementation
 

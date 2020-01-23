@@ -34,13 +34,15 @@ type
     CancelBtn: TBitBtn;
     OkBtn: TBitBtn;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure OkBtnClick(Sender: TObject);
   private
     FLookupPanel : TmLookupPanelInstantQuery;
     FSelectedValue : Variant;
     FSelectedDisplayLabel : String;
-    procedure OnSelectValue (const aKeyValue: variant; const aDisplayLabel: string);
+    FSelectedDatum : IVDDatum;
+    procedure OnSelectValueDatum (const aKeyValue: variant; const aDisplayLabel: string; var aDatum : IVDDatum);
   public
     { public declarations }
     procedure Init (const aInstantQueryManager : IVDInstantQueryManager; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList); overload;
@@ -48,6 +50,7 @@ type
 
     property SelectedValue: variant read FSelectedValue;
     property SelectedDisplayLabel: string read FSelectedDisplayLabel;
+    property SelectedDatum: IVDDatum read FSelectedDatum;
   end;
 
 
@@ -71,15 +74,25 @@ begin
   FLookupPanel := TmLookupPanelInstantQuery.Create(Self);
   FLookupPanel.Parent := Self;
   FLookupPanel.Align:= alClient;
-  FLookupPanel.OnSelectAValue:= @OnSelectValue;
+  FLookupPanel.OnSelectAValue:= @OnSelectValueDatum;
   FSelectedValue:= Null;
   FSelectedDisplayLabel:= '';
+  FSelectedDatum:= nil;
   SetupFormAndCenter(Self, 0.8);
+end;
+
+procedure TmLookupInstantQueryFrm.FormDestroy(Sender: TObject);
+begin
+  if Assigned(FSelectedDatum) then
+    FSelectedDatum.AsObject.Free;
 end;
 
 procedure TmLookupInstantQueryFrm.OkBtnClick(Sender: TObject);
 begin
-  FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel);
+  if Assigned(FSelectedDatum) then
+    FSelectedDatum.AsObject.Free;
+
+  FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel, FSelectedDatum);
   if not VarIsNull(FSelectedValue) then
     ModalResult := mrOk
   else
@@ -87,9 +100,14 @@ begin
 end;
 
 
-procedure TmLookupInstantQueryFrm.OnSelectValue(const aKeyValue: variant; const aDisplayLabel: string);
+procedure TmLookupInstantQueryFrm.OnSelectValueDatum (const aKeyValue: variant; const aDisplayLabel: string; var aDatum : IVDDatum);
 begin
-  FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel);
+  //FLookupPanel.GetSelectedValues(FSelectedValue, FSelectedDisplayLabel, );
+  FSelectedValue:= aKeyValue;
+  FSelectedDisplayLabel:= aDisplayLabel;
+  if Assigned(FSelectedDatum) then
+    FSelectedDatum.AsObject.Free;
+  FSelectedDatum := aDatum;
   ModalResult := mrOk;
 end;
 

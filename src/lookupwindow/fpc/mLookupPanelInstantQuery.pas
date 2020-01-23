@@ -39,7 +39,7 @@ type
     FEditText: TEdit;
     FDisplayFieldNames : TStringList;
     FKeyFieldName : String;
-    FOnSelectAValue : TOnSelectAValue;
+    FOnSelectAValue : TOnSelectAValueDatum;
 
     FDatasetProvider: TReadOnlyVirtualDatasetProvider;
     FVirtualDataset : TmVirtualDataset;
@@ -54,9 +54,9 @@ type
     procedure Init(const aInstantQueryManager : IVDInstantQueryManager); overload;
     procedure Init(const aInstantQueryManager : IVDInstantQueryManager; const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList); overload;
     procedure SetFocusOnFilter;
-    procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string);
+    procedure GetSelectedValues (out aKeyValue: variant; out aDisplayLabel: string; out aDatum : IVDDatum);
 
-    property OnSelectAValue : TOnSelectAValue read FOnSelectAValue write FOnSelectAValue;
+    property OnSelectAValue : TOnSelectAValueDatum read FOnSelectAValue write FOnSelectAValue;
   end;
 
 
@@ -90,11 +90,14 @@ procedure TmLookupPanelInstantQuery.OnDoubleClickGrid(Sender: TObject);
 var
   tmpDisplayLabel: string;
   tmpKeyValue: variant;
+  tmpDatum: IVDDatum;
 begin
   if (FGrid.SelectedRows.Count = 1) and (Assigned(FOnSelectAValue)) then
   begin
-    Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel);
-    FOnSelectAValue(tmpKeyValue, tmpDisplayLabel);
+    tmpKeyValue := Null;
+    tmpDisplayLabel:= '';
+    Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel, tmpDatum);
+    FOnSelectAValue(tmpKeyValue, tmpDisplayLabel, tmpDatum);
   end;
 end;
 
@@ -218,9 +221,10 @@ begin
   FEditText.SetFocus;
 end;
 
-procedure TmLookupPanelInstantQuery.GetSelectedValues(out aKeyValue: variant; out aDisplayLabel: string);
+procedure TmLookupPanelInstantQuery.GetSelectedValues(out aKeyValue: variant; out aDisplayLabel: string; out aDatum : IVDDatum);
 var
   value : Variant;
+  tmpDatum : IVDDatum;
 begin
   aKeyValue := null;
   aDisplayLabel:= '';
@@ -228,7 +232,9 @@ begin
   begin
     aKeyValue := FVirtualDataset.FieldByName(FKeyFieldName).Value;
     value := FVirtualDataset.FieldByName(FInstantQueryManager.GetDataProvider.GetKeyFieldName).Value;
-    aDisplayLabel:= ConcatenateFieldValues(FInstantQueryManager.GetDataProvider.FindDatumByStringKey(VarToStr(value)), FDisplayFieldNames);
+    tmpDatum := FInstantQueryManager.GetDataProvider.FindDatumByStringKey(VarToStr(value));
+    aDisplayLabel:= ConcatenateFieldValues(tmpDatum, FDisplayFieldNames);
+    aDatum := tmpDatum.Clone;
   end;
 end;
 

@@ -47,6 +47,7 @@ type
 
     procedure OnClickSearch(aSender : TObject);
     procedure OnDoubleClickGrid(Sender: TObject);
+    procedure OnKeyDownGrid(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -64,7 +65,7 @@ type
 implementation
 
 uses
-  Variants, Forms;
+  Variants, Forms, LCLType;
 
 { TmLookupPanelInstantQuery }
 
@@ -101,6 +102,22 @@ begin
   end;
 end;
 
+procedure TmLookupPanelInstantQuery.OnKeyDownGrid(Sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  tmpDisplayLabel: string;
+  tmpKeyValue: variant;
+  tmpDatum: IVDDatum;
+begin
+  if (Key = VK_RETURN) and (FGrid.SelectedRows.Count = 1) and (Assigned(FOnSelectAValue)) then
+  begin
+    tmpKeyValue := Null;
+    tmpDisplayLabel:= '';
+    Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel, tmpDatum);
+    FOnSelectAValue(tmpKeyValue, tmpDisplayLabel, tmpDatum);
+  end;
+
+end;
+
 constructor TmLookupPanelInstantQuery.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -128,6 +145,7 @@ begin
   FGrid.Flat := True;
   FGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
   FGrid.OnDblClick:=OnDoubleClickGrid;
+  FGrid.OnKeyDown:=OnKeyDownGrid;
   FDatasource.DataSet := FVirtualDataset;
   FVirtualDataset.DatasetDataProvider := FDatasetProvider;
 

@@ -57,7 +57,7 @@ type
 implementation
 
 uses
-  SysUtils, Math;
+  SysUtils, Math, LCLType;
 
 type
   TResultValues = class
@@ -84,7 +84,7 @@ var
   tmpDisplayLabel: string;
   tmpKeyValue: variant;
 begin
-  if (Key = 13) and (LValues.SelCount = 1) and (Assigned(FOnSelectAValue)) then
+  if (Key = VK_RETURN) and (LValues.SelCount = 1) and (Assigned(FOnSelectAValue)) then
   begin
     Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel);
     FOnSelectAValue(tmpKeyValue, tmpDisplayLabel);

@@ -48,6 +48,7 @@ type
     procedure OnClickSearch(aSender : TObject);
     procedure OnDoubleClickGrid(Sender: TObject);
     procedure OnKeyDownGrid(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure OnKeyDownEdit(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -115,7 +116,15 @@ begin
     Self.GetSelectedValues(tmpKeyValue, tmpDisplayLabel, tmpDatum);
     FOnSelectAValue(tmpKeyValue, tmpDisplayLabel, tmpDatum);
   end;
+end;
 
+procedure TmLookupPanelInstantQuery.OnKeyDownEdit(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_DOWN) and (FGrid.DataSource.DataSet.RecordCount > 0) then
+  begin
+    FGrid.SetFocus;
+    FGrid.SelectedRows.CurrentRowSelected:= true;
+  end;
 end;
 
 constructor TmLookupPanelInstantQuery.Create(TheOwner: TComponent);
@@ -159,6 +168,7 @@ begin
   FEditText:= TEdit.Create(FTopPanel);
   FEditText.Parent := FTopPanel;
   FEditText.Align:= alClient;
+  FEditText.OnKeyDown:= OnKeyDownEdit;
 end;
 
 destructor TmLookupPanelInstantQuery.Destroy;

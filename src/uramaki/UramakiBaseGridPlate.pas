@@ -740,8 +740,12 @@ begin
       try
         for i := 0 to FGrid.SelectedRows.Count - 1 do
         begin
-          FDataset.GotoBookmark(FGrid.SelectedRows[i]);
-          aDoFillRollFromDatasetRow(aUramakiRoll, FDataset);
+          // rarely odd behaviour, so better to put a check
+          if FDataset.BookmarkValid(FGrid.SelectedRows[i]) then
+          begin
+            FDataset.GotoBookmark(FGrid.SelectedRows[i]);
+            aDoFillRollFromDatasetRow(aUramakiRoll, FDataset);
+          end;
         end;
       finally
         FDataset.GotoBookmark(tmpBookmark);

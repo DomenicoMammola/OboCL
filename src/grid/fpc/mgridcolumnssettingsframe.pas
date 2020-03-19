@@ -18,7 +18,7 @@ uses
   Classes, SysUtils, BufDataset, FileUtil, Forms, Controls,
   Menus, ExtCtrls, StdCtrls, EditBtn,
 
-  OMultiPanel, oMultiPanelSetup,
+  OMultiPanel, OMultiPanelSetup,
 
   mGridColumnSettings, mUtility;
 

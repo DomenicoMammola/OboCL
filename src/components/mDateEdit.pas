@@ -58,7 +58,7 @@ begin
   inherited Create(AOwner);
   Self.OnCustomDate:= OnInternalCustomDate;
   FCustomGlyph:= TBitmap.Create;
-  FCustomGlyph.LoadFromLazarusResource('mDateEdit');
+  FCustomGlyph.LoadFromLazarusResource('mdateedit');
   Self.Glyph := FCustomGlyph;
 end;
 
@@ -69,6 +69,6 @@ begin
 end;
 
 initialization
-  {$I mDateEdit_gliph.lrs}
+  {$i mdateedit_gliph.lrs}
 
 end.

@@ -8,7 +8,7 @@
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
 
-unit mlookupform;
+unit mLookupForm;
 
 {$mode objfpc}
 {$H+}

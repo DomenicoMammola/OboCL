@@ -1,1 +1,1 @@
-/usr/share/lazarus/1.8.2/tools/lazres ../mDateEdit_gliph.lrs mDateEdit.bmp
+/usr/share/lazarus/2.0.2/tools/lazres ../mDateEdit_gliph.lrs mDateEdit.bmp

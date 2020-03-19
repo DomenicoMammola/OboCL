@@ -22,7 +22,7 @@ interface
 uses
   Classes, Controls, Forms, ValEdit, Graphics, Grids, contnrs, ExtCtrls,
   SysUtils, variants, StdCtrls, Buttons, CheckLst,
-  oMultiPanelSetup, OMultiPanel,
+  OMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility,
   mLookupForm, mlookupformInstantQuery,
   mQuickReadOnlyVirtualDataSet, mDataProviderFieldDefs, mNullables,
@@ -257,6 +257,7 @@ type
     Name : String;
     Memo : TMemo;
     ChangedValueDestination: TAbstractNullable;
+    MemoHeightPercent : double;
   end;
 
 { TmEditorLineConfiguration }
@@ -925,7 +926,7 @@ var
   tmpPanel1, tmpPanel2 : TPanel;
   tmpMemo : TMemo;
   i : integer;
-  position : double;
+  position, mainPanelPosition : double;
   tmpEditorMemo : TEditorMemo;
 begin
   tmpPanel1 := TPanel.Create(FRootPanel);
@@ -956,17 +957,23 @@ begin
   tmpEditorMemo.Memo := tmpMemo;
   tmpEditorMemo.ChangedValueDestination := aChangedValueDestination;
   tmpEditorMemo.Memo.ReadOnly := (aReadOnly <> roAllowEditing);
+  tmpEditorMemo.MemoHeightPercent:= aMemoHeightPercent;
 
   FMemos.Add(tmpEditorMemo);
   FMemosByName.Add(aName, tmpEditorMemo);
 
+  mainPanelPosition := 1;
+  for i := 0 to FMemos.Count - 1 do
+    mainPanelPosition:= mainPanelPosition - (FMemos.Items[i] as TEditorMemo).MemoHeightPercent;
+
   FRootPanel.PanelCollection.Items[FRootPanel.PanelCollection.Count - 1].Position:= 1;
-  position := 1 - aMemoHeightPercent;
-  for i := FRootPanel.PanelCollection.Count -2 downto 0 do
+  position := 1;
+  for i := FRootPanel.PanelCollection.Count - 2 downto 1  do
   begin
+    position := position - (FMemos.Items[i] as TEditorMemo).MemoHeightPercent;
     FRootPanel.PanelCollection.Items[i].Position := position;
-    position := position - aMemoHeightPercent;
   end;
+  FRootPanel.PanelCollection.Items[0].Position := mainPanelPosition;
 end;
 
 function TmEditingPanel.GetValue(const aName: string): Variant;
@@ -1538,5 +1545,6 @@ begin
   end;
   FCommitted := true;
 end;
+
 
 end.

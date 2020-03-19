@@ -1,1 +1,1 @@
-/usr/share/lazarus/1.8.2/tools/lazres ../lcl_dbgrid_customimages.lrs dbgridcustomgrayedcb.bmp dbgridcustomcheckedcb.bmp dbgridcustomuncheckedcb.bmp
+/usr/share/lazarus/2.0.2/tools/lazres ../lcl_dbgrid_customimages.lrs dbgridcustomgrayedcb.bmp dbgridcustomcheckedcb.bmp dbgridcustomuncheckedcb.bmp

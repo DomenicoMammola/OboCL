@@ -22,8 +22,10 @@ uses
 type
 
   TmCalendarItemType = (itMonth);
+  TmCalendarStyle = (csSimple, csAppointmentsList);
 
-  TOnClickOnDay  = procedure (const Button: TMouseButton; const Shift: TShiftState; const aDay : TDateTime);
+  TOnClickOnDay  = procedure (const Button: TMouseButton; const Shift: TShiftState; const aDay : TDateTime) of object;
+  TOnGetAppointments = procedure (const aDate : TDate; const aAppointments: TList) of object;
 
 
   { TmCalendar }
@@ -44,6 +46,7 @@ type
     FSelectedColor : TColor;
     FCaptionsColor : TColor;
     FLinesColor : TColor;
+    FStyle : TmCalendarStyle;
 
     // internal properties
     FItemWidth : integer;
@@ -58,8 +61,10 @@ type
 
     // events
     FOnClickOnDay : TOnClickOnDay;
+    FOnGetAppointments : TOnGetAppointments;
 
-    procedure Paint_Box(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
+    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
+    procedure Paint_Box(ACanvas: TCanvas; const ARect: TRect);
 
     procedure GetMonthCaptionRect(out aRect : TRect; const aRow, aCol : integer);
     procedure GetMonthWeekDaysTitleRect(out aRect : TRect; const aRow, aCol : integer);
@@ -80,6 +85,8 @@ type
     procedure SetLinesColor(AValue: TColor);
     procedure SetSelectedColor(AValue: TColor);
     procedure SetSelectedDaysColor(AValue: TColor);
+    procedure SetStartDate(AValue: TDateTime);
+    procedure SetStyle(AValue: TmCalendarStyle);
     procedure SetWeekdaysColor(AValue: TColor);
     procedure SetCols(AValue: integer);
 
@@ -106,6 +113,8 @@ type
     property Rows : integer read FRows write SetRows default 1;
     property ItemType : TmCalendarItemType read FItemType write SetItemType;
     property DayAlignment : TAlignment read FDayAlignment write SetDayAlignment;
+    property StartDate : TDateTime read FStartDate write SetStartDate;
+    property Style : TmCalendarStyle read FStyle write SetStyle;
     // colors
     property WeekdaysColor : TColor read FWeekdaysColor write SetWeekdaysColor;
     property DaysColor : TColor read FDaysColor write SetDaysColor;
@@ -117,6 +126,7 @@ type
     property SelectedBuckets : TIntegerList read FSelectedBuckets;
 
     property OnClickOnDay : TOnClickOnDay read FOnClickOnDay write FOnClickOnDay;
+    property OnGetAppointments : TOnGetAppointments read FOnGetAppointments write FOnGetAppointments;
   end;
 
 implementation
@@ -139,27 +149,28 @@ uses
 
 { TmCalendar }
 
-procedure TmCalendar.Paint_Box(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
-  procedure DrawBox;
-  begin
-    ACanvas.Brush.Style:= bsSolid;
-    ACanvas.FillRect(aRect);
-    ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
-    ACanvas.Line(aRect.Left, aRect.Bottom, aRect.Right, aRect.Bottom);
-    ACanvas.Line(aRect.Left, aRect.Bottom, aRect.Left, aRect.Top);
-    ACanvas.Line(aRect.Right, aRect.Bottom, aRect.Right, aRect.Top);
-    aCanvas.Line(aRect.Left, aRect.Top, aRect.Right, aRect.Top);
-  end;
+procedure TmCalendar.Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 var
   BoxRect : TRect;
 begin
-  DrawBox;
+  Paint_Box(aCanvas, ARect);
   if AText <> '' then
   begin
     BoxRect := aRect;
     InflateRect(BoxRect, -2, -2);
     WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
   end;
+end;
+
+procedure TmCalendar.Paint_Box(ACanvas: TCanvas; const ARect: TRect);
+begin
+  ACanvas.Brush.Style:= bsSolid;
+  ACanvas.FillRect(aRect);
+  ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+  ACanvas.Line(aRect.Left, aRect.Bottom, aRect.Right, aRect.Bottom);
+  ACanvas.Line(aRect.Left, aRect.Bottom, aRect.Left, aRect.Top);
+  ACanvas.Line(aRect.Right, aRect.Bottom, aRect.Right, aRect.Top);
+  ACanvas.Line(aRect.Left, aRect.Top, aRect.Right, aRect.Top);
 end;
 
 procedure TmCalendar.GetMonthCaptionRect(out aRect: TRect; const aRow, aCol: integer);
@@ -217,7 +228,7 @@ begin
   aCanvas.Brush.Color:= Self.Color;
   aCanvas.Font := Self.Font;
   aCanvas.Font.Color := FCaptionsColor;
-  Paint_Box(aCanvas, tmpRect, str, taCenter);
+  Paint_BoxWithText(aCanvas, tmpRect, str, taCenter);
 end;
 
 procedure TmCalendar.Paint_Month_Weekdays(aCanvas: TCanvas; aRow, aCol: integer);
@@ -257,6 +268,7 @@ var
   r : TRect;
   tmpYear, tmpMonth, tmpDay : word;
   curDate : TDateTime;
+  appointments : TList;
 begin
   aCanvas.Font := Self.Font;
   aCanvas.Font.Color := FDaysColor;
@@ -285,7 +297,18 @@ begin
             aCanvas.Font.Color := FDaysColor;
             aCanvas.Brush.Color:= Self.Color;
           end;
-          Paint_Box(aCanvas, r, IntToStr(tmpDay), FDayAlignment);
+          if (FStyle = csAppointmentsList) and Assigned(FOnGetAppointments) then
+          begin
+            Paint_Box(aCanvas, r);
+            appointments := TList.Create;
+            try
+              FOnGetAppointments(curDate, appointments);
+            finally
+              appointments.Free;
+            end;
+          end
+          else
+            Paint_BoxWithText(aCanvas, r, IntToStr(tmpDay), FDayAlignment);
 
           curDate := curDate + 1;
           inc(tmpDay);
@@ -425,6 +448,20 @@ procedure TmCalendar.SetSelectedDaysColor(AValue: TColor);
 begin
   if FSelectedDaysColor=AValue then Exit;
   FSelectedDaysColor:=AValue;
+  Invalidate;
+end;
+
+procedure TmCalendar.SetStartDate(AValue: TDateTime);
+begin
+  if FStartDate=AValue then Exit;
+  FStartDate:=AValue;
+  Invalidate;
+end;
+
+procedure TmCalendar.SetStyle(AValue: TmCalendarStyle);
+begin
+  if FStyle=AValue then Exit;
+  FStyle:=AValue;
   Invalidate;
 end;
 
@@ -664,8 +701,10 @@ begin
   FCaptionsColor := clBlack;
   Self.Color:= clWhite;
   FLinesColor:= clLtGray;
+  FStyle := csSimple;
 
   FOnClickOnDay:= nil;
+  FOnGetAppointments:= nil;
 end;
 
 

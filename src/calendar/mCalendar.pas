@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, Controls, Graphics,
-  mMaps, mCalendarGUIClasses, mIntList;
+  mMaps, mCalendarGUIClasses, mCalendarClasses, mIntList;
 
 type
 
@@ -25,12 +25,16 @@ type
   TmCalendarStyle = (csSimple, csAppointmentsList);
 
   TOnClickOnDay  = procedure (const Button: TMouseButton; const Shift: TShiftState; const aDay : TDateTime) of object;
-  TOnGetAppointments = procedure (const aDate : TDate; const aAppointments: TList) of object;
+  TOnGetAppointments = procedure (const aDate : TDate; const aAppointments: tmCalendarAppointments) of object;
 
 
   { TmCalendar }
 
   TmCalendar = class (TCustomControl)
+  strict private
+    const MIN_DAY_HEADER_HEIGHT = 20;
+    const MIN_APPOINTMENT_HEIGHT = 20;
+    const MAX_APPOINTMENT_HEIGHT = 40;
   strict private
     FCols : integer;
     FRows : integer;
@@ -58,13 +62,16 @@ type
     FSelectedBucketsDictionary : TmIntegerDictionary;
     FSelectedBuckets: TIntegerList;
     FMouseMoveData : TmCalendarMouseMoveData;
+    FAppointmentsData : TmCalendarAppointments;
 
     // events
     FOnClickOnDay : TOnClickOnDay;
     FOnGetAppointments : TOnGetAppointments;
 
-    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
+    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment); overload;
+    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment); overload;
     procedure Paint_Box(ACanvas: TCanvas; const ARect: TRect);
+    procedure Paint_Appointments (aCanvas : TCanvas; const aRect : TRect; const aAppointments : TmCalendarAppointments);
 
     procedure GetMonthCaptionRect(out aRect : TRect; const aRow, aCol : integer);
     procedure GetMonthWeekDaysTitleRect(out aRect : TRect; const aRow, aCol : integer);
@@ -159,6 +166,23 @@ begin
     BoxRect := aRect;
     InflateRect(BoxRect, -2, -2);
     WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
+  end;
+end;
+
+procedure TmCalendar.Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment);
+var
+  delta, r : integer;
+  ar : TRect;
+begin
+  Paint_Box(aCanvas, ARect);
+  if ARows.Count > 0 then
+  begin
+    delta := (ARect.Height div 2) - 1;
+    for r := 0 to ARows.Count -1 do
+    begin
+      ar := Classes.Rect (ARect.Left, ARect.Top + (delta * r) , aRect.Right, aRect.Top + (delta * (r + 1)));
+      WriteText(ACanvas, ar, ARows.Strings[r], ATextAlignment, true);
+    end;
   end;
 end;
 
@@ -264,11 +288,10 @@ end;
 procedure TmCalendar.Paint_Month_Days(aCanvas: TCanvas; aRow, aCol: integer);
 var
   i, k : integer;
-  x1 , y1 , x2 , y2 : integer;
-  r : TRect;
+  x1 , y1 , x2 , y2,  yheader: integer;
+  r, hr, ar : TRect;
   tmpYear, tmpMonth, tmpDay : word;
   curDate : TDateTime;
-  appointments : TList;
 begin
   aCanvas.Font := Self.Font;
   aCanvas.Font.Color := FDaysColor;
@@ -300,11 +323,17 @@ begin
           if (FStyle = csAppointmentsList) and Assigned(FOnGetAppointments) then
           begin
             Paint_Box(aCanvas, r);
-            appointments := TList.Create;
-            try
-              FOnGetAppointments(curDate, appointments);
-            finally
-              appointments.Free;
+            FAppointmentsData.Clear;
+            FOnGetAppointments(curDate, FAppointmentsData);
+            yheader := y1 + max(MIN_DAY_HEADER_HEIGHT, trunc(FDayHeight * 0.2));
+            hr := Classes.Rect (x1, y1, x2, yheader);
+            ar := Classes.Rect(x1, yheader + 1, x2, y2);
+            Paint_BoxWithText(aCanvas, hr, IntToStr(tmpDay), FDayAlignment); // draw header
+            if FAppointmentsData.Count > 0 then
+            begin
+              //aCanvas.Brush.Color:= clRed;
+              //aCanvas.FillRect(ar);
+              Paint_Appointments(aCanvas, ar, FAppointmentsData);
             end;
           end
           else
@@ -318,7 +347,49 @@ begin
       end;
     end;
   end;
+end;
 
+procedure TmCalendar.Paint_Appointments(aCanvas: TCanvas; const aRect: TRect; const aAppointments : TmCalendarAppointments);
+var
+  curHeight : integer;
+  i, r, cols : integer;
+  x1, y1, x2, y2, delta : integer;
+  paintRect, ar : TRect;
+  tmpRows : TStringList;
+begin
+  if aAppointments.Count = 0 then
+    exit;
+  curHeight := (aRect.Height - 4 - (2 * aAppointments.Count)) div aAppointments.Count;
+  curHeight:= min(MAX_APPOINTMENT_HEIGHT, max (MIN_APPOINTMENT_HEIGHT, curHeight));
+  paintRect := aRect;
+
+  InflateRect(paintRect, -2, -2);
+  x1 := paintRect.Left;
+  x2 := paintRect.Right;
+  y1 := paintRect.Top;
+  for i := 0 to aAppointments.Count - 1 do
+  begin
+    y2 := y1 + curHeight;
+    if y2 > paintRect.Bottom then
+      break;
+    ar := Classes.Rect (x1, y1, x2, y2);
+    aCanvas.Brush.Color:= aAppointments.Get(i).Color;
+    aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 30);
+    aCanvas.Pen.Color := aCanvas.Font.Color;
+    if aCanvas.TextWidth(aAppointments.Get(i).Description) > ar.Width then
+    begin
+      tmpRows := TStringList.Create;
+      try
+        WordwrapStringByRows(aAppointments.Get(i).Description, 2, tmpRows);
+        Paint_BoxWithText(aCanvas, ar, tmpRows, taLeftJustify);
+      finally
+        tmpRows.Free;
+      end;
+    end
+    else
+      Paint_BoxWithText(aCanvas, ar, aAppointments.Get(i).Description, taLeftJustify);
+    y1 := y2 + 2;
+  end;
 end;
 
 function TmCalendar.GetItemRefDate(aRow, aCol: integer): TDateTime;
@@ -343,6 +414,7 @@ begin
   FSelectedBucketsDictionary.Free;
   FSelectedBuckets.Free;
   FMouseMoveData.Free;
+  FAppointmentsData.Free;
   inherited Destroy;
 end;
 
@@ -685,6 +757,7 @@ begin
   FSelectedBucketsDictionary := TmIntegerDictionary.Create(false);
   FSelectedBuckets:= TIntegerList.Create;
   FMouseMoveData := TmCalendarMouseMoveData.Create;
+  FAppointmentsData := TmCalendarAppointments.Create;
 
   FMustCalculate := true;
   FCols:= 1;

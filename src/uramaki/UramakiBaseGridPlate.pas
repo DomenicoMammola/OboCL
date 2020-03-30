@@ -199,7 +199,7 @@ implementation
 
 uses
   Clipbrd, variants,
-  mGraphicsUtility;
+  mGraphicsUtility, mWaitCursor;
 
 type
 
@@ -865,13 +865,11 @@ end;
 procedure TUramakiBaseGridPlate.OnExecuteFilter(Sender: TObject);
 var
   tmpFilters : TmFilters;
-  oldCursor : TCursor;
 begin
   Self.DisableControls;
   try
-    OldCursor := Screen.Cursor;
     try
-      Screen.Cursor := crHourGlass;
+      TWaitCursor.ShowWaitCursor('TUramakiBaseGridPlate.OnExecuteFilter');
 
       tmpFilters := TmFilters.Create;
       try
@@ -882,7 +880,7 @@ begin
         tmpFilters.Free;
       end;
     finally
-      Screen.Cursor := OldCursor;
+      TWaitCursor.UndoWaitCursor('TUramakiBaseGridPlate.OnExecuteFilter');
     end;
   finally
     Self.EnableControls;

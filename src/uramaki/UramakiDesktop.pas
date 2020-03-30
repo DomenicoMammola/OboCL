@@ -62,7 +62,8 @@ type
 implementation
 
 uses
-  SysUtils, Dialogs;
+  SysUtils, Dialogs,
+  mWaitCursor;
 
 type
   TMenuInfo = class
@@ -207,11 +208,10 @@ var
   doc : TmXmlDocument;
   cursor : TmXmlElementCursor;
   tmp : TUramakiDesktopLayoutConfContainerItem;
-  OldCursor : TCursor;
 begin
-  OldCursor := Screen.Cursor;
   try
-    Screen.Cursor := crHourGlass;
+    TWaitCursor.ShowWaitCursor('TUramakiDesktopManager.LoadFromStream');
+
     doc := TmXmlDocument.Create;
     try
       doc.LoadFromStream(aStream);
@@ -249,7 +249,7 @@ begin
     end;
 
   finally
-    Screen.Cursor := OldCursor;
+    TWaitCursor.UndoWaitCursor('TUramakiDesktopManager.LoadFromStream');
   end;
 end;
 
@@ -283,7 +283,6 @@ var
   Dlg : TDesktopLayoutConfigForm;
   tmpConfItem, tmpConfItemOut : TUramakiDesktopLayoutConfItem;
   fakeDocument : TmXmlDocument;
-  oldCursor : TCursor;
 begin
   Dlg := TDesktopLayoutConfigForm.Create(nil);
   try
@@ -292,9 +291,8 @@ begin
       Dlg.Init(tmpConfItem);
       if Dlg.ShowModal = mrOk then
       begin
-        oldCursor := Screen.Cursor;
         try
-          Screen.Cursor:= crHourGlass;
+          TWaitCursor.ShowWaitCursor('TUramakiDesktopManager.ShowConfigurationForm');
           tmpConfItemOut := Dlg.ExtractModifiedLayout;
           try
             assert (tmpConfItemOut is TUramakiDesktopLayoutConfContainerItem);
@@ -310,7 +308,7 @@ begin
             tmpConfItemOut.Free;
           end;
         finally
-          Screen.Cursor:= oldCursor;
+          TWaitCursor.UndoWaitCursor('TUramakiDesktopManager.ShowConfigurationForm');
         end;
       end;
     finally

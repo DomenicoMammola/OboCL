@@ -140,7 +140,7 @@ implementation
 uses
   LResources, sysutils, md5,
   mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor, mDataProviderUtility,
-  mGraphicsUtility;
+  mGraphicsUtility, mWaitCursor;
 
 { TmDBGridCursor }
 
@@ -246,7 +246,6 @@ procedure TmDBGrid.InternalOnTitleClick(Column: TColumn);
 var
   tmpSortType : TSortType;
   i : integer;
-  OldCursor : TCursor;
 begin
   try
     if FAllowSort then
@@ -254,9 +253,8 @@ begin
       // it is necessary to clear old selection
       Self.SelectedRows.Clear;
 
-      OldCursor := Screen.Cursor;
       try
-        Screen.Cursor := crHourGlass;
+        TWaitCursor.ShowWaitCursor('TmDBGrid.InternalOnTitleClick');
         tmpSortType := stAscending;
 
         // remove every arrow from column captions
@@ -309,7 +307,7 @@ begin
           end;
         end;
       finally
-        Screen.Cursor := OldCursor;
+        TWaitCursor.UndoWaitCursor('TmDBGrid.InternalOnTitleClick');
       end;
     end;
   finally
@@ -512,7 +510,6 @@ var
   dlg : TFilterValuesDlg;
   values : TStringList;
   checkedValues : TStringList;
-  OldCursor : TCursor;
   i : integer;
   tmpFilter : TmFilter;
   tmpVariant : Variant;
@@ -526,13 +523,12 @@ begin
       values := TStringList.Create;
       dlg := TFilterValuesDlg.Create(Self);
       try
-        OldCursor := Screen.Cursor;
         try
-          Screen.Cursor := crHourGlass;
+          TWaitCursor.ShowWaitCursor('TmDBGrid.OnFilterValues');
           FFilterManager.GetUniqueStringValuesForField(currentColumn.FieldName, values);
           dlg.Init(values);
         finally
-          Screen.Cursor:= OldCursor;
+          TWaitCursor.UndoWaitCursor('TmDBGrid.OnFilterValues');
         end;
         if dlg.ShowModal = mrOk then
         begin
@@ -544,9 +540,8 @@ begin
             begin
               // it is necessary to clear old selection
               Self.SelectedRows.Clear;
-              OldCursor := Screen.Cursor;
               try
-                Screen.Cursor := crHourGlass;
+                TWaitCursor.ShowWaitCursor('TmDBGrid.OnFilterValues');
                 tmpFilter := Self.FilterManager.GetFilters.Add;
                 tmpFilter.FieldName:= currentColumn.FieldName;
                 tmpFilter.FilterOperator:= foIn;
@@ -565,7 +560,7 @@ begin
                     currentColumn.Title.ImageIndex:= GRID_ICON_FILTER;
                 end;
               finally
-                Screen.Cursor:= OldCursor;
+                TWaitCursor.UndoWaitCursor('TmDBGrid.OnFilterValues');
               end;
             end;
           finally
@@ -827,11 +822,10 @@ var
   tmpDictionary : TmStringDictionary;
   tmpList : TList;
   tmpObj : TObject;
-  OldCursor : TCursor;
 begin
-  OldCursor := Screen.Cursor;
   try
-    Screen.Cursor:= crHourGlass;
+    TWaitCursor.ShowWaitCursor('TmDBGrid.ApplySettings');
+
     Self.BeginUpdate;
     try
       tmpDictionary := TmStringDictionary.Create();
@@ -867,7 +861,7 @@ begin
       Self.EndUpdate;
     end;
   finally
-    Screen.Cursor := OldCursor;
+    TWaitCursor.UndoWaitCursor('TmDBGrid.ApplySettings');
   end;
 end;
 

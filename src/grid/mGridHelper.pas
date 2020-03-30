@@ -142,7 +142,7 @@ uses
   SysUtils, variants,
   mCSV, mFloatsManagement, mSpreadsheetUtils,
   mVirtualDatasetFormulasToXml, mGridColumnSettingsToXml, mSummaryToXml,
-  mCellDecorationsToXml;
+  mCellDecorationsToXml, mWaitCursor;
 
 var
   _LastUsedFolderForExport : TNullableString;
@@ -229,7 +229,6 @@ end;
 procedure TmAbstractGridHelper.ExportGridToFile(aFileType: String);
 var
   fs : TFileStream;
-  oldCursor : TCursor;
 begin
   if aFileType = 'CSV' then
   begin
@@ -264,9 +263,8 @@ begin
     end;
     GetLastUsedFolderForExport.Value:= ExtractFilePath(FSaveDialog.FileName);
     try
-      oldCursor := Screen.Cursor;
       try
-        Screen.Cursor:= crHourGlass;
+        TWaitCursor.ShowWaitCursor('TmAbstractGridHelper.ExportGridToFile');
         fs := TFileStream.Create(FSaveDialog.FileName, fmCreate);
         try
           if aFileType = 'CSV' then
@@ -279,7 +277,7 @@ begin
           fs.Free;
         end;
       finally
-        Screen.Cursor:= oldCursor;
+        TWaitCursor.UndoWaitCursor('TmAbstractGridHelper.ExportGridToFile');
       end;
 
       if MessageDlg(SWantToOpenFileMessage, mtConfirmation, mbYesNo, 0) = mrYes then
@@ -397,7 +395,6 @@ end;
 function TmAbstractGridHelper.EditSettings : boolean;
 var
   frm : TGridSettingsForm;
-  OldCursor : TCursor;
   Intf : ImGrid;
 begin
   Result := false;
@@ -409,12 +406,11 @@ begin
       frm.Init(FSettings);
       if frm.ShowModal = mrOk then
       begin
-        OldCursor:= Screen.Cursor;
         try
-          Screen.Cursor:= crHourGlass;
+          TWaitCursor.ShowWaitCursor('TmAbstractGridHelper.EditSettings');
           Intf.ApplySettings(FSettings);
         finally
-          Screen.Cursor:= OldCursor;
+          TWaitCursor.UndoWaitCursor('TmAbstractGridHelper.EditSettings');
         end;
         Result := true;
       end;

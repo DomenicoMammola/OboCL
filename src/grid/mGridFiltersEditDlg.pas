@@ -33,7 +33,8 @@ type
 implementation
 
 uses
-  mBaseClassesAsObjects;
+  mBaseClassesAsObjects,
+  mWaitCursor;
 
 {$R *.lfm}
 
@@ -76,9 +77,8 @@ var
   tmp: String;
   tmpShell: TStringObject;
 begin
-  OldCursor := Screen.Cursor;
   try
-    Screen.Cursor:= crHourGlass;
+    TWaitCursor.ShowWaitCursor('TFiltersEditDlg.Init');
     for i := 0 to aFilters.Count - 1 do
     begin
       tmp := aDataset.FieldByName(aFilters.Get(i).FieldName).DisplayLabel + ' [' + aFilters.Get(i).FieldName + ']';
@@ -87,7 +87,7 @@ begin
       LBFilterConditions.AddItem(tmp, tmpShell);
     end;
   finally
-    Screen.Cursor := OldCursor;
+    TWaitCursor.UndoWaitCursor('TFiltersEditDlg.Init');
   end;
 end;
 

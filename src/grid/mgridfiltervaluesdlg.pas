@@ -60,6 +60,8 @@ type
 
 implementation
 
+uses
+  mWaitCursor;
 
 {$R *.lfm}
 
@@ -137,12 +139,9 @@ end;
 procedure TFilterValuesDlg.BtnAddAllClick(Sender: TObject);
 var
   i : integer;
-  OldCursor : TCursor;
 begin
-
-  OldCursor := Screen.Cursor;
   try
-    Screen.Cursor:= crHourGlass;
+    TWaitCursor.ShowWaitCursor('TFilterValuesDlg.BtnAddAllClick');
     ListBoxFilter.Items.BeginUpdate;
     try
       for i := 0 to ListBoxToBeFiltered.Count - 1 do
@@ -154,17 +153,14 @@ begin
       ListBoxFilter.Items.EndUpdate;
     end;
   finally
-    Screen.Cursor := OldCursor;
+    TWaitCursor.UndoWaitCursor('TFilterValuesDlg.BtnAddAllClick');
   end;
 end;
 
 procedure TFilterValuesDlg.Init(const aList: TStringList);
-var
-  OldCursor : TCursor;
 begin
-  OldCursor := Screen.Cursor;
   try
-    Screen.Cursor:= crHourGlass;
+    TWaitCursor.ShowWaitCursor('TFilterValuesDlg.Init');
     ListFilterEdit.FilteredListbox := ValuesListBox;
     ValuesListBox.Items.BeginUpdate;
     try
@@ -180,7 +176,7 @@ begin
     ListFilterEditAdvanced.ForceFilter('#');
     ListFilterEditAdvanced.ResetFilter;
   finally
-    Screen.Cursor := OldCursor;
+    TWaitCursor.UndoWaitCursor('TFilterValuesDlg.Init');
   end;
 end;
 

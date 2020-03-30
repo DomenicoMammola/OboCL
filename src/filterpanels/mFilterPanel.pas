@@ -175,23 +175,21 @@ type
 
   TmLookupFilterCondizionOnFillVirtualFields = procedure (aFieldDefs : TmVirtualFieldDefs) of object;
 
-  { TmLookupFilterConditionPanel }
 
-  TmLookupFilterConditionPanel = class(TmFilterConditionPanel)
-  private
+
+  TmBaseLookupFilterConditionPanel = class(TmFilterConditionPanel)
+  protected
     FCurrentValue : variant;
     FLabel : TLabel;
     FEdit : TEditButton;
     FValueType : TmEditFilterValueType;
-    FDataProvider: TmDataProvider;
     FKeyFieldName : string;
-    //FValueFieldName : string;
     FLookupFieldNames : TStringList;
     FDisplayLabelFieldNames : TStringList;
     FOnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields;
 
     procedure OnEditValueChanged (Sender : TObject);
-    procedure OnShowLookup (Sender: TObject);
+    procedure OnShowLookup (Sender: TObject); virtual; abstract;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -205,12 +203,32 @@ type
 
     property ValueType : TmEditFilterValueType read FValueType write FValueType;
     property KeyFieldName : String read FKeyFieldName write FKeyFieldName;
-//    property ValueFieldName : string read FValueFieldName write FValueFieldName;
     property OnFillVirtualFieldDefs : TmLookupFilterCondizionOnFillVirtualFields read FOnFillVirtualFieldDefs write FOnFillVirtualFieldDefs;
     property LookupFieldNames : TStringList read FLookupFieldNames;
     property DisplayLabelFieldNames: TStringList read FDisplayLabelFieldNames;
+  end;
+
+  { TmLookupFilterConditionPanel }
+  TmLookupFilterConditionPanel = class(TmBaseLookupFilterConditionPanel)
+  strict private
+    FDataProvider: TmDataProvider;
+  protected
+    procedure OnShowLookup (Sender: TObject); override;
+  public
     property DataProvider : TmDataProvider read FDataProvider write FDataProvider;
   end;
+
+  { TmInstantQueryLookupFilterConditionPanel }
+
+  TmInstantQueryLookupFilterConditionPanel = class(TmBaseLookupFilterConditionPanel)
+  strict private
+    FInstantQueryManager: IVDInstantQueryManager;
+  protected
+    procedure OnShowLookup (Sender: TObject); override;
+  public
+    property InstantQueryManager : IVDInstantQueryManager read FInstantQueryManager write FInstantQueryManager;
+  end;
+
 
   { TmExecuteFilterPanel }
 
@@ -255,13 +273,61 @@ implementation
 
 uses
   SysUtils, LResources, Forms,
-  mQuickReadOnlyVirtualDataSet, mLookupForm, mCheckListForm,
+  mQuickReadOnlyVirtualDataSet, mLookupForm, mCheckListForm, mlookupformInstantQuery,
   mDoubleList, mGraphicsUtility, mMagnificationFactor;
 
 const
   DEFAULT_FLEX_WIDTH = 50;
   {$IFDEF LINUX}
   DEFAULT_HEIGHT = 45;
+
+{ TmInstantQueryLookupFilterConditionPanel }
+
+procedure TmInstantQueryLookupFilterConditionPanel.OnShowLookup(Sender: TObject);
+var
+  lookupFrm: TmLookupInstantQueryFrm;
+  keyFieldName : string;
+  tmpVirtualFieldDefs : TmVirtualFieldDefs;
+begin
+  if not Assigned(FInstantQueryManager) then
+    raise Exception.Create('[TmInstantQueryLookupFilterConditionPanel] Missing InstantQueryManager.');
+
+  lookupFrm := TmLookupInstantQueryFrm.Create(Self);
+  try
+    if FLookupFieldNames.Count = 0 then
+      FInstantQueryManager.GetDataProvider.GetMinimumFields(FLookupFieldNames);
+    if FLookupFieldNames.Count = 0 then
+    begin
+      tmpVirtualFieldDefs := TmVirtualFieldDefs.Create;
+      try
+        FInstantQueryManager.GetDataProvider.FillVirtualFieldDefs(tmpVirtualFieldDefs, '');
+        tmpVirtualFieldDefs.ExtractFieldNames(FLookupFieldNames);
+      finally
+        tmpVirtualFieldDefs.Free;;
+      end;
+    end;
+
+    if FDisplayLabelFieldNames.Count = 0 then
+      FInstantQueryManager.GetDataProvider.GetMinimumFields(FDisplayLabelFieldNames);
+    if FDisplayLabelFieldNames.Count = 0 then
+      raise Exception.Create('[TmInstantQueryLookupFilterConditionPanel] Missing DisplayLabelFieldNames.');
+
+    if FKeyFieldName <> '' then
+      keyFieldName := FKeyFieldName
+    else
+      keyFieldName := FInstantQueryManager.GetDataProvider.GetKeyFieldName;
+
+    lookupFrm.Init(FInstantQueryManager, FLookupFieldNames, keyFieldName, FDisplayLabelFieldNames);
+    if lookupFrm.ShowModal = mrOk then
+    begin
+      FEdit.Text:= lookupFrm.SelectedDisplayLabel;
+      FCurrentValue:= lookupFrm.SelectedValue;
+    end;
+  finally
+    lookupFrm.Free;
+  end;
+end;
+
   {$ELSE}
   DEFAULT_HEIGHT = 40;
   {$ENDIF}
@@ -380,24 +446,21 @@ begin
   Result := VarIsNull(FCurrentValue);
 end;
 
-{ TmLookupFilterConditionPanel }
+{ TmBaseLookupFilterConditionPanel }
 
-procedure TmLookupFilterConditionPanel.OnEditValueChanged(Sender: TObject);
+procedure TmBaseLookupFilterConditionPanel.OnEditValueChanged(Sender: TObject);
 begin
 
 end;
 
 procedure TmLookupFilterConditionPanel.OnShowLookup(Sender: TObject);
 var
-  lookupFrm: TmLookupFrm;// TmLookupWindow;
+  lookupFrm: TmLookupFrm;
   keyFieldName : string;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
 begin
   if not Assigned(FDataProvider) then
     raise Exception.Create('[TmLookupFilterConditionPanel] Missing DataProvider.');
-
-//  if FValueFieldName = '' then
-//    raise Exception.Create('[TmLookupFilterConditionPanel] Missing ValueFieldName.');
 
   lookupFrm := TmLookupFrm.Create(Self);
   try
@@ -436,7 +499,7 @@ begin
 end;
 
 
-constructor TmLookupFilterConditionPanel.Create(TheOwner: TComponent);
+constructor TmBaseLookupFilterConditionPanel.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
   FCurrentValue:= null;
@@ -459,20 +522,20 @@ begin
   FDisplayLabelFieldNames := TStringList.Create;
 end;
 
-destructor TmLookupFilterConditionPanel.Destroy;
+destructor TmBaseLookupFilterConditionPanel.Destroy;
 begin
   FLookupFieldNames.Free;
   FDisplayLabelFieldNames.Free;
   inherited Destroy;
 end;
 
-procedure TmLookupFilterConditionPanel.SetFilterCaption(aValue: String);
+procedure TmBaseLookupFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited SetFilterCaption(aValue);
   Self.ApplyFilterCaption(FLabel, aValue, false);
 end;
 
-procedure TmLookupFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
+procedure TmBaseLookupFilterConditionPanel.ExportToFilter(aFilter: TmFilter);
 begin
   inherited ExportToFilter(aFilter);
   aFilter.DisplayValue:= FEdit.Text;
@@ -527,7 +590,7 @@ begin
     aFilter.Value := FCurrentValue;
 end;
 
-procedure TmLookupFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
+procedure TmBaseLookupFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
 begin
   Self.Clear;
   inherited ImportFromFilter(aFilter);
@@ -535,7 +598,7 @@ begin
   FEdit.Text := aFilter.DisplayValue;
 end;
 
-procedure TmLookupFilterConditionPanel.SetFilterValue(const aValue : Variant; const aDescription: String);
+procedure TmBaseLookupFilterConditionPanel.SetFilterValue(const aValue : Variant; const aDescription: String);
 begin
   if VarIsNull(aValue) then
     Self.Clear
@@ -547,12 +610,12 @@ begin
   end;
 end;
 
-function TmLookupFilterConditionPanel.IsEmpty: boolean;
+function TmBaseLookupFilterConditionPanel.IsEmpty: boolean;
 begin
   Result := VarIsNull(FCurrentValue);
 end;
 
-procedure TmLookupFilterConditionPanel.Clear;
+procedure TmBaseLookupFilterConditionPanel.Clear;
 begin
   FEdit.Text:= '';
   FCurrentValue:= null;

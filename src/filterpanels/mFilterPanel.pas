@@ -280,6 +280,9 @@ const
   DEFAULT_FLEX_WIDTH = 50;
   {$IFDEF LINUX}
   DEFAULT_HEIGHT = 45;
+  {$ELSE}
+  DEFAULT_HEIGHT = 40;
+  {$ENDIF}
 
 { TmInstantQueryLookupFilterConditionPanel }
 
@@ -327,10 +330,6 @@ begin
     lookupFrm.Free;
   end;
 end;
-
-  {$ELSE}
-  DEFAULT_HEIGHT = 40;
-  {$ENDIF}
 
 { TmCheckListFilterConditionPanel }
 

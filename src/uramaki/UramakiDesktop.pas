@@ -113,33 +113,38 @@ var
   parentRolls : TStringList;
   i : integer;
 begin
-  if Assigned(aLivingPlate.Publication) and Assigned(aLivingPlate.Publication.Publisher) then
-  begin
-    aLivingPlate.Plate := aLivingPlate.Publication.Publisher.CreatePlate(aItem);
-    aLivingPlate.Plate.Parent := aItem;
-    aLivingPlate.Plate.Align := alClient;
-    aLivingPlate.Plate.EngineMediator := FEngine.Mediator;
-    aLivingPlate.DoPlateStartShining := Self.DoStartShiningPanel;
-    aLivingPlate.DoPlateStopShining:= Self.DoStopShiningPanel;
-
-    if aItem is TUramakiDesktopSimplePanel then
+  try
+    TWaitCursor.ShowWaitCursor('TUramakiDesktopManager.BuildAndFeedPlate');
+    if Assigned(aLivingPlate.Publication) and Assigned(aLivingPlate.Publication.Publisher) then
     begin
-      (aItem as TUramakiDesktopSimplePanel).AddMenuItem.Clear;
-      parentRolls := TStringList.Create;
-      try
-        aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
-        if parentRolls.Count > 0 then
-        begin
-          for i := 0 to parentRolls.Count - 1 do
+      aLivingPlate.Plate := aLivingPlate.Publication.Publisher.CreatePlate(aItem);
+      aLivingPlate.Plate.Parent := aItem;
+      aLivingPlate.Plate.Align := alClient;
+      aLivingPlate.Plate.EngineMediator := FEngine.Mediator;
+      aLivingPlate.DoPlateStartShining := Self.DoStartShiningPanel;
+      aLivingPlate.DoPlateStopShining:= Self.DoStopShiningPanel;
+
+      if aItem is TUramakiDesktopSimplePanel then
+      begin
+        (aItem as TUramakiDesktopSimplePanel).AddMenuItem.Clear;
+        parentRolls := TStringList.Create;
+        try
+          aLivingPlate.Plate.GetAvailableUramakiRolls(parentRolls);
+          if parentRolls.Count > 0 then
           begin
-            Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[i], aLivingPlate.InstanceIdentifier);
+            for i := 0 to parentRolls.Count - 1 do
+            begin
+              Self.FillAddWidgetMenu((aItem as TUramakiDesktopSimplePanel).AddMenuItem, parentRolls.Strings[i], aLivingPlate.InstanceIdentifier);
+            end;
           end;
+        finally
+          parentRolls.Free;
         end;
-      finally
-        parentRolls.Free;
       end;
+      FEngine.FeedLivingPlate(aLivingPlate);
     end;
-    FEngine.FeedLivingPlate(aLivingPlate);
+  finally
+    TWaitCursor.UndoWaitCursor('TUramakiDesktopManager.BuildAndFeedPlate');
   end;
 end;
 

@@ -35,6 +35,7 @@ type
     FSaveFileData : TmFileData;
     FFileOperation : TmFileOperation;
     FManager : TmAbstractFileSystemManager;
+    FRoots : TmFolders;
     procedure AddNode (aParent : TTreeNode; aFolder : TmFolder);
     procedure RefreshFiles;
   public
@@ -141,11 +142,13 @@ constructor TmFileOpenSave.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FSaveFileData := TmFileData.Create;
+  FRoots := TmFolders.Create(nil);
 end;
 
 destructor TmFileOpenSave.Destroy;
 begin
   FSaveFileData.Free;
+  FRoots.Free;
   inherited Destroy;
 end;
 
@@ -155,13 +158,14 @@ var
 begin
   FFileOperation:= aFileOperation;
   FManager := aFileSystemManager;
+  FManager.GetAllFiles(FRoots);
 
   TVFolders.BeginUpdate;
   try
     TVFolders.Items.Clear;
-    for i := 0 to aFileSystemManager.Roots.Count - 1 do
+    for i := 0 to FRoots.Count - 1 do
     begin
-      Self.AddNode(nil, aFileSystemManager.Roots.Items[i]);
+      Self.AddNode(nil, FRoots.Items[i]);
     end;
   finally
     TVFolders.EndUpdate;

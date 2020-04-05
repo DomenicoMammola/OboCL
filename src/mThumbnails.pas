@@ -15,7 +15,7 @@ unit mThumbnails;
 
 interface
 
-function GenerateJPEGThumbnail (const aSourceFile, aThumbnailsFolder : String; const aMaxWidth, aMaxHeight: word; out aThumbnailFileName: String; out aError: String): boolean;
+function GeneratePNGThumbnail (const aSourceFile, aThumbnailsFolder : String; const aMaxWidth, aMaxHeight: word; out aThumbnailFileName: String; out aError: String): boolean;
 
 implementation
 
@@ -23,17 +23,17 @@ uses
   Classes, Graphics, sysutils,
   mMutool;
 
-function GenerateJPEGThumbnailForPicture(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
+function _GeneratePNGThumbnail(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
 var
   sourcePicture : TPicture;
-  thumbnail : TJPEGImage;
+  thumbnail : TPortableNetworkGraphic;
   rateWidth, rateHeight : Extended;
   r : TRect;
 begin
   Result := false;
   try
     sourcePicture := TPicture.Create;
-    thumbnail := TJPEGImage.Create;
+    thumbnail := TPortableNetworkGraphic.Create;
     try
       sourcePicture.LoadFromFile(aSourceFile);
       rateWidth := aMaxWidth / sourcePicture.Width;
@@ -59,14 +59,14 @@ begin
   Result := true;
 end;
 
-function GenerateJPEGThumbnail(const aSourceFile, aThumbnailsFolder: String; const aMaxWidth, aMaxHeight: word; out aThumbnailFileName: String; out aError: String): boolean;
+function GeneratePNGThumbnail(const aSourceFile, aThumbnailsFolder: String; const aMaxWidth, aMaxHeight: word; out aThumbnailFileName: String; out aError: String): boolean;
 var
   GraphicClass: TGraphicClass;
   ext : String;
 begin
   Result := false;
   ext := LowerCase(ExtractFileExt(aSourceFile));
-  aThumbnailFileName := ChangeFileExt(IncludeTrailingPathDelimiter(aThumbnailsFolder) + ExtractFileName(aSourceFile), '.jpg');
+  aThumbnailFileName := ChangeFileExt(IncludeTrailingPathDelimiter(aThumbnailsFolder) + ExtractFileName(aSourceFile), '.png');
 
   if ext = '.pdf' then
   begin
@@ -85,7 +85,7 @@ begin
   begin
     GraphicClass := GetGraphicClassForFileExtension(ext);
     if GraphicClass <> nil then
-      Result := GenerateJPEGThumbnailForPicture(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight, aError)
+      Result := _GeneratePNGThumbnail(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight, aError)
     else
       exit;
   end;

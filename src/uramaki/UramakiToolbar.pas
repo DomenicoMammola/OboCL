@@ -67,7 +67,8 @@ type
     procedure SetImages(AValue: TImageList);
     procedure SetParent(AValue: TWinControl);
   public
-    constructor Create(TheOwner: TComponent); override;
+    constructor Create(TheOwner: TComponent); overload; override;
+    constructor Create(TheOwner: TComponent; const aVertical : boolean); overload;
     destructor Destroy; override;
     function AddButton : TUramakiToolbarItem;
     function AddDropDownButton (aMenu: TPopupMenu): TUramakiToolbarItem;
@@ -212,6 +213,19 @@ begin
   //FToolbar.Images := aImageList;
   FToolbar.ShowHint:= true;
   FGarbage:= TObjectList.Create(true);
+end;
+
+constructor TUramakiToolbar.Create(TheOwner: TComponent; const aVertical: boolean);
+begin
+  Self.Create(TheOwner);
+  if aVertical then
+  begin
+    FPanel.Align:= alLeft;
+    FPanel.Width := 34;
+    FToolbar.Vertical:= aVertical;
+    FToolbar.Align:= alLeft;
+    FToolbar.Width:= 32;
+  end;
 end;
 
 destructor TUramakiToolbar.Destroy;

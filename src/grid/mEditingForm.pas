@@ -205,9 +205,10 @@ type
     FBottomPanel: TPanel;
     FCancelBtn: TBitBtn;
     FOkBtn: TBitBtn;
-    FEditingPanel : TmEditingPanel;
     procedure FormShow(Sender: TObject);
     procedure OkBtnClick(Sender: TObject);
+  protected
+    FEditingPanel : TmEditingPanel;
   public
     constructor CreateNew(AOwner: TComponent; Num: Integer = 0); override;
     procedure SetReadOnly;

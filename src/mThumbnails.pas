@@ -21,7 +21,7 @@ implementation
 
 uses
   Classes, Graphics, sysutils,
-  mMutool;
+  mMutool, mUtility;
 
 function _GeneratePNGThumbnail(const aSourceFile, aThumbnailFile: String; const aMaxWidth, aMaxHeight: word;out aError: String): boolean;
 var
@@ -66,7 +66,7 @@ var
 begin
   Result := false;
   ext := LowerCase(ExtractFileExt(aSourceFile));
-  aThumbnailFileName := ChangeFileExt(IncludeTrailingPathDelimiter(aThumbnailsFolder) + ExtractFileName(aSourceFile), '.png');
+  aThumbnailFileName := ChangeFileExt(IncludeTrailingPathDelimiter(aThumbnailsFolder) + ExtractFileName(aSourceFile) + GenerateRandomIdString(5), '.png');
 
   if ext = '.pdf' then
   begin

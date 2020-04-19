@@ -201,14 +201,13 @@ type
   { TmEditingForm }
 
   TmEditingForm = class (TCustomForm)
-  strict private
+  protected
+    FEditingPanel : TmEditingPanel;
     FBottomPanel: TPanel;
     FCancelBtn: TBitBtn;
     FOkBtn: TBitBtn;
     procedure FormShow(Sender: TObject);
     procedure OkBtnClick(Sender: TObject);
-  protected
-    FEditingPanel : TmEditingPanel;
   public
     constructor CreateNew(AOwner: TComponent; Num: Integer = 0); override;
     procedure SetReadOnly;

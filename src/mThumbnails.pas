@@ -30,7 +30,7 @@ var
   rateWidth, rateHeight : Extended;
   r : TRect;
 begin
-  Result := false;
+  Result := true;
   try
     sourcePicture := TPicture.Create;
     thumbnail := TPortableNetworkGraphic.Create;
@@ -53,10 +53,9 @@ begin
     on e: Exception do
     begin
       aError := e.Message;
-      exit;
+      Result := false;
     end;
   end;
-  Result := true;
 end;
 
 function GeneratePNGThumbnail(const aSourceFile, aThumbnailsFolder: String; const aMaxWidth, aMaxHeight: word; out aThumbnailFileName: String; out aError: String): boolean;
@@ -71,8 +70,7 @@ begin
   if ext = '.pdf' then
   begin
     try
-      TMutoolToolbox.ExtractThumbnailOfFrontPageFromPdf(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight);
-      Result := true;
+      Result := TMutoolToolbox.ExtractThumbnailOfFrontPageFromPdf(aSourceFile, aThumbnailFileName, aMaxWidth, aMaxHeight);
     except
       on e: Exception do
       begin

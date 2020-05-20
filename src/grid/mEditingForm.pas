@@ -47,7 +47,7 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog, ekLookupInstantQuery);
+  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog, ekLookupInstantQuery, ekLookupInstantQueryPlusWizard);
   TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth, dtColor);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
@@ -514,7 +514,7 @@ begin
     Editor := FWizardCellEditor;
     FWizardCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
   end
-  else if (curLine.Configuration.EditorKind = ekLookupPlusWizard) then
+  else if (curLine.Configuration.EditorKind = ekLookupPlusWizard) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard) then
   begin
     FButtonWizardCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FButtonWizardCellEditor;
@@ -726,7 +726,8 @@ begin
       Result := FOnShowDialogEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
     end;
   end
-  else if (curLine.Configuration.EditorKind = ekWizard) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard) and (aSource = sWizardButton)) then
+  else if (curLine.Configuration.EditorKind = ekWizard) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard) and (aSource = sWizardButton))
+    or ((curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard) and (aSource = sWizardButton))then
   begin
     if Assigned(FOnActivateWizardEvent) then
     begin
@@ -734,7 +735,7 @@ begin
       Result := FOnActivateWizardEvent(Self, curLine.Name, OldStringValue, aNewDisplayValue, OldActualValue, curLine.ActualValue);
     end;
   end
-  else if (curLine.Configuration.EditorKind = ekLookupInstantQuery) then
+  else if (curLine.Configuration.EditorKind = ekLookupInstantQuery) or ((curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard) and (aSource = sMainButton)) then
   begin
     lookupFrmInstantQuery := TmLookupInstantQueryFrm.Create(Self);
     try
@@ -1073,7 +1074,7 @@ begin
     FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
     if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
       or (curLine.Configuration.EditorKind = ekColorDialog) or (curLine.Configuration.EditorKind = ekLookupInstantQuery)
-      or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard)) then
+      or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard)) then
         FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
 
     if MultiEditMode and Assigned(FClearValuesList) then

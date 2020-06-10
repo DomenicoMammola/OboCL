@@ -211,11 +211,11 @@ type
   { TmLookupFilterConditionPanel }
   TmLookupFilterConditionPanel = class(TmBaseLookupFilterConditionPanel)
   strict private
-    FDataProvider: TmDataProvider;
+    FDataProvider: IVDDataProvider;
   protected
     procedure OnShowLookup (Sender: TObject); override;
   public
-    property DataProvider : TmDataProvider read FDataProvider write FDataProvider;
+    property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
   end;
 
   { TmInstantQueryLookupFilterConditionPanel }

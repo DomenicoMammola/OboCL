@@ -326,7 +326,7 @@ end;
 
 procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const aInputUramakiId : string; aLivingPlateIdentifier : TGuid);
 var
-  i, j : integer;
+  i, j, k : integer;
   tempListOfTransformers : TUramakiTransformers;
   tempListOfPublishers : TUramakiPublishers;
   mt, mt2, mtCategory : TMenuItem;
@@ -359,11 +359,24 @@ begin
         mt2.Tag:= PtrInt(tmpMenuInfo);
         FMenuGarbageCollector.Add(tmpMenuInfo);
 
+        mtCategory := nil;
         if tempListOfPublishers.Get(j).GetCategory <> '' then
         begin
           if tmpMenuMap.Contains(tempListOfPublishers.Get(j).GetCategory) then
             mtCategory := tmpMenuMap.Find(tempListOfPublishers.Get(j).GetCategory) as TMenuItem
           else
+          begin
+            for k := 0 to aMenuItem.Count - 1 do
+            begin
+              if aMenuItem.Items[k].Caption = tempListOfPublishers.Get(j).GetCategory then
+              begin
+                mtCategory := aMenuItem.Items[k];
+                tmpMenuMap.Add(tempListOfPublishers.Get(j).GetCategory, mtCategory);
+                break;
+              end;
+            end;
+          end;
+          if not Assigned(mtCategory) then
           begin
             mtCategory:= TMenuItem.Create(aMenuItem);
             mtCategory.Caption:= tempListOfPublishers.Get(j).GetCategory;

@@ -95,7 +95,7 @@ type
     procedure OnExportGridAsHtml (Sender : TObject);
 
     procedure SelectAllRows; virtual; abstract;
-    procedure SetupGrid; virtual; abstract;
+    procedure SetupGrid (const aEnableAutoSizedColumns : boolean = true); virtual; abstract;
 
     property FormulaFields : TmFormulaFields read FFormulaFields;
     property CellDecorations : TmCellDecorations read FCellDecorations;
@@ -110,7 +110,7 @@ type
     constructor Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations); virtual;
     destructor Destroy; override;
 
-    procedure SetupGrid; override;
+    procedure SetupGrid (const aEnableAutoSizedColumns : boolean = true); override;
     procedure SelectAllRows; override;
 
     property DBGrid : TmDBGrid read FDBGrid;
@@ -125,7 +125,7 @@ type
     constructor Create(aGrid : TmDrawGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations); virtual;
     destructor Destroy; override;
 
-    procedure SetupGrid; override;
+    procedure SetupGrid(const aEnableAutoSizedColumns : boolean = true); override;
     procedure SelectAllRows; override;
 
     property DrawGrid : TmDrawGrid read FDrawGrid;
@@ -168,7 +168,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TmDrawGridHelper.SetupGrid;
+procedure TmDrawGridHelper.SetupGrid(const aEnableAutoSizedColumns : boolean = true);
 begin
   FDrawGrid.Align:= alClient;
   FDrawGrid.AlternateColor:= DefaultGridAlternateColor;
@@ -321,12 +321,15 @@ begin
   inherited Destroy;
 end;
 
-procedure TmDBGridHelper.SetupGrid;
+procedure TmDBGridHelper.SetupGrid (const aEnableAutoSizedColumns : boolean = true);
 begin
   FDBGrid.Align:= alClient;
   FDBGrid.AlternateColor:= DefaultGridAlternateColor;
   FDBGrid.Flat := True;
-  FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
+  if aEnableAutoSizedColumns then
+    FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect]
+  else
+    FDBGrid.Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit,                    dgDisableDelete, dgDisableInsert, dgMultiselect];
 end;
 
 

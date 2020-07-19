@@ -182,6 +182,7 @@ type
 
     function GetValue(const aName : string) : Variant;
     procedure SetValue(const aName : string; const aDisplayValue: String; const aActualValue: variant);
+    function GetSelectedDatum(const aName : string) : IVDDatum;
 
     function GetConfigurationForLine (const aName : string): TmEditorLineConfiguration;
 
@@ -240,6 +241,7 @@ type
     ForceClear : boolean;
     Configuration: TmEditorLineConfiguration;
     ActualValue : variant;
+    SelectedDatum : IVDDatum;
 
     //OldActualValue : variant;
     //OldDisplayValue : TNullableStringRecord;
@@ -325,6 +327,7 @@ begin
   Name:= '';
   Index:= 0;
   ActualValue:= Null;
+  SelectedDatum:= nil;
   Changed:= false;
   ForceClear:= false;
 end;
@@ -332,6 +335,10 @@ end;
 destructor TEditorLine.Destroy;
 begin
   Configuration.Free;
+  if Assigned(SelectedDatum) then
+    SelectedDatum.AsObject.Free;
+  SelectedDatum := nil;
+
   inherited Destroy;
 end;
 
@@ -768,6 +775,9 @@ begin
       begin
         aNewDisplayValue:= lookupFrmInstantQuery.SelectedDisplayLabel;
         curLine.ActualValue:= lookupFrmInstantQuery.SelectedValue;
+        if Assigned(curLine.SelectedDatum) then
+          curLine.SelectedDatum.AsObject.Free;
+        curLine.SelectedDatum := lookupFrmInstantQuery.SelectedDatum.Clone;
 
         FLastEditorUsed:= curLine.Name;
 
@@ -1094,6 +1104,19 @@ begin
     curLine.ActualValue:= aActualValue;
     FValueListEditor.Invalidate;
   end;
+end;
+
+function TmEditingPanel.GetSelectedDatum(const aName: string): IVDDatum;
+var
+  curLine : TEditorLine;
+begin
+  Result := nil;
+
+  if FLinesByName.Contains(aName) then
+  begin
+    curLine := FLinesByName.Find(aName) as TEditorLine;
+    Result := curLine.SelectedDatum;
+  end
 end;
 
 (*

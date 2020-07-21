@@ -66,7 +66,8 @@ type
 implementation
 
 uses
-  Variants, Forms, LCLType;
+  Variants, Forms, LCLType,
+  mMagnificationFactor;
 
 { TmLookupPanelInstantQuery }
 
@@ -145,7 +146,7 @@ begin
   FTopPanel.BevelInner:= bvNone;
   FTopPanel.BevelOuter:= bvNone;
   FTopPanel.Caption := '';
-  FTopPanel.Height:= 20;
+  FTopPanel.Height:= ScaleForMagnification(20, true);
 
   FGrid := TDBGrid.Create(Self);
   FGrid.Parent := Self;

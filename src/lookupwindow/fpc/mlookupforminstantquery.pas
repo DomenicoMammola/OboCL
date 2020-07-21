@@ -58,7 +58,7 @@ implementation
 
 uses
   variants,
-  mFormSetup;
+  mFormSetup, mMagnificationFactor;
 
 {$R *.lfm}
 
@@ -78,7 +78,22 @@ begin
   FSelectedValue:= Null;
   FSelectedDisplayLabel:= '';
   FSelectedDatum:= nil;
+  BottomPanel.Height:= ScaleForMagnification(50, true);
+  OkBtn.Width := ScaleForMagnification(75, true);
+  OkBtn.Height := ScaleForMagnification(30, true);
+  OkBtn.Left := 0;
+  OkBtn.Top := ScaleForMagnification(8, true);
+  OkBtn.Anchors:= [akTop, akRight];
+  CancelBtn.Width := ScaleForMagnification(75, true);
+  CancelBtn.Height := ScaleForMagnification(30, true);
+  CancelBtn.Left := OkBtn.Left + ScaleForMagnification(10, true) + OkBtn.Width;
+  CancelBtn.Top := OkBtn.Top;
+  CancelBtn.Anchors:= [akTop, akRight];
+
   SetupFormAndCenter(Self, 0.8);
+
+  CancelBtn.Left:= BottomPanel.Width - ScaleForMagnification(10, true) - CancelBtn.Width;
+  OkBtn.Left:= CancelBtn.Left - OkBtn.Width - ScaleForMagnification(10, true);
 end;
 
 procedure TmLookupInstantQueryFrm.FormDestroy(Sender: TObject);

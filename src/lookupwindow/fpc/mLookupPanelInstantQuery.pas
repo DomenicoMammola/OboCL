@@ -80,6 +80,7 @@ begin
     OldCursor := Screen.Cursor;
     try
       Screen.Cursor := crHourGlass;
+      FInstantQueryManager.Clear;
       FInstantQueryManager.FilterDataProvider(FEditText.Text);
       FVirtualDataset.Refresh;
       FGrid.AutoAdjustColumns;

@@ -105,6 +105,8 @@ var
 begin
   dlg := TmCalendarDialog.Create;
   try
+    if aDate > 0 then
+      dlg.FCurrentDate:= aDate;
     Result := dlg.Execute(aCaption);
     if Result then
       aDate := dlg.Date;

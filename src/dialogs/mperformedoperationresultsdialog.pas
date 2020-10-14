@@ -283,7 +283,7 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
     memo := TMemo.Create(FNotebook.Page[aIndex]);
     memo.Parent := FNotebook.Page[aIndex];
     memo.Align := alClient;
-    memo.ScrollBars:= ssAutoBoth;
+    memo.ScrollBars:= ssBoth;
     memo.Lines.AddStrings(aLines);
     memo.ReadOnly:= true;
     memo.Font.Size:= 12;

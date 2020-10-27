@@ -20,7 +20,7 @@ procedure SetupFormAndCenter (aForm : TCustomForm; const aScaleToScreenPerc: dou
 implementation
 
 uses
-  sysutils,
+  sysutils, math,
   {$IFDEF DEBUG} mLog,{$ENDIF}
   mMagnificationFactor;
 
@@ -31,36 +31,21 @@ var
 
 procedure SetupFormAndCenter(aForm: TCustomForm; const aScaleToScreenPerc: double);
 var
-  tmpMonitor : TMonitor;
+  minWidth, minHeight, i : integer;
 begin
-  if Screen.MonitorCount > 1 then
+  if (aScaleToScreenPerc < 1) and (aScaleToScreenPerc > 0) then
   begin
-    {$IFDEF DEBUG}
-    logger.Debug('Monitors:' + IntToStr(Screen.MonitorCount));
-    logger.Debug('Screen.Width:' + IntToStr(Screen.Width));
-    logger.Debug('Screen.Height:' + IntToStr(Screen.Height));
-    logger.Debug('aForm.Monitor.Width:' + IntToStr(aForm.Monitor.Width));
-    logger.Debug('aForm.Monitor.Height:' + IntToStr(aForm.Monitor.Height));
-    logger.Debug('aForm.Left:' + IntToStr(aForm.Left));
-    {$ENDIF}
-    tmpMonitor := nil;
-    if Assigned(Screen.ActiveForm) then
-      tmpMonitor := Screen.MonitorFromWindow(Screen.ActiveForm.Handle);
-    if not Assigned(tmpMonitor) then
-      tmpMonitor := aForm.Monitor;
-    if (aScaleToScreenPerc < 1) and (aScaleToScreenPerc > 0) then
+    minWidth:= MaxInt;
+    minHeight:= MaxInt;
+
+    for i := 0 to Screen.MonitorCount - 1 do
     begin
-      aForm.Width := trunc(tmpMonitor.Width * aScaleToScreenPerc);
-      aForm.Height:= trunc(tmpMonitor.Height * aScaleToScreenPerc);
+      minWidth:= min(minWidth, Screen.Monitors[i].Width);
+      minHeight:= min(minHeight, Screen.Monitors[i].Height);
     end;
-  end
-  else
-  begin
-    if (aScaleToScreenPerc < 1) and (aScaleToScreenPerc > 0) then
-    begin
-      aForm.Width := trunc (aForm.Monitor.Width * aScaleToScreenPerc);
-      aForm.Height:= trunc (aForm.Monitor.Height * aScaleToScreenPerc);
-    end;
+
+    aForm.Width := trunc (minWidth * aScaleToScreenPerc);
+    aForm.Height:= trunc (minHeight * aScaleToScreenPerc);
   end;
 
   aForm.Position:= poScreenCenter;

@@ -40,10 +40,9 @@ begin
 
     for i := 0 to Screen.MonitorCount - 1 do
     begin
-      minWidth:= min(minWidth, Screen.Monitors[i].Width);
-      minHeight:= min(minHeight, Screen.Monitors[i].Height);
+      minWidth:= min(minWidth, trunc((Screen.Monitors[i].Width / (Screen.Monitors[i].PixelsPerInch / 96))));
+      minHeight:= min(minHeight, trunc((Screen.Monitors[i].Height / (Screen.Monitors[i].PixelsPerInch / 96))));
     end;
-
     aForm.Width := trunc (minWidth * aScaleToScreenPerc);
     aForm.Height:= trunc (minHeight * aScaleToScreenPerc);
   end;

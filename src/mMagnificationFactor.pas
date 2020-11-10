@@ -59,10 +59,10 @@ begin
     begin
       // http://forum.lazarus.freepascal.org/index.php?topic=39283.0
       RealFontSize := Round((- GetFontData(aFont.Handle).Height * 72 / aFont.PixelsPerInch));
-      aFont.Size := trunc (RealFontSize * _MagnificationFactor);
+      aFont.Size := ScaleForDPI(trunc (RealFontSize * _MagnificationFactor));
     end
     else
-      aFont.Height := trunc(aFont.Height * _MagnificationFactor);
+      aFont.Height := ScaleForDPI(trunc(aFont.Height * _MagnificationFactor));
   end;
 end;
 

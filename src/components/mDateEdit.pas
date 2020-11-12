@@ -69,6 +69,6 @@ begin
 end;
 
 initialization
-  {$i mdateedit_gliph.lrs}
+  {$i mDateEdit_gliph.lrs}
 
 end.

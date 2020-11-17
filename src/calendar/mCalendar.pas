@@ -397,6 +397,7 @@ var
   tmpDay, tmpMonth, tmpYear : word;
   distance: integer;
 begin
+  Result := 0;
   if (FItemType = itMonth) then
   begin
     DecodeDate(FStartDate, tmpYear, tmpMonth, tmpDay);

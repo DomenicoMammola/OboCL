@@ -76,6 +76,7 @@ type
     FEditorKind: TmEditorLineKind;
     FDataType : TmEditorLineDataType;
     FTimeMaxDistanceInMonths : integer;
+    FStartDatum : IVDDatum;
 
     function GetUseBooleanProvider: boolean;
     procedure SetUseBooleanProvider(AValue: boolean);
@@ -106,6 +107,7 @@ type
     property FractionalPartDigits : byte read FFractionalPartDigits;
     property DisplayFormat : String read FDisplayFormat;
     property RoundingMethod : TRoundingMethod read FRoundingMethod;
+    property StartDatum : IVDDatum read FStartDatum write FStartDatum;
   end;
 
   { TmValueListEditor }
@@ -306,6 +308,7 @@ begin
   FFractionalPartDigits:= 0;
   FDisplayFormat:= '';
   FTimeMaxDistanceInMonths:= 0;
+  FStartDatum := nil;
 end;
 
 destructor TmEditorLineConfiguration.Destroy;
@@ -1074,6 +1077,12 @@ begin
         str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
       else
         str := curLine.Configuration.ChangedValueDestination.AsString;
+    end
+    else if ((curLine.Configuration.EditorKind = ekLookupInstantQuery) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard)) and Assigned(curLine.Configuration.StartDatum) then
+    begin
+      if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
+        curLine.Configuration.InstantQueryManager.GetDataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+      str := ConcatenateFieldValues(curLine.Configuration.StartDatum, curLine.Configuration.DisplayLabelFieldNames);
     end
     else
       str := curLine.Configuration.ChangedValueDestination.AsString;

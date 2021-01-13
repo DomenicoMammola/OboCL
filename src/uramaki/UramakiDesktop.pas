@@ -44,6 +44,8 @@ type
     procedure DoLinkLayoutItemToPlate(aItem : TPanel; aLivingPlateInstanceIdentificator : TGuid);
     procedure DoStartShiningPanel(const aPlate : TUramakiLivingPlate);
     procedure DoStopShiningPanel(const aPlate : TUramakiLivingPlate);
+    procedure DoRemovePanel (const aLivingPlateInstanceIdentifier : TGuid);
+    procedure MarkChildsAsDeleted (const aPlate : TUramakiLivingPlate);
   public
     constructor Create;
     destructor Destroy; override;
@@ -140,6 +142,8 @@ begin
         finally
           parentRolls.Free;
         end;
+
+        (aItem as TUramakiDesktopSimplePanel).DoRemovePanel := Self.DoRemovePanel;
       end;
       FEngine.FeedLivingPlate(aLivingPlate);
     end;
@@ -170,6 +174,55 @@ begin
   if (aPlate.Plate.Parent is TUramakiDesktopSimplePanel) then
   begin
     (aPlate.Plate.Parent as TUramakiDesktopSimplePanel).StopShining;
+  end;
+end;
+
+procedure TUramakiDesktopManager.DoRemovePanel(const aLivingPlateInstanceIdentifier: TGuid);
+var
+  tmpLivingPlate : TUramakiLivingPlate;
+  memStream : TMemoryStream;
+  tmpPanel : TUramakiDesktopSimplePanel;
+begin
+  tmpLivingPlate := FEngine.FindLivingPlateByPlateId(aLivingPlateInstanceIdentifier);
+  if Assigned (tmpLivingPlate) then
+  begin
+    tmpLivingPlate.Deleted := true;
+    tmpPanel := FContainer.FindPanelByPlateId(aLivingPlateInstanceIdentifier);
+    if Assigned(tmpPanel) then
+      tmpPanel.Deleted:= true;
+
+    MarkChildsAsDeleted(tmpLivingPlate);
+  end;
+  memStream := TMemoryStream.Create;
+  try
+    Self.SaveToStream(memStream);
+    memStream.Position:= 0;
+    Self.LoadFromStream(memStream);
+  finally
+    memStream.Free;
+  end;
+end;
+
+procedure TUramakiDesktopManager.MarkChildsAsDeleted(const aPlate: TUramakiLivingPlate);
+var
+  childs : TObjectList;
+  i : integer;
+  tmpPanel : TUramakiDesktopSimplePanel;
+begin
+  childs := TObjectList.Create(false);
+  try
+    FEngine.FindLivingPlatesByParent(aPlate.Plate, childs);
+    for i := 0 to childs.Count - 1 do
+    begin
+      (childs.Items[i] as TUramakiLivingPlate).Deleted:= true;
+      tmpPanel := FContainer.FindPanelByPlateId((childs.Items[i] as TUramakiLivingPlate).InstanceIdentifier);
+      if Assigned(tmpPanel) then
+        tmpPanel.Deleted:= true;
+
+      MarkChildsAsDeleted(childs.Items[i] as TUramakiLivingPlate);
+    end;
+  finally
+    childs.Free;
   end;
 end;
 

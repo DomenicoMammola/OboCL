@@ -27,6 +27,9 @@ resourcestring
   SMenuItemAddChild = 'Add a child widget...';
   SLabelUpdatingCaption = 'Updating...';
   SMenuItemShowNote = 'Note...';
+  SMenuItemRemovePanel = 'Remove widget';
+  SRemovePanelCaption = 'Remove widget';
+  SRemovePanelConfirmationMessage = 'Do you really want to remove this widget?';
 
 type
 
@@ -53,15 +56,23 @@ type
     property TabData: TATTabData read FTabData write SetTabData;
   end;
 
+
+  TDoUramakiDesktopSimplePanelRemove = procedure (const aLivingPlateInstanceIdentifier : TGuid) of object;
+
+
   { TUramakiDesktopSimplePanel }
 
   TUramakiDesktopSimplePanel = class(TUramakiDesktopPanel)
   strict private
     FLivingPlateInstanceIdentifier : TGuid;
     FAddMenuItem : TMenuItem;
+    FRemoveMenuItem : TMenuItem;
     FShowNoteMenuItem : TMenuItem;
     FNote : String;
+    FDoRemovePanel : TDoUramakiDesktopSimplePanelRemove;
+    FDeleted : boolean;
     procedure OnShowNote (Sender : TObject);
+    procedure OnRemovePanel(Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     procedure CreateCaptionPanel;
@@ -75,6 +86,8 @@ type
 
     property LivingPlateInstanceIdentifier : TGuid read FLivingPlateInstanceIdentifier write FLivingPlateInstanceIdentifier;
     property AddMenuItem : TMenuItem read FAddMenuItem;
+    property DoRemovePanel : TDoUramakiDesktopSimplePanelRemove read FDoRemovePanel write FDoRemovePanel;
+    property Deleted : boolean read FDeleted write FDeleted;
   end;
 
 
@@ -98,6 +111,7 @@ type
     function Count : integer;
     function Get (aIndex : integer) : TUramakiDesktopPanel;
     function HowManySubReports : integer; override;
+    function FindPanelByPlateId(const aLivingPlateInstanceIdentifier : TGuid): TUramakiDesktopSimplePanel;
 
     function ExportAsConfItem : TUramakiDesktopLayoutConfItem; override;
     procedure ImportFromConfItem (aSource : TUramakiDesktopLayoutConfItem; aDoLinkCallback: TDoLinkLayoutPanelToPlate); override;
@@ -225,6 +239,7 @@ begin
   end;
 end;
 
+
 { TUramakiDesktopContainerPanel }
 
 procedure TUramakiDesktopContainerPanel.OnTabClick(aSender: TObject);
@@ -315,6 +330,31 @@ begin
   Result := c;
 end;
 
+function TUramakiDesktopContainerPanel.FindPanelByPlateId(const aLivingPlateInstanceIdentifier: TGuid): TUramakiDesktopSimplePanel;
+var
+  i : integer;
+begin
+  Result := nil;
+
+  for i := 0 to Count - 1 do
+  begin
+    if Self.Get(i) is TUramakiDesktopContainerPanel then
+    begin
+      Result := (Self.Get(i) as TUramakiDesktopContainerPanel).FindPanelByPlateId(aLivingPlateInstanceIdentifier);
+      if Assigned(Result) then
+        break;
+    end
+    else
+    begin
+      if IsEqualGUID((Self.Get(i) as TUramakiDesktopSimplePanel).LivingPlateInstanceIdentifier, aLivingPlateInstanceIdentifier) then
+      begin
+        Result := Self.Get(i) as TUramakiDesktopSimplePanel;
+        break;
+      end;
+    end;
+  end;
+end;
+
 function TUramakiDesktopContainerPanel.ExportAsConfItem: TUramakiDesktopLayoutConfItem;
 var
   i : integer;
@@ -338,10 +378,13 @@ begin
     end
     else
     begin
-      tmp := (Self.Get(i) as TUramakiDesktopSimplePanel).ExportAsConfItem;
-      if Assigned(FRootPanel) then
-        tmp.Position := FRootPanel.PanelCollection.Items[i].Position;
-      (Result as TUramakiDesktopLayoutConfContainerItem).AddItem(tmp)
+      if not (Self.Get(i) as TUramakiDesktopSimplePanel).Deleted then
+      begin
+        tmp := (Self.Get(i) as TUramakiDesktopSimplePanel).ExportAsConfItem;
+        if Assigned(FRootPanel) then
+          tmp.Position := FRootPanel.PanelCollection.Items[i].Position;
+        (Result as TUramakiDesktopLayoutConfContainerItem).AddItem(tmp)
+      end;
     end;
   end;
 end;
@@ -457,6 +500,10 @@ begin
   FAddMenuItem := TMenuItem.Create(FPopupMenu);
   FAddMenuItem.Caption:= SMenuItemAddChild;
   FPopupMenu.Items.Add(FAddMenuItem);
+  FRemoveMenuItem := TMenuItem.Create(FPopupMenu);
+  FRemoveMenuItem.Caption := SMenuItemRemovePanel;
+  FRemoveMenuItem.OnClick:= OnRemovePanel;
+  FPopupMenu.Items.Add(FRemoveMenuItem);
 
 //  FPopupMenu.OnPopup:= Self.OnPopupMenu;
 end;
@@ -464,6 +511,15 @@ end;
 procedure TUramakiDesktopSimplePanel.OnShowNote(Sender: TObject);
 begin
   FNote := TmMemoForm.ShowAndEdit(Self, FNote);
+end;
+
+procedure TUramakiDesktopSimplePanel.OnRemovePanel(Sender: TObject);
+begin
+  if MessageDlg(SRemovePanelCaption, SRemovePanelConfirmationMessage, mtConfirmation, mbYesNoCancel, 0) = mrYes then
+  begin
+    if Assigned(FDoRemovePanel) then
+      FDoRemovePanel(FLivingPlateInstanceIdentifier);
+  end;
 end;
 
 constructor TUramakiDesktopSimplePanel.Create(TheOwner: TComponent);
@@ -474,6 +530,8 @@ begin
   Self.BevelOuter:= bvNone;
   Self.ParentColor:= true;
   Self.FNote:= '';
+  Self.FDoRemovePanel:= nil;
+  Self.FDeleted := false;
 end;
 
 procedure TUramakiDesktopSimplePanel.CreateCaptionPanel;

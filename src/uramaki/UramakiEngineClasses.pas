@@ -68,13 +68,13 @@ type
   TDoUramakiPlateStartShining = procedure (const aPlate : TUramakiLivingPlate) of object;
   TDoUramakiPlateStopShining = procedure (const aPlate : TUramakiLivingPlate) of object;
 
-
   { TUramakiLivingPlate }
 
   TUramakiLivingPlate = class
   strict private
     FParentIdentifier : TGuid;
     FInstanceIdentifier : TGuid;
+    FDeleted : boolean;
     FDoPlateStartShining : TDoUramakiPlateStartShining;
     FDoPlateStopShining : TDoUramakiPlateStopShining;
 
@@ -96,6 +96,7 @@ type
     property Publication : TUramakiActualPublication read FPublication;
     property InstanceIdentifier : TGuid read FInstanceIdentifier;
     property ParentIdentifier : TGuid read FParentIdentifier write FParentIdentifier;
+    property Deleted : boolean read FDeleted write FDeleted;
     property DoPlateStartShining : TDoUramakiPlateStartShining read FDoPlateStartShining write FDoPlateStartShining;
     property DoPlateStopShining : TDoUramakiPlateStopShining read FDoPlateStopShining write FDoPlateStopShining;
   end;
@@ -128,6 +129,7 @@ begin
   FPlate := nil;
   FDoPlateStartShining:= nil;
   FDoPlateStopShining:= nil;
+  FDeleted := false;
 
   FTransformations := TUramakiActualTransformations.Create;
   FPublication := TUramakiActualPublication.Create();

@@ -67,36 +67,6 @@ type
     property DoProcessMessage : TDoProcessMessage read FDoProcessMessage write FDoProcessMessage;
   end;
 
-
-(*  TSushiPostMessageProcedure = procedure(Msg: TSushiQueuedMessage) of object;
-  TSushiOnStartProcessingMessagesProcedure = procedure of object;
-  TSushiOnStopProcessingMessagesProcedure = procedure of object;
-
-  TSushiThreadMessagePump = class(TThread)
-  private
-    FMessagesList: TSushiQueuedMessagesList;
-    FCurrentMsg: TSushiQueuedMessage;
-    FPostaMessaggioProcedure: TSushiPostMessageProcedure;
-    FOnStartProcedure : TSushiOnStartProcessingMessagesProcedure;
-    FOnStopProcedure : TSushiOnStopProcessingMessagesProcedure;
-    FSomethingToDo : TEvent;
-    FEndEvent : TEvent;
-
-    procedure FPostaMessaggio;
-    procedure FOnStartProcessing;
-    procedure FOnEndProcessing;
-  public
-    procedure Execute; override;
-    constructor Create(AMessagesList: TSushiQueuedMessagesList; APostMessageProcedure:
-      TSushiPostMessageProcedure; aEndEvent : TEvent;
-      aOnStart : TSushiOnStartProcessingMessagesProcedure;
-      aOnStop : TSushiOnStopProcessingMessagesProcedure); reintroduce;
-    destructor Destroy; override;
-
-    property SomethingToDo : TEvent read FSomethingToDo;
-  end;*)
-
-
   { TUramakiEngineMediator }
 
   TUramakiEngineMediator = class (TUramakiAbstractEngineMediator)
@@ -636,7 +606,8 @@ var
 begin
   for i := 0 to FLivingPlates.Count - 1 do
   begin
-    (FLivingPlates.Items[i] as TUramakiLivingPlate).SaveToXml(aElement.AddElement('livingPlate'));
+    if not (FLivingPlates.Items[i] as TUramakiLivingPlate).Deleted then
+      (FLivingPlates.Items[i] as TUramakiLivingPlate).SaveToXml(aElement.AddElement('livingPlate'));
   end;
 end;
 
@@ -668,9 +639,12 @@ var
 begin
   for i := 0 to FLivingPlates.Count - 1 do
   begin
-    tmpElement := aElement.AddElement('plateConfiguration');
-    tmpElement.SetAttribute('identifier', GUIDToString((FLivingPlates.Items[i] as TUramakiLivingPlate).InstanceIdentifier));
-    (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate.SaveConfigurationToXml(tmpElement);
+    if Assigned((FLivingPlates.Items[i] as TUramakiLivingPlate).Plate) then
+    begin
+      tmpElement := aElement.AddElement('plateConfiguration');
+      tmpElement.SetAttribute('identifier', GUIDToString((FLivingPlates.Items[i] as TUramakiLivingPlate).InstanceIdentifier));
+      (FLivingPlates.Items[i] as TUramakiLivingPlate).Plate.SaveConfigurationToXml(tmpElement);
+    end;
   end;
 end;
 

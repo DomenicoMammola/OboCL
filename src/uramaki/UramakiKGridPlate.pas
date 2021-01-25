@@ -18,7 +18,7 @@ interface
 
 
 uses
-  kgrids, Classes, Controls,
+  kgrids, Classes, Controls, Menus,
   {$IFDEF FPC}
   LCLIntf,
   LclType,
@@ -26,12 +26,18 @@ uses
   LResources,
   LMessages,
   {$ENDIF}
-  mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML, mPivotSettings,
+  mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML,
   UramakiBase, UramakiToolbar;
 
 const
   WM_USER_REFRESHCHILDS = WM_USER + 11;
   WM_USER_CLEARCHILDS = WM_USER + 12;
+
+resourcestring
+  SConfigureCommandHint = 'Configure...';
+  SConfigurePivotCommandHint = 'Configure pivot...';
+  SConfigurePivotCommandCaption = 'Configure pivot';
+
 
 type
 
@@ -46,11 +52,14 @@ type
     FGrid : TKGrid;
     FFilterPanel : TmFilterPanel;
     FToolbar : TUramakiToolbar;
+    FConfigurePopupMenu : TPopupMenu;
 
     procedure OnClearFilter (Sender : TObject);
     procedure OnExecuteFilter (Sender : TObject);
     procedure ReloadData (aFilters : TmFilters); virtual; abstract;
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
+    procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
+    procedure OnEditSettings(Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -70,7 +79,7 @@ implementation
 
 uses
   sysutils,
-  mWaitCursor;
+  mWaitCursor, mPivotSettings, mPivotSettingsForm;
 
 { TUramakiKGridAsPivotPlate }
 
@@ -110,6 +119,53 @@ begin
   EngineMediator.PleaseClearMyChilds(Self);
 end;
 
+procedure TUramakiKGridAsPivotPlate.CreateToolbar(aImageList: TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex: integer);
+var
+  mItm : TMenuItem;
+begin
+  FToolbar := TUramakiToolbar.Create(Self);
+  FToolbar.Images := aImageList;
+  FToolbar.Parent := Self;
+
+  FConfigurePopupMenu := TPopupMenu.Create(FToolbar);
+
+  with FToolbar.AddDropDownButton(FConfigurePopupMenu) do
+  begin
+    Hint := SConfigureCommandHint;
+    ImageIndex:= aConfigureImageIndex;
+    Kind := bkIcon;
+  end;
+
+  mItm := TMenuItem.Create(FConfigurePopupMenu);
+  FConfigurePopupMenu.Items.Add(mItm);
+  mItm.OnClick:= Self.OnEditSettings;
+  mItm.Hint:= SConfigurePivotCommandHint;
+  mItm.Caption:= SConfigurePivotCommandCaption;
+
+  FToolbar.Update;
+end;
+
+procedure TUramakiKGridAsPivotPlate.OnEditSettings(Sender: TObject);
+var
+  frm : TPivotSettingsForm;
+begin
+  frm := TPivotSettingsForm.Create(nil);
+  try
+    frm.Init(FPivoter);
+    if frm.ShowModal = mrOk then
+    begin
+      try
+        TWaitCursor.ShowWaitCursor('TUramakiKGridAsPivotPlate.OnEditSettings');
+        //Intf.ApplySettings(FSettings);
+      finally
+        TWaitCursor.UndoWaitCursor('TUramakiKGridAsPivotPlate.OnEditSettings');
+      end;
+    end;
+  finally
+    frm.Free;
+  end;
+end;
+
 constructor TUramakiKGridAsPivotPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -117,6 +173,8 @@ begin
   FGrid := TKGrid.Create(Self);
   FGrid.Parent := Self;
   FGrid.Align := alClient;
+  FGrid.RowCount:= 0;
+  FGrid.ColCount:= 0;
 
 end;
 
@@ -144,13 +202,21 @@ begin
 end;
 
 procedure TUramakiKGridAsPivotPlate.LoadConfigurationFromXML(aXMLElement: TmXmlElement);
+var
+  cursor : TmXmlElementCursor;
 begin
-
+  cursor := TmXmlElementCursor.Create(aXMLElement, 'pivot');
+  try
+    if cursor.Count = 1 then
+      LoadPivotConfigurationToXML(FPivoter.VerticalGroupByDefs, FPivoter.HorizontalGroupByDefs, FPivoter.SummaryDefinitions, cursor.Elements[0]);
+  finally
+    cursor.Free;
+  end;
 end;
 
 procedure TUramakiKGridAsPivotPlate.SaveConfigurationToXML(aXMLElement: TmXmlElement);
 begin
-
+  SavePivotConfigurationToXML(FPivoter.VerticalGroupByDefs, FPivoter.HorizontalGroupByDefs, FPivoter.SummaryDefinitions, aXMLElement.AddElement('pivot'));
 end;
 
 procedure TUramakiKGridAsPivotPlate.Clear;

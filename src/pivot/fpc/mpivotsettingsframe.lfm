@@ -1,0 +1,9 @@
+object PivotFieldsSettingsFrame: TPivotFieldsSettingsFrame
+  Left = 0
+  Height = 240
+  Top = 0
+  Width = 320
+  TabOrder = 0
+  DesignLeft = 623
+  DesignTop = 145
+end

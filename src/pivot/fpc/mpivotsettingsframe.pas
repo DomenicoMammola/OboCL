@@ -25,17 +25,12 @@ uses
 resourcestring
   SLabelFields = 'Fields';
   SButtonFind = 'Find..';
-  SLabelHorizontalFields = 'Horizontal';
-  SLabelVerticalFields = 'Vertical';
-  SLabelDataFields = 'Data';
+  SLabelHorizontalFields = 'Horizontal fields';
+  SLabelVerticalFields = 'Vertical fields';
+  SLabelDataFields = 'Data fields';
   SLabelGroupByDefOperator = 'Group-by operator:';
-
-
-  SLabelHiddenCols = 'Hidden columns';
-  SLabelProperties = 'Properties of column';
-  SLabelLabel = 'Label:';
-  SLabelFormat = 'Display format:';
-  SHideAllCommand = 'Hide all';
+  SLabelSummaryOperator = 'Summary operator:';
+  sMenuItemRemove = 'Remove..';
 
 type
 
@@ -47,6 +42,7 @@ type
     FHorizontalGroupByDefs : TmGroupByDefs;
     FSummaryDefinitions : TmSummaryDefinitions;
     FFieldDefs: TmVirtualFieldDefs;
+    FSomethingChanged : boolean;
 
     FRootPanel : TOMultiPanel;
     FLeftPanel, FRightPanel : TOMultiPanel;
@@ -54,20 +50,17 @@ type
     FGroupDefPropertiesPanel, FSummaryPropertiesPanel : TPanel;
     FGroupDefPropertiesOperatorLabel : TLabel;
     FGroupDefPropertiesOperatorCB : TComboBox;
+    FSummaryOperatorLabel : TLabel;
+    FSummaryOperatorCB : TComboBox;
 
     FListBoxFields, FListBoxHorizontalFields, FListBoxVerticalFields, FListBoxDataFields : TListBox;
     FFieldsFindBtn : TEditButton;
     FLabelFields, FLabelHorizontalFields, FLabelVerticalFields, FLabelDataFields : TLabel;
 
-    FHiddenColFindBtn, FVisibleColFindBtn : TEditButton;
-    FLabelHidden, FLabelVisible, FPropertiesLabel: TLabel;
-    FListBoxHiddenColumns, FListBoxVisibleColumns : TListBox;
-    FLELabel, FLEFormat: TLabeledEdit;
-    FVisibleColsMenu : TPopupMenu;
-
     FCurrentField : TmVirtualFieldDef;
     FCurrentGroupByDef : TmGroupByDef;
     FGarbageGroupByDefs : TmGroupByDefs;
+    FCurrentSummary : TmSummaryDefinition;
     FGarbage : TObjectList;
     procedure ClearProperties;
 
@@ -78,6 +71,10 @@ type
     procedure CreateHorizontalFieldsPanel;
     procedure CreateVerticalFieldsPanel;
     procedure CreateDataFieldsPanel;
+    procedure OnDeleteHorizontalField(Sender : TObject);
+    procedure OnDeleteVerticalField(Sender : TObject);
+    procedure OnDeleteDataField(Sender : TObject);
+
     procedure LBDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
 
     procedure OnFindField(Sender: TObject);
@@ -94,42 +91,35 @@ type
     procedure LBVerticalFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
     procedure LBVerticalFieldsSelectionChange(Sender: TObject; User: boolean);
 
-    procedure LBVisibleColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
-    procedure LBVisibleColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
-    procedure LBVisibleColumnsSelectionChange(Sender: TObject; User: boolean);
-    procedure LBVisibleColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
+    procedure LBDataFieldsDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure LBDataFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+    procedure LBDataFieldsSelectionChange(Sender: TObject; User: boolean);
 
-    procedure LBHiddenColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
-    procedure LBHiddenColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
-    procedure LBHiddenColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
-
-    procedure LEFormatEditingDone(Sender: TObject);
-    procedure LELabelEditingDone(Sender: TObject);
-    procedure OnFindHiddenCol(Sender: TObject);
-    procedure OnFindVisibleCol(Sender: TObject);
-    procedure OnHideAllFields(Sender : TObject);
     function GetLBFieldLine (const aFieldDef : TmVirtualFieldDef) : String;
     function GetLBDataFieldLine (const aSummaryDef : TmSummaryDefinition) : String;
     function GetLBVertHorizFieldLine(const aGroupByDef : TmGroupByDef) : String;
 
     procedure ImportGroupByFromField (const aSource : TmVirtualFieldDef; aDestination : TmGroupByDef);
+    procedure ImportSummaryFromField (const aSource : TmVirtualFieldDef; aDestination : TmSummaryDefinition);
     procedure OnGroupDefPropertiesOperatorCBChange (aSender : TObject);
+    procedure OnSummaryOperatorCBChange (aSender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
 
-    procedure Init (aPivoter : TmPivoter);
-    procedure UpdateSettings;
+    procedure Init (const aPivoter : TmPivoter);
+    procedure UpdateSettings(aPivoter : TmPivoter);
 
     property VerticalGroupByDefs : TmGroupByDefs read FVerticalGroupByDefs;
     property HorizontalGroupByDefs : TmGroupByDefs read FHorizontalGroupByDefs;
     property SummaryDefinitions : TmSummaryDefinitions read FSummaryDefinitions;
+    property SomethingChanged : boolean read FSomethingChanged;
   end;
 
 implementation
 
 uses
-  Graphics, LCLType,
+  Graphics, LCLType, Dialogs,
   mUtility, mDatasetStandardSetup;
 
 {$R *.lfm}
@@ -144,6 +134,21 @@ type
     constructor Create(const aOperation : TmGroupByOperationKind);
   end;
 
+  { TSummaryOperatorShell }
+
+  TSummaryOperatorShell = class
+  public
+    op : TmSummaryOperator;
+    constructor Create(const aOperator : TmSummaryOperator);
+  end;
+
+{ TSummaryOperatorShell }
+
+constructor TSummaryOperatorShell.Create(const aOperator: TmSummaryOperator);
+begin
+  op := aOperator;
+end;
+
 { TGroupByOperationKindShell }
 
 constructor TGroupByOperationKindShell.Create(const aOperation: TmGroupByOperationKind);
@@ -152,17 +157,6 @@ begin
 end;
 
 
-procedure TPivotFieldsSettingsFrame.LBVisibleColumnsSelectionChange(Sender: TObject; User: boolean);
-begin
-  ClearProperties;
-  if (FListBoxVisibleColumns.SelCount = 1) and (FListBoxVisibleColumns.ItemIndex >= 0) then
-  begin
-(*    FCurrentProperties:= FListBoxVisibleColumns.Items.Objects[FListBoxVisibleColumns.ItemIndex] as TmGridColumnSettings;
-    FLELabel.Text:= FCurrentProperties.DisplayLabel.AsString;
-    FLEFormat.Text:= FCurrentProperties.DisplayFormat.AsString;
-    *)
-  end;
-end;
 
 procedure TPivotFieldsSettingsFrame.LBDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
 var
@@ -299,6 +293,7 @@ begin
       FListBoxHorizontalFields.AddItem(old, newGroupBy);
   end;
   LBHorizontalFieldsSelectionChange(nil, true);
+  FSomethingChanged := true;
 end;
 
 procedure TPivotFieldsSettingsFrame.LBHorizontalFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
@@ -366,6 +361,7 @@ begin
       FListBoxVerticalFields.AddItem(old, newGroupBy);
   end;
   LBVerticalFieldsSelectionChange(nil, true);
+  FSomethingChanged := true;
 end;
 
 procedure TPivotFieldsSettingsFrame.LBVerticalFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
@@ -385,197 +381,75 @@ begin
   end;
 end;
 
-
-procedure TPivotFieldsSettingsFrame.LBVisibleColumnsDragDrop(Sender,Source: TObject; X, Y: Integer);
+procedure TPivotFieldsSettingsFrame.LBDataFieldsDragDrop(Sender, Source: TObject; X, Y: Integer);
 var
   dest, prev : integer;
   old: String;
   oldObj : TObject;
   pt : TPoint;
+  newSummary : TmSummaryDefinition;
 begin
-  if Source = FListBoxVisibleColumns then
+  if Source = FListBoxDataFields then
   begin
-    prev := FListBoxVisibleColumns.ItemIndex;
+    prev := FListBoxDataFields.ItemIndex;
     if prev < 0 then
       exit;
     pt.x:= X;
     pt.y:= Y;
-    dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
-    old := FListBoxVisibleColumns.Items[prev];
-    oldObj := FListBoxVisibleColumns.Items.Objects[prev];
+    dest := FListBoxDataFields.ItemAtPos(pt, true);
+    old := FListBoxDataFields.Items[prev];
+    oldObj := FListBoxDataFields.Items.Objects[prev];
 
     if dest >= 0 then
     begin
-      FListBoxVisibleColumns.DeleteSelected;
+      FListBoxDataFields.DeleteSelected;
       if dest < prev then
-        FListBoxVisibleColumns.Items.InsertObject(dest, old, oldObj)
+        FListBoxDataFields.Items.InsertObject(dest, old, oldObj)
       else
-        FListBoxVisibleColumns.Items.InsertObject(dest - 1, old, oldObj);
+        FListBoxDataFields.Items.InsertObject(dest - 1, old, oldObj);
     end;
   end
-  else if Source = FListBoxHiddenColumns then
+  else if Source = FListBoxFields then
   begin
-    prev := FListBoxHiddenColumns.ItemIndex;
+    prev := FListBoxFields.ItemIndex;
     if prev < 0 then
       exit;
     pt.x:= X;
     pt.y:= Y;
-    dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
-    old := FListBoxHiddenColumns.Items[prev];
-    oldObj := FListBoxHiddenColumns.Items.Objects[prev];
+    dest := FListBoxDataFields.ItemAtPos(pt, true);
+    old := FListBoxFields.Items[prev];
+    oldObj := FListBoxFields.Items.Objects[prev];
 
-    FListBoxHiddenColumns.DeleteSelected;
+    newSummary := TmSummaryDefinition.Create;
+    FGarbage.Add(newSummary);
+    ImportSummaryFromField((oldObj as TmVirtualFieldDef), newSummary);
+
     if dest >= 0 then
-      FListBoxVisibleColumns.Items.InsertObject(dest, old, oldObj)
+      FListBoxDataFields.Items.InsertObject(dest, old, newSummary)
     else
-      FListBoxVisibleColumns.AddItem(old, oldObj);
+      FListBoxDataFields.AddItem(old, newSummary);
   end;
-  LBVisibleColumnsSelectionChange(nil, true);
+  LBDataFieldsSelectionChange(nil, true);
+  FSomethingChanged := true;
 end;
 
-procedure TPivotFieldsSettingsFrame.LBVisibleColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+procedure TPivotFieldsSettingsFrame.LBDataFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
 begin
-  Accept := (Source = FListBoxVisibleColumns) or (Source = FListBoxHiddenColumns);
+  Accept := (Source = FListBoxFields) or (Source = FListBoxDataFields);
 end;
 
-procedure TPivotFieldsSettingsFrame.LBVisibleColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
+procedure TPivotFieldsSettingsFrame.LBDataFieldsSelectionChange(Sender: TObject; User: boolean);
 begin
-  //
-end;
-
-procedure TPivotFieldsSettingsFrame.LBHiddenColumnsDragDrop(Sender, Source: TObject; X, Y: Integer);
-var
-  dest, prev : integer;
-  old: String;
-  oldObj : TObject;
-  pt : TPoint;
-begin
-  prev := FListBoxVisibleColumns.ItemIndex;
-  if prev < 0 then
-    exit;
-  pt.x:= X;
-  pt.y:= Y;
-  dest := FListBoxHiddenColumns.ItemAtPos(pt, true);
-  old := FListBoxVisibleColumns.Items[prev];
-  oldObj := FListBoxVisibleColumns.Items.Objects[prev];
-
-  FListBoxVisibleColumns.DeleteSelected;
-  if dest >= 0 then
-    FListBoxHiddenColumns.Items.InsertObject(dest, old, oldObj)
-  else
-    FListBoxHiddenColumns.AddItem(old, oldObj);
-  LBVisibleColumnsSelectionChange(nil, true);
-end;
-
-procedure TPivotFieldsSettingsFrame.LBHiddenColumnsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
-begin
-  Accept := (Source = FListBoxVisibleColumns);
-end;
-
-procedure TPivotFieldsSettingsFrame.LBHiddenColumnsStartDrag(Sender: TObject; var DragObject: TDragObject);
-begin
-  //
-end;
-
-procedure TPivotFieldsSettingsFrame.LEFormatEditingDone(Sender: TObject);
-begin
-  (*
-  if Assigned(FCurrentProperties) then
+  ClearProperties;
+  if (FListBoxDataFields.SelCount = 1) and (FListBoxDataFields.ItemIndex >= 0) then
   begin
-    if Trim(FLEFormat.Text) <> '' then
-      FCurrentProperties.DisplayFormat.Value:= Trim(FLEFormat.Text)
-    else
-      FCurrentProperties.DisplayFormat.IsNull:= true;
-  end;
-  *)
-end;
-
-procedure TPivotFieldsSettingsFrame.LELabelEditingDone(Sender: TObject);
-begin
-  (*
-  if Assigned(FCurrentProperties) then
-  begin
-    if Trim(FLELabel.Text) <> '' then
-      FCurrentProperties.DisplayLabel.Value:= Trim(FLELabel.Text)
-    else
-      FCurrentProperties.DisplayLabel.IsNull:= true;
-    FListBoxVisibleColumns.Invalidate;
-  end;
-  *)
-end;
-
-procedure TPivotFieldsSettingsFrame.OnFindHiddenCol(Sender: TObject);
-var
-  start, i: integer;
-begin
-  if FHiddenColFindBtn.Text = '' then
-    exit;
-
-  if (FListBoxHiddenColumns.ItemIndex >= 0) then
-    start := FListBoxHiddenColumns.ItemIndex
-  else
-    start := -1;
-  for i := start + 1 to FListBoxHiddenColumns.Count - 1 do
-  begin
-    if Pos(Uppercase(FHiddenColFindBtn.Text), Uppercase(FListBoxHiddenColumns.Items[i])) > 0 then
-    begin
-      FListBoxHiddenColumns.ItemIndex:= i;
-      exit;
-    end;
-  end;
-  for i := 0 to start do
-  begin
-    if Pos(Uppercase(FHiddenColFindBtn.Text), Uppercase(FListBoxHiddenColumns.Items[i])) > 0 then
-    begin
-      FListBoxHiddenColumns.ItemIndex:= i;
-      exit;
-    end;
+    FCurrentSummary:= FListBoxDataFields.Items.Objects[FListBoxDataFields.ItemIndex] as TmSummaryDefinition;
+    FSummaryPropertiesPanel.Visible := true;
+    FGroupDefPropertiesPanel.Visible:= false;
+    UpdatePropertiesPanel;
   end;
 end;
 
-procedure TPivotFieldsSettingsFrame.OnFindVisibleCol(Sender: TObject);
-var
-  start, i: integer;
-begin
-  if FVisibleColFindBtn.Text = '' then
-    exit;
-
-  if (FListBoxVisibleColumns.ItemIndex >= 0) then
-    start := FListBoxVisibleColumns.ItemIndex
-  else
-    start := -1;
-  for i := start + 1 to FListBoxVisibleColumns.Count - 1 do
-  begin
-    if Pos(Uppercase(FVisibleColFindBtn.Text), Uppercase(FListBoxVisibleColumns.Items[i])) > 0 then
-    begin
-      FListBoxVisibleColumns.ItemIndex:= i;
-      exit;
-    end;
-  end;
-  for i := 0 to start do
-  begin
-    if Pos(Uppercase(FVisibleColFindBtn.Text), Uppercase(FListBoxVisibleColumns.Items[i])) > 0 then
-    begin
-      FListBoxVisibleColumns.ItemIndex:= i;
-      exit;
-    end;
-  end;
-end;
-
-procedure TPivotFieldsSettingsFrame.OnHideAllFields(Sender: TObject);
-var
-  i : integer;
-//  op : TmGridColumnSettings;
-begin
-  (*
-  for i := FListBoxVisibleColumns.Count - 1 downto 0 do
-  begin
-    op := FListBoxVisibleColumns.Items.Objects[i] as TmGridColumnSettings;
-    FListBoxHiddenColumns.Items.InsertObject(0, FListBoxVisibleColumns.Items[i], op);
-  end;
-  FListBoxVisibleColumns.Clear;
-  *)
-end;
 
 function TPivotFieldsSettingsFrame.GetLBFieldLine(const aFieldDef: TmVirtualFieldDef): String;
 begin
@@ -599,90 +473,40 @@ begin
   aDestination.OperationKind:= gpoDistinct;
 end;
 
+procedure TPivotFieldsSettingsFrame.ImportSummaryFromField(const aSource: TmVirtualFieldDef; aDestination: TmSummaryDefinition);
+begin
+  aDestination.FieldName:= aSource.Name;
+  aDestination.FieldType:= FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
+  aDestination.SummaryOperator:= soCount;
+end;
+
 procedure TPivotFieldsSettingsFrame.OnGroupDefPropertiesOperatorCBChange(aSender: TObject);
 begin
-  if Assigned(FCurrentGroupByDef) then
-    FCurrentGroupByDef.OperationKind:= TmGroupByOperationKind(FGroupDefPropertiesOperatorCB.ItemIndex);
+  if Assigned(FCurrentGroupByDef) and (FGroupDefPropertiesOperatorCB.ItemIndex >= 0) then
+  begin
+    FCurrentGroupByDef.OperationKind:= (FGroupDefPropertiesOperatorCB.Items.Objects[FGroupDefPropertiesOperatorCB.ItemIndex] as TGroupByOperationKindShell).op;
+    FListBoxHorizontalFields.Invalidate;
+    FListBoxVerticalFields.Invalidate;
+    FSomethingChanged := true;
+  end;
 end;
 
-
-(*
-procedure TPivotFieldsSettingsFrame.CreateHiddenColsPanel;
+procedure TPivotFieldsSettingsFrame.OnSummaryOperatorCBChange(aSender: TObject);
 begin
-  FHiddenColsPanel.BevelOuter:= bvNone;
-
-  FHiddenColFindBtn:= TEditButton.Create(FHiddenColsPanel);
-  FHiddenColFindBtn.Parent:= FHiddenColsPanel;
-  FHiddenColFindBtn.ButtonWidth:= 50;
-  FHiddenColFindBtn.Align:= alTop;
-  FHiddenColFindBtn.OnButtonClick:= @OnFindHiddenCol;
-  FHiddenColFindBtn.ButtonCaption:= SButtonFind;
-
-  FLabelHidden:= TLabel.Create(FHiddenColsPanel);
-  FLabelHidden.Parent:= FHiddenColsPanel;
-  FLabelHidden.Alignment:= taCenter;
-  FLabelHidden.Align:= alTop;
-  FLabelHidden.Caption:= SLabelHiddenCols;
-
-  FListBoxHiddenColumns:= TListBox.Create(FHiddenColsPanel);
-  FListBoxHiddenColumns.Parent:= FHiddenColsPanel;
-  FListBoxHiddenColumns.Align:= alClient;
-  FListBoxHiddenColumns.DragMode:= dmAutomatic;
-  FListBoxHiddenColumns.OnDragDrop:= @LBHiddenColumnsDragDrop;
-  FListBoxHiddenColumns.OnDragOver:= @LBHiddenColumnsDragOver;
-  FListBoxHiddenColumns.OnStartDrag:= @LBHiddenColumnsStartDrag;
-  FListBoxHiddenColumns.OnDrawItem:= @Self.LBDrawItem;
-  FListBoxHiddenColumns.Style:= lbOwnerDrawFixed;
-  FListBoxHiddenColumns.ItemHeight:= 20;
+  if Assigned(FCurrentSummary) and (FSummaryOperatorCB.ItemIndex >= 0) then
+  begin
+    FCurrentSummary.SummaryOperator:= (FSummaryOperatorCB.Items.Objects[FSummaryOperatorCB.ItemIndex] as TSummaryOperatorShell).op;
+    FListBoxDataFields.Invalidate;
+    FSomethingChanged := true;
+  end;
 end;
-*)
-
-(*
-procedure TPivotFieldsSettingsFrame.CreateVisibleColsPanel;
-var
-  tmpMenuItem : TMenuItem;
-begin
-  FVisibleColsPanel.BevelOuter:= bvNone;
-
-  FVisibleColFindBtn:= TEditButton.Create(FVisibleColsPanel);
-  FVisibleColFindBtn.Parent:= FVisibleColsPanel;
-  FVisibleColFindBtn.ButtonWidth:= 50;
-  FVisibleColFindBtn.Align:= alTop;
-  FVisibleColFindBtn.OnButtonClick:= @OnFindVisibleCol;
-  FVisibleColFindBtn.ButtonCaption:= SButtonFind;
-
-  FLabelVisible:= TLabel.Create(FVisibleColsPanel);
-  FLabelVisible.Parent:= FVisibleColsPanel;
-  FLabelVisible.Alignment:= taCenter;
-  FLabelVisible.Align:= alTop;
-  FLabelVisible.Caption:= SLabelVisibleCols;
-
-  FListBoxVisibleColumns:= TListBox.Create(FVisibleColsPanel);
-  FListBoxVisibleColumns.Parent:= FVisibleColsPanel;
-  FListBoxVisibleColumns.Align:= alClient;
-  FListBoxVisibleColumns.DragMode:= dmAutomatic;
-  FListBoxVisibleColumns.OnDragDrop:= @LBVisibleColumnsDragDrop;
-  FListBoxVisibleColumns.OnDragOver:= @LBVisibleColumnsDragOver;
-  FListBoxVisibleColumns.OnSelectionChange:= @LBVisibleColumnsSelectionChange;
-  FListBoxVisibleColumns.OnStartDrag:= @LBVisibleColumnsStartDrag;
-  FListBoxVisibleColumns.OnDrawItem:= @Self.LBDrawItem;
-  FListBoxVisibleColumns.Style:= lbOwnerDrawFixed;
-  FListBoxVisibleColumns.ItemHeight:= 20;
-
-  FVisibleColsMenu := TPopupMenu.Create(FListBoxVisibleColumns);
-  FListBoxVisibleColumns.PopupMenu := FVisibleColsMenu;
-  tmpMenuItem := TMenuItem.Create(FVisibleColsMenu);
-  FVisibleColsMenu.Items.Add(tmpMenuItem);
-  tmpMenuItem.Caption:= SHideAllCommand;
-  tmpMenuItem.OnClick:= @OnHideAllFields;
-end;
-
-*)
 
 procedure TPivotFieldsSettingsFrame.CreatePropertiesPanel;
 var
   ok : TmGroupByOperationKind;
   tmpOp : TGroupByOperationKindShell;
+  so : TmSummaryOperator;
+  tmpSo : TSummaryOperatorShell;
 begin
   FPropertiesPanel.BevelOuter := bvNone;
 
@@ -714,50 +538,74 @@ begin
   FSummaryPropertiesPanel.Align:= alClient;
   FSummaryPropertiesPanel.Visible := false;
 
-  (*
-  FFormatPanel:= TPanel.Create(FPropertiesPanel);
-  FFormatPanel.Parent:= FPropertiesPanel;
-  FFormatPanel.Height:= 40;
-  FFormatPanel.Align:= alTop;
-  FFormatPanel.BevelOuter:= bvNone;
-
-  FLabelPanel:= TPanel.Create(FPropertiesPanel);
-  FLabelPanel.Parent:= FPropertiesPanel;
-  FLabelPanel.Height:= 40;
-  FLabelPanel.Align:= alTop;
-  FLabelPanel.BevelOuter:= bvNone;
-
-  FPropertiesLabel:= TLabel.Create(FPropertiesPanel);
-  FPropertiesLabel.Parent:= FPropertiesPanel;
-  FPropertiesLabel.Alignment:= taCenter;
-  FPropertiesLabel.Align:= alTop;
-  FPropertiesLabel.Caption:= SLabelProperties;
-
-  FLEFormat:= TLabeledEdit.Create(FFormatPanel);
-  FLEFormat.Parent:= FFormatPanel;
-  FLEFormat.EditLabel.Caption:= SLabelFormat;
-  FLEFormat.OnEditingDone:= @LEFormatEditingDone;
-  FLEFormat.Align:= alBottom;
-
-  FLELabel:= TLabeledEdit.Create(FLabelPanel);
-  FLELabel.Parent:= FLabelPanel;
-  FLELabel.EditLabel.Caption:= SLabelLabel;
-  FLELabel.OnEditingDone:= @LELabelEditingDone;
-  FLELabel.Align:= alBottom;
-  *)
+  FSummaryOperatorCB := TComboBox.Create(FSummaryPropertiesPanel);
+  FSummaryOperatorCB.Parent := FSummaryPropertiesPanel;
+  FSummaryOperatorCB.Align:= alTop;
+  FSummaryOperatorCB.Style:= csDropDownList;
+  FSummaryOperatorCB.OnChange:= @OnSummaryOperatorCBChange;
+  for so := Low(TmSummaryOperator) to High(TmSummaryOperator) do
+  begin
+    tmpSo := TSummaryOperatorShell.Create(so);
+    FGarbage.Add(tmpSo);
+    FSummaryOperatorCB.AddItem(TmSummaryOperatorToString(so), tmpSo);
+  end;
+  FSummaryOperatorLabel := TLabel.Create(FSummaryPropertiesPanel);
+  FSummaryOperatorLabel.Parent := FSummaryPropertiesPanel;
+  FSummaryOperatorLabel.Align:= alTop;
+  FSummaryOperatorLabel.Caption:= SLabelSummaryOperator;
 end;
 
 procedure TPivotFieldsSettingsFrame.UpdatePropertiesPanel;
+var
+  op : TmGroupByOperationKind;
+  so : TmSummaryOperator;
+  tmpOp : TGroupByOperationKindShell;
+  tmpSo : TSummaryOperatorShell;
+  i, idx : integer;
 begin
   if FGroupDefPropertiesPanel.Visible then
   begin
-    FGroupDefPropertiesOperatorCB.ItemIndex:= 0;
+    FGroupDefPropertiesOperatorCB.Items.Clear;
     if Assigned(FCurrentGroupByDef) then
-      FGroupDefPropertiesOperatorCB.ItemIndex := integer(FCurrentGroupByDef.OperationKind);
+    begin
+      i := 0;
+      idx := 0;
+      for op := Low(TmGroupByOperationKind) to High(TmGroupByOperationKind) do
+      begin
+        if TmGroupByDef.CheckOperationKindCompatibility(op, FCurrentGroupByDef.DataType) then
+        begin
+          tmpOp := TGroupByOperationKindShell.Create(op);
+          FGarbage.Add(tmpOp);
+          FGroupDefPropertiesOperatorCB.AddItem(TmGroupByOperationKindToString(op), tmpOp);
+          if op = FCurrentGroupByDef.OperationKind then
+            idx := i;
+          inc(i);
+        end;
+      end;
+      FGroupDefPropertiesOperatorCB.ItemIndex:= idx;
+    end;
   end
   else if FSummaryPropertiesPanel.Visible then
   begin
-
+    FSummaryOperatorCB.Items.Clear;
+    if Assigned(FCurrentSummary) then
+    begin
+      i := 0;
+      idx := 0;
+      for so := Low(TmSummaryOperator) to High(TmSummaryOperator) do
+      begin
+        if TmSummaryDefinition.CheckOperatorCompatibility(so, FCurrentSummary.FieldType) then
+        begin
+          tmpSo := TSummaryOperatorShell.Create(so);
+          FGarbage.Add(tmpSo);
+          FSummaryOperatorCB.AddItem(TmSummaryOperatorToString(so), tmpSo);
+          if so = FCurrentSummary.SummaryOperator then
+            idx := i;
+          inc(i);
+        end;
+      end;
+      FSummaryOperatorCB.ItemIndex:= idx;
+    end;
   end;
 end;
 
@@ -813,6 +661,9 @@ begin
 end;
 
 procedure TPivotFieldsSettingsFrame.CreateHorizontalFieldsPanel;
+var
+  mn : TPopupMenu;
+  mi : TMenuItem;
 begin
   FHorizontalFieldsPanel.BevelOuter := bvNone;
   FLabelHorizontalFields:= TLabel.Create(FFieldsPanel);
@@ -832,9 +683,19 @@ begin
   FListBoxHorizontalFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxHorizontalFields.Style:= lbOwnerDrawFixed;
   FListBoxHorizontalFields.ItemHeight:= 20;
+
+  mn := TPopupMenu.Create(FListBoxHorizontalFields);
+  FListBoxHorizontalFields.PopupMenu := mn;
+  mi := TMenuItem.Create(mn);
+  mn.Items.Add(mi);
+  mi.Caption:= sMenuItemRemove;
+  mi.OnClick:= @OnDeleteHorizontalField;
 end;
 
 procedure TPivotFieldsSettingsFrame.CreateVerticalFieldsPanel;
+var
+  mn : TPopupMenu;
+  mi : TMenuItem;
 begin
   FVerticalFieldsPanel.BevelOuter := bvNone;
   FLabelVerticalFields:= TLabel.Create(FFieldsPanel);
@@ -847,16 +708,26 @@ begin
   FListBoxVerticalFields.Parent:= FVerticalFieldsPanel;
   FListBoxVerticalFields.Align:= alClient;
   FListBoxVerticalFields.DragMode:= dmAutomatic;
-//  FListBoxVerticalFields.OnDragDrop:= @LBFieldsDragDrop;
-//  FListBoxVerticalFields.OnDragOver:= @LBFieldsDragOver;
-//  FListBoxVerticalFields.OnSelectionChange:= @LBFieldsSelectionChange;
-//  FListBoxVerticalFields.OnStartDrag:= @LBFieldsStartDrag;
+  FListBoxVerticalFields.OnDragDrop:= @LBVerticalFieldsDragDrop;
+  FListBoxVerticalFields.OnDragOver:= @LBVerticalFieldsDragOver;
+  FListBoxVerticalFields.OnSelectionChange:= @LBVerticalFieldsSelectionChange;
+//  FListBoxVerticalFields.OnStartDrag:= @LBVerticalFieldsStartDrag;
   FListBoxVerticalFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxVerticalFields.Style:= lbOwnerDrawFixed;
   FListBoxVerticalFields.ItemHeight:= 20;
+
+  mn := TPopupMenu.Create(FListBoxHorizontalFields);
+  FListBoxVerticalFields.PopupMenu := mn;
+  mi := TMenuItem.Create(mn);
+  mn.Items.Add(mi);
+  mi.Caption:= sMenuItemRemove;
+  mi.OnClick:= @OnDeleteVerticalField;
 end;
 
 procedure TPivotFieldsSettingsFrame.CreateDataFieldsPanel;
+var
+  mn : TPopupMenu;
+  mi : TMenuItem;
 begin
   FDataFieldsPanel.BevelOuter := bvNone;
   FLabelDataFields:= TLabel.Create(FFieldsPanel);
@@ -869,18 +740,53 @@ begin
   FListBoxDataFields.Parent:= FDataFieldsPanel;
   FListBoxDataFields.Align:= alClient;
   FListBoxDataFields.DragMode:= dmAutomatic;
-//  FListBoxDataFields.OnDragDrop:= @LBFieldsDragDrop;
-//  FListBoxDataFields.OnDragOver:= @LBFieldsDragOver;
-//  FListBoxDataFields.OnSelectionChange:= @LBFieldsSelectionChange;
+  FListBoxDataFields.OnDragDrop:= @LBDataFieldsDragDrop;
+  FListBoxDataFields.OnDragOver:= @LBDataFieldsDragOver;
+  FListBoxDataFields.OnSelectionChange:= @LBDataFieldsSelectionChange;
 //  FListBoxDataFields.OnStartDrag:= @LBFieldsStartDrag;
-//  FListBoxDataFields.OnDrawItem:= @Self.LBDrawItem;
+  FListBoxDataFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxDataFields.Style:= lbOwnerDrawFixed;
   FListBoxDataFields.ItemHeight:= 20;
+
+  mn := TPopupMenu.Create(FListBoxHorizontalFields);
+  FListBoxDataFields.PopupMenu := mn;
+  mi := TMenuItem.Create(mn);
+  mn.Items.Add(mi);
+  mi.Caption:= sMenuItemRemove;
+  mi.OnClick:= @OnDeleteDataField;
+end;
+
+procedure TPivotFieldsSettingsFrame.OnDeleteHorizontalField(Sender: TObject);
+begin
+  if FListBoxHorizontalFields.ItemIndex >= 0 then
+  begin
+    FListBoxHorizontalFields.DeleteSelected;
+    FSomethingChanged:= true;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.OnDeleteVerticalField(Sender: TObject);
+begin
+  if FListBoxVerticalFields.ItemIndex >= 0 then
+  begin
+    FListBoxVerticalFields.DeleteSelected;
+    FSomethingChanged:= true;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.OnDeleteDataField(Sender: TObject);
+begin
+  if FListBoxDataFields.ItemIndex >= 0 then
+  begin
+    FListBoxDataFields.DeleteSelected;
+    FSomethingChanged:= true;
+  end;
 end;
 
 constructor TPivotFieldsSettingsFrame.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+  FSomethingChanged:= false;
   FVerticalGroupByDefs := TmGroupByDefs.Create;
   FHorizontalGroupByDefs := TmGroupByDefs.Create;
   FSummaryDefinitions := TmSummaryDefinitions.Create;
@@ -888,6 +794,9 @@ begin
 
   FGarbageGroupByDefs := TmGroupByDefs.Create;
   FGarbage := TObjectList.Create(true);
+  FCurrentGroupByDef := nil;
+  FCurrentField := nil;
+  FCurrentSummary := nil;
 
 
   FRootPanel := TOMultiPanel.Create(Self);
@@ -963,7 +872,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TPivotFieldsSettingsFrame.Init(aPivoter : TmPivoter);
+procedure TPivotFieldsSettingsFrame.Init(const aPivoter : TmPivoter);
 var
   i : integer;
 begin
@@ -987,30 +896,18 @@ begin
 
 end;
 
-procedure TPivotFieldsSettingsFrame.UpdateSettings;
+procedure TPivotFieldsSettingsFrame.UpdateSettings(aPivoter : TmPivoter);
+var
+  i : integer;
 begin
-  (*
-  for i := 0 to FListBoxHiddenColumns.Count - 1 do
-  begin
-    source := TmGridColumnSettings(FListBoxHiddenColumns.Items.Objects[i]);
-    dest := FSettings.GetSettingsForField(source.FieldName);
-    dest.Assign(source);
-    dest.Visible.Value:= false;
-  end;
-  for i := 0 to FListBoxVisibleColumns.Count - 1 do
-  begin
-    source := TmGridColumnSettings(FListBoxVisibleColumns.Items.Objects[i]);
-    dest := FSettings.GetSettingsForField(source.FieldName);
-    if not dest.Visible.AsBoolean then
-      newWidth:= 100
-    else
-      newWidth := source.Width.AsInteger;
-    dest.Assign(source);
-    dest.Visible.Value:= true;
-    dest.Width.Value:= newWidth;
-    dest.SortOrder.Value:= i;
-  end;
-  *)
+  for i := 0 to FListBoxVerticalFields.Count - 1 do
+    aPivoter.VerticalGroupByDefs.Add.Assign((FListBoxVerticalFields.Items.Objects[i] as TmGroupByDef));
+
+  for i := 0 to FListBoxHorizontalFields.Count - 1 do
+    aPivoter.HorizontalGroupByDefs.Add.Assign((FListBoxHorizontalFields.Items.Objects[i] as TmGroupByDef));
+
+  for i := 0 to FListBoxDataFields.Count - 1 do
+    aPivoter.SummaryDefinitions.Add.Assign((FListBoxDataFields.Items.Objects[i] as TmSummaryDefinition));
 end;
 
 end.

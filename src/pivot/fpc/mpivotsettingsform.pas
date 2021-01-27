@@ -39,6 +39,9 @@ type
     FPivotFieldsSettingsFrame : TPivotFieldsSettingsFrame;
   public
     procedure Init (aPivoter : TmPivoter);
+    function SomethingChanged : boolean;
+
+    procedure UpdateSettingsInPivot (aPivoter: TmPivoter);
   end;
 
 
@@ -59,13 +62,22 @@ end;
 
 procedure TPivotSettingsForm.OkBtnClick(Sender: TObject);
 begin
-  FPivotFieldsSettingsFrame.UpdateSettings;
   Self.ModalResult:= mrOk;
 end;
 
 procedure TPivotSettingsForm.Init(aPivoter : TmPivoter);
 begin
   FPivotFieldsSettingsFrame.Init(aPivoter);
+end;
+
+function TPivotSettingsForm.SomethingChanged: boolean;
+begin
+  Result := FPivotFieldsSettingsFrame.SomethingChanged;
+end;
+
+procedure TPivotSettingsForm.UpdateSettingsInPivot(aPivoter: TmPivoter);
+begin
+  FPivotFieldsSettingsFrame.UpdateSettings(aPivoter);
 end;
 
 end.

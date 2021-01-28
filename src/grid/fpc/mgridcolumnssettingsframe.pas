@@ -148,6 +148,8 @@ begin
     pt.x:= X;
     pt.y:= Y;
     dest := FListBoxVisibleColumns.ItemAtPos(pt, true);
+    if dest = prev then
+      exit;
     old := FListBoxVisibleColumns.Items[prev];
     oldObj := FListBoxVisibleColumns.Items.Objects[prev];
 
@@ -203,6 +205,8 @@ begin
   pt.x:= X;
   pt.y:= Y;
   dest := FListBoxHiddenColumns.ItemAtPos(pt, true);
+  if dest = prev then
+    exit;
   old := FListBoxVisibleColumns.Items[prev];
   oldObj := FListBoxVisibleColumns.Items.Objects[prev];
 

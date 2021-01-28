@@ -187,6 +187,7 @@ begin
   begin
     FGrid.CellPainter.HAlign:=halCenter;
     FGrid.CellPainter.VAlign:=valCenter;
+    FGrid.CellPainter.BackColor:= COLOR_clButton;
   end
   else if FNumericColumns.Contains(ACol) then
   begin
@@ -207,6 +208,9 @@ begin
   FGrid.ColCount:= 0;
   FGrid.ClearGrid;
   FGrid.OnDrawCell:= Self.OnDrawGridCell;
+  FGrid.Flat:= true;
+  FGrid.Options := FGrid.Options - [goThemes, goThemedCells];
+  FGrid.OptionsEx:= [gxMouseWheelScroll];
   FNumericColumns := TmIntegerDictionary.Create(false);
 end;
 

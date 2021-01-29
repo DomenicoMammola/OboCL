@@ -31,6 +31,8 @@ resourcestring
   SLabelGroupByDefOperator = 'Group-by operator:';
   SLabelSummaryOperator = 'Summary operator:';
   sMenuItemRemove = 'Remove..';
+  SLabelLabel = 'Label:';
+  SLabelFormat = 'Display format:';
 
 type
 
@@ -50,8 +52,12 @@ type
     FGroupDefPropertiesPanel, FSummaryPropertiesPanel : TPanel;
     FGroupDefPropertiesOperatorLabel : TLabel;
     FGroupDefPropertiesOperatorCB : TComboBox;
+    FGroupDefPropertiesLELabel, FGroupDefPropertiesLEFormat: TLabeledEdit;
+    FGroupDefPropertiesFormatPanel, FGroupDefPropertiesLabelPanel: TPanel;
     FSummaryOperatorLabel : TLabel;
     FSummaryOperatorCB : TComboBox;
+    FSummaryLELabel, FSummaryLEFormat: TLabeledEdit;
+    FSummaryPropertiesFormatPanel, FSummaryPropertiesLabelPanel: TPanel;
 
     FListBoxFields, FListBoxHorizontalFields, FListBoxVerticalFields, FListBoxDataFields : TListBox;
     FFieldsFindBtn : TEditButton;
@@ -103,6 +109,11 @@ type
     procedure ImportSummaryFromField (const aSource : TmVirtualFieldDef; aDestination : TmSummaryDefinition);
     procedure OnGroupDefPropertiesOperatorCBChange (aSender : TObject);
     procedure OnSummaryOperatorCBChange (aSender : TObject);
+    procedure GroupByDefPropertiesLEFormatEditingDone(Sender: TObject);
+    procedure GroupByDefPropertiesLELabelEditingDone(Sender: TObject);
+    procedure SummaryPropertiesLEFormatEditingDone(Sender: TObject);
+    procedure SummaryPropertiesLELabelEditingDone(Sender: TObject);
+
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -261,6 +272,8 @@ begin
     pt.x:= X;
     pt.y:= Y;
     dest := FListBoxHorizontalFields.ItemAtPos(pt, true);
+    if dest = prev then
+      exit;
     old := FListBoxHorizontalFields.Items[prev];
     oldObj := FListBoxHorizontalFields.Items.Objects[prev];
 
@@ -329,6 +342,8 @@ begin
     pt.x:= X;
     pt.y:= Y;
     dest := FListBoxVerticalFields.ItemAtPos(pt, true);
+    if dest = prev then
+      exit;
     old := FListBoxVerticalFields.Items[prev];
     oldObj := FListBoxVerticalFields.Items.Objects[prev];
 
@@ -397,6 +412,8 @@ begin
     pt.x:= X;
     pt.y:= Y;
     dest := FListBoxDataFields.ItemAtPos(pt, true);
+    if dest = prev then
+      exit;
     old := FListBoxDataFields.Items[prev];
     oldObj := FListBoxDataFields.Items.Objects[prev];
 
@@ -453,17 +470,17 @@ end;
 
 function TPivotFieldsSettingsFrame.GetLBFieldLine(const aFieldDef: TmVirtualFieldDef): String;
 begin
-  Result := GenerateDisplayLabel(aFieldDef.Name) + ' [' + aFieldDef.Name + ']';
+  Result := aFieldDef.Name;
 end;
 
 function TPivotFieldsSettingsFrame.GetLBDataFieldLine(const aSummaryDef: TmSummaryDefinition): String;
 begin
-  Result := aSummaryDef.Caption + ' [' + aSummaryDef.FieldName + '] - ' + TmSummaryOperatorToString(aSummaryDef.SummaryOperator);
+  Result := aSummaryDef.FieldName + ' [' + TmSummaryOperatorToString(aSummaryDef.SummaryOperator) + ']';
 end;
 
 function TPivotFieldsSettingsFrame.GetLBVertHorizFieldLine(const aGroupByDef: TmGroupByDef): String;
 begin
-  Result := aGroupByDef.FieldName + ' - ' + TmGroupByOperationKindToString(aGroupByDef.OperationKind);
+  Result := aGroupByDef.FieldName + ' [' + TmGroupByOperationKindToString(aGroupByDef.OperationKind) + ']';
 end;
 
 procedure TPivotFieldsSettingsFrame.ImportGroupByFromField(const aSource: TmVirtualFieldDef; aDestination: TmGroupByDef);
@@ -471,6 +488,8 @@ begin
   aDestination.FieldName:= aSource.Name;
   aDestination.DataType:= FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
   aDestination.OperationKind:= gpoDistinct;
+  if FieldTypeIsFloat(aDestination.DataType) then
+    aDestination.DisplayFormat.Value := '#,##0.00';
 end;
 
 procedure TPivotFieldsSettingsFrame.ImportSummaryFromField(const aSource: TmVirtualFieldDef; aDestination: TmSummaryDefinition);
@@ -478,6 +497,10 @@ begin
   aDestination.FieldName:= aSource.Name;
   aDestination.FieldType:= FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
   aDestination.SummaryOperator:= soCount;
+  if FieldTypeIsFloat(aDestination.FieldType) then
+    aDestination.DisplayFormat.Value := '#,##0.00'
+  else if FieldTypeIsInteger(aDestination.FieldType) then
+    aDestination.DisplayFormat.Value := '#,##0';
 end;
 
 procedure TPivotFieldsSettingsFrame.OnGroupDefPropertiesOperatorCBChange(aSender: TObject);
@@ -498,6 +521,53 @@ begin
     FCurrentSummary.SummaryOperator:= (FSummaryOperatorCB.Items.Objects[FSummaryOperatorCB.ItemIndex] as TSummaryOperatorShell).op;
     FListBoxDataFields.Invalidate;
     FSomethingChanged := true;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.GroupByDefPropertiesLEFormatEditingDone(Sender: TObject);
+begin
+  if Assigned(FCurrentGroupByDef) then
+  begin
+    if Trim(FGroupDefPropertiesLEFormat.Text) <> '' then
+      FCurrentGroupByDef.DisplayFormat.Value:= Trim(FGroupDefPropertiesLEFormat.Text)
+    else
+      FCurrentGroupByDef.DisplayFormat.IsNull:= true;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.GroupByDefPropertiesLELabelEditingDone(Sender: TObject);
+begin
+  if Assigned(FCurrentGroupByDef) then
+  begin
+    if Trim(FGroupDefPropertiesLELabel.Text) <> '' then
+      FCurrentGroupByDef.DisplayLabel.Value:= Trim(FGroupDefPropertiesLELabel.Text)
+    else
+      FCurrentGroupByDef.DisplayLabel.IsNull:= true;
+    FListBoxHorizontalFields.Invalidate;
+    FListBoxVerticalFields.Invalidate;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.SummaryPropertiesLEFormatEditingDone(Sender: TObject);
+begin
+  if Assigned(FCurrentSummary) then
+  begin
+    if Trim(FSummaryLEFormat.Text) <> '' then
+      FCurrentSummary.DisplayFormat.Value:= Trim(FSummaryLEFormat.Text)
+    else
+      FCurrentSummary.DisplayFormat.IsNull:= true;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.SummaryPropertiesLELabelEditingDone(Sender: TObject);
+begin
+  if Assigned(FCurrentSummary) then
+  begin
+    if Trim(FSummaryLELabel.Text) <> '' then
+      FCurrentSummary.DisplayLabel.Value:= Trim(FSummaryLELabel.Text)
+    else
+      FCurrentSummary.DisplayLabel.IsNull:= true;
+    FListBoxDataFields.Invalidate;
   end;
 end;
 
@@ -532,6 +602,30 @@ begin
   FGroupDefPropertiesOperatorLabel.Align:= alTop;
   FGroupDefPropertiesOperatorLabel.Caption:= SLabelGroupByDefOperator;
 
+  FGroupDefPropertiesFormatPanel:= TPanel.Create(FGroupDefPropertiesPanel);
+  FGroupDefPropertiesFormatPanel.Parent:= FGroupDefPropertiesPanel;
+  FGroupDefPropertiesFormatPanel.Height:= 40;
+  FGroupDefPropertiesFormatPanel.Align:= alTop;
+  FGroupDefPropertiesFormatPanel.BevelOuter:= bvNone;
+
+  FGroupDefPropertiesLabelPanel:= TPanel.Create(FGroupDefPropertiesPanel);
+  FGroupDefPropertiesLabelPanel.Parent:= FGroupDefPropertiesPanel;
+  FGroupDefPropertiesLabelPanel.Height:= 40;
+  FGroupDefPropertiesLabelPanel.Align:= alTop;
+  FGroupDefPropertiesLabelPanel.BevelOuter:= bvNone;
+
+  FGroupDefPropertiesLEFormat:= TLabeledEdit.Create(FGroupDefPropertiesFormatPanel);
+  FGroupDefPropertiesLEFormat.Parent:= FGroupDefPropertiesFormatPanel;
+  FGroupDefPropertiesLEFormat.EditLabel.Caption:= SLabelFormat;
+  FGroupDefPropertiesLEFormat.OnEditingDone:= @GroupByDefPropertiesLEFormatEditingDone;
+  FGroupDefPropertiesLEFormat.Align:= alBottom;
+
+  FGroupDefPropertiesLELabel:= TLabeledEdit.Create(FGroupDefPropertiesLabelPanel);
+  FGroupDefPropertiesLELabel.Parent:= FGroupDefPropertiesLabelPanel;
+  FGroupDefPropertiesLELabel.EditLabel.Caption:= SLabelLabel;
+  FGroupDefPropertiesLELabel.OnEditingDone:= @GroupByDefPropertiesLELabelEditingDone;
+  FGroupDefPropertiesLELabel.Align:= alBottom;
+
   FSummaryPropertiesPanel := TPanel.Create(FPropertiesPanel);
   FSummaryPropertiesPanel.Parent := FPropertiesPanel;
   FSummaryPropertiesPanel.BevelOuter:= bvNone;
@@ -553,6 +647,31 @@ begin
   FSummaryOperatorLabel.Parent := FSummaryPropertiesPanel;
   FSummaryOperatorLabel.Align:= alTop;
   FSummaryOperatorLabel.Caption:= SLabelSummaryOperator;
+
+  FSummaryPropertiesFormatPanel:= TPanel.Create(FSummaryPropertiesPanel);
+  FSummaryPropertiesFormatPanel.Parent:= FSummaryPropertiesPanel;
+  FSummaryPropertiesFormatPanel.Height:= 40;
+  FSummaryPropertiesFormatPanel.Align:= alTop;
+  FSummaryPropertiesFormatPanel.BevelOuter:= bvNone;
+
+  FSummaryPropertiesLabelPanel:= TPanel.Create(FSummaryPropertiesPanel);
+  FSummaryPropertiesLabelPanel.Parent:= FSummaryPropertiesPanel;
+  FSummaryPropertiesLabelPanel.Height:= 40;
+  FSummaryPropertiesLabelPanel.Align:= alTop;
+  FSummaryPropertiesLabelPanel.BevelOuter:= bvNone;
+
+  FSummaryLEFormat:= TLabeledEdit.Create(FSummaryPropertiesFormatPanel);
+  FSummaryLEFormat.Parent:= FSummaryPropertiesFormatPanel;
+  FSummaryLEFormat.EditLabel.Caption:= SLabelFormat;
+  FSummaryLEFormat.OnEditingDone:= @SummaryPropertiesLEFormatEditingDone;
+  FSummaryLEFormat.Align:= alBottom;
+
+  FSummaryLELabel:= TLabeledEdit.Create(FSummaryPropertiesLabelPanel);
+  FSummaryLELabel.Parent:= FSummaryPropertiesLabelPanel;
+  FSummaryLELabel.EditLabel.Caption:= SLabelLabel;
+  FSummaryLELabel.OnEditingDone:= @SummaryPropertiesLELabelEditingDone;
+  FSummaryLELabel.Align:= alBottom;
+
 end;
 
 procedure TPivotFieldsSettingsFrame.UpdatePropertiesPanel;
@@ -566,8 +685,12 @@ begin
   if FGroupDefPropertiesPanel.Visible then
   begin
     FGroupDefPropertiesOperatorCB.Items.Clear;
+    FGroupDefPropertiesLEFormat.Text:= '';
+    FGroupDefPropertiesLELabel.Text := '';
     if Assigned(FCurrentGroupByDef) then
     begin
+      FGroupDefPropertiesLEFormat.Text:= FCurrentGroupByDef.DisplayFormat.AsString;
+      FGroupDefPropertiesLELabel.Text := FCurrentGroupByDef.DisplayLabel.AsString;
       i := 0;
       idx := 0;
       for op := Low(TmGroupByOperationKind) to High(TmGroupByOperationKind) do
@@ -588,8 +711,13 @@ begin
   else if FSummaryPropertiesPanel.Visible then
   begin
     FSummaryOperatorCB.Items.Clear;
+    FSummaryLEFormat.Text:= '';
+    FSummaryLELabel.Text := '';
     if Assigned(FCurrentSummary) then
     begin
+      FSummaryLEFormat.Text:= FCurrentSummary.DisplayFormat.AsString;
+      FSummaryLELabel.Text := FCurrentSummary.DisplayLabel.AsString;
+
       i := 0;
       idx := 0;
       for so := Low(TmSummaryOperator) to High(TmSummaryOperator) do

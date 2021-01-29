@@ -28,7 +28,7 @@ implementation
 uses
   sysutils,
   kfunctions,
-  mLog, mUtility;
+  mLog, mUtility, mDatasetStandardSetup;
 
 var
   logger : TmLog;
@@ -110,7 +110,10 @@ begin
       aAdditiveCellSpan:= aAdditiveCellSpan + aSummaryDefs.Count - 1;
       for k := 0 to aSummaryDefs.Count - 1 do
       begin
-        aGrid.Cells[aCol + k, aRow + 1] := aSummaryDefs.Get(k).Caption;
+        if aSummaryDefs.Get(k).DisplayLabel.NotNull then
+          aGrid.Cells[aCol + k, aRow + 1] := aSummaryDefs.Get(k).DisplayLabel.AsString
+        else
+          aGrid.Cells[aCol + k, aRow + 1] := GenerateDisplayLabel(aSummaryDefs.Get(k).FieldName) + ' [' + TmSummaryOperatorToString(aSummaryDefs.Get(k).SummaryOperator) + ']';
         if FieldTypeIsFloat(aSummaryDefs.Get(k).FieldType) or FieldTypeIsInteger(aSummaryDefs.Get(k).FieldType) then
           aNumericColumns.Add(aCol + k);
       end;
@@ -139,12 +142,22 @@ begin
   if aVerticalGroupByDefs.Count > 0 then
   begin
     for i := 0 to aHorizontalGroupByDefs.Count - 1 do
-      aGrid.Cells[i, aVerticalGroupByDefs.Count] := aHorizontalGroupByDefs.Get(i).FieldName;
+    begin
+      if aHorizontalGroupByDefs.Get(i).DisplayLabel.NotNull then
+        aGrid.Cells[i, aVerticalGroupByDefs.Count] := aHorizontalGroupByDefs.Get(i).DisplayLabel.AsString
+      else
+        aGrid.Cells[i, aVerticalGroupByDefs.Count] := GenerateDisplayLabel(aHorizontalGroupByDefs.Get(i).FieldName);
+    end;
   end;
   if aHorizontalGroupByDefs.Count > 0 then
   begin
     for i := 0 to aVerticalGroupByDefs.Count - 1 do
-      aGrid.Cells[aHorizontalGroupByDefs.Count, i] := aVerticalGroupByDefs.Get(i).FieldName;
+    begin
+      if aVerticalGroupByDefs.Get(i).DisplayLabel.NotNull then
+        aGrid.Cells[aHorizontalGroupByDefs.Count, i] := aVerticalGroupByDefs.Get(i).DisplayLabel.AsString
+      else
+        aGrid.Cells[aHorizontalGroupByDefs.Count, i] := GenerateDisplayLabel(aVerticalGroupByDefs.Get(i).FieldName);
+    end;
   end;
 end;
 
@@ -155,6 +168,9 @@ var
   tmp : String;
   value : TmSummaryValue;
 begin
+  if not Assigned(aKeysIndex) then
+    exit;
+
   for i := 0 to aKeysIndex.KeyValuesCount -1 do
   begin
     vList := TStringList.Create;
@@ -169,6 +185,7 @@ begin
           if Assigned(value) then
           begin
             tmp := value.ValueAsString;
+//            aGrid.Objects[];
             aGrid.Cells[c, r] := tmp;
             logger.Debug('Writing in R ' + IntToStr(r) + ' C ' + IntToStr(c) + ' value ' + tmp);
           end;

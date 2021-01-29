@@ -598,7 +598,7 @@ begin
         tmpDef := FSummaryManager.GetSummaryDefinitions.Add;
         tmpDef.FieldName:= currentColumn.FieldName;
         tmpDef.FieldType:= currentColumn.Field.DataType;
-        tmpDef.Caption := currentColumn.Title.Caption;
+        tmpDef.DisplayLabel.Value := currentColumn.Title.Caption;
         tmpDef.SummaryOperator:= currentOperator;
       end;
       FSummaryManager.RefreshSummaries;

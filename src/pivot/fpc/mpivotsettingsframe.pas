@@ -29,6 +29,7 @@ resourcestring
   SLabelVerticalFields = 'Vertical fields';
   SLabelDataFields = 'Data fields';
   SLabelGroupByDefOperator = 'Group-by operator:';
+  SLabelGroupByDefSortBy = 'Sort';
   SLabelSummaryOperator = 'Summary operator:';
   sMenuItemRemove = 'Remove..';
   SLabelLabel = 'Label:';
@@ -54,6 +55,8 @@ type
     FGroupDefPropertiesOperatorCB : TComboBox;
     FGroupDefPropertiesLELabel, FGroupDefPropertiesLEFormat: TLabeledEdit;
     FGroupDefPropertiesFormatPanel, FGroupDefPropertiesLabelPanel: TPanel;
+    FGroupDefPropertiesSortByLabel : TLabel;
+    FGroupDefPropertiesSortByCB : TComboBox;
     FSummaryOperatorLabel : TLabel;
     FSummaryOperatorCB : TComboBox;
     FSummaryLELabel, FSummaryLEFormat: TLabeledEdit;
@@ -108,6 +111,7 @@ type
     procedure ImportGroupByFromField (const aSource : TmVirtualFieldDef; aDestination : TmGroupByDef);
     procedure ImportSummaryFromField (const aSource : TmVirtualFieldDef; aDestination : TmSummaryDefinition);
     procedure OnGroupDefPropertiesOperatorCBChange (aSender : TObject);
+    procedure OnGroupDefPropertiesSortByCBChange (aSender : TObject);
     procedure OnSummaryOperatorCBChange (aSender : TObject);
     procedure GroupByDefPropertiesLEFormatEditingDone(Sender: TObject);
     procedure GroupByDefPropertiesLELabelEditingDone(Sender: TObject);
@@ -152,6 +156,21 @@ type
     op : TmSummaryOperator;
     constructor Create(const aOperator : TmSummaryOperator);
   end;
+
+  { TSortByKindShell }
+
+  TSortByKindShell = class
+  public
+    sortBy : TmSortByCondition;
+    constructor Create(const aSortCondition : TmSortByCondition);
+  end;
+
+{ TSortByKindShell }
+
+constructor TSortByKindShell.Create(const aSortCondition: TmSortByCondition);
+begin
+  sortBy := aSortCondition;
+end;
 
 { TSummaryOperatorShell }
 
@@ -490,6 +509,7 @@ begin
   aDestination.OperationKind:= gpoDistinct;
   if FieldTypeIsFloat(aDestination.DataType) then
     aDestination.DisplayFormat.Value := '#,##0.00';
+  aDestination.DisplayLabel.IsNull:= true;
 end;
 
 procedure TPivotFieldsSettingsFrame.ImportSummaryFromField(const aSource: TmVirtualFieldDef; aDestination: TmSummaryDefinition);
@@ -501,6 +521,7 @@ begin
     aDestination.DisplayFormat.Value := '#,##0.00'
   else if FieldTypeIsInteger(aDestination.FieldType) then
     aDestination.DisplayFormat.Value := '#,##0';
+  aDestination.DisplayLabel.IsNull:= true;
 end;
 
 procedure TPivotFieldsSettingsFrame.OnGroupDefPropertiesOperatorCBChange(aSender: TObject);
@@ -508,6 +529,17 @@ begin
   if Assigned(FCurrentGroupByDef) and (FGroupDefPropertiesOperatorCB.ItemIndex >= 0) then
   begin
     FCurrentGroupByDef.OperationKind:= (FGroupDefPropertiesOperatorCB.Items.Objects[FGroupDefPropertiesOperatorCB.ItemIndex] as TGroupByOperationKindShell).op;
+    FListBoxHorizontalFields.Invalidate;
+    FListBoxVerticalFields.Invalidate;
+    FSomethingChanged := true;
+  end;
+end;
+
+procedure TPivotFieldsSettingsFrame.OnGroupDefPropertiesSortByCBChange(aSender: TObject);
+begin
+  if Assigned(FCurrentGroupByDef) and (FGroupDefPropertiesSortByCB.ItemIndex >= 0) then
+  begin
+    FCurrentGroupByDef.SortBy := (FGroupDefPropertiesSortByCB.Items.Objects[FGroupDefPropertiesSortByCB.ItemIndex] as TSortByKindShell).sortBy;
     FListBoxHorizontalFields.Invalidate;
     FListBoxVerticalFields.Invalidate;
     FSomethingChanged := true;
@@ -532,6 +564,7 @@ begin
       FCurrentGroupByDef.DisplayFormat.Value:= Trim(FGroupDefPropertiesLEFormat.Text)
     else
       FCurrentGroupByDef.DisplayFormat.IsNull:= true;
+    FSomethingChanged := true;
   end;
 end;
 
@@ -545,6 +578,7 @@ begin
       FCurrentGroupByDef.DisplayLabel.IsNull:= true;
     FListBoxHorizontalFields.Invalidate;
     FListBoxVerticalFields.Invalidate;
+    FSomethingChanged := true;
   end;
 end;
 
@@ -556,6 +590,7 @@ begin
       FCurrentSummary.DisplayFormat.Value:= Trim(FSummaryLEFormat.Text)
     else
       FCurrentSummary.DisplayFormat.IsNull:= true;
+    FSomethingChanged := true;
   end;
 end;
 
@@ -564,10 +599,11 @@ begin
   if Assigned(FCurrentSummary) then
   begin
     if Trim(FSummaryLELabel.Text) <> '' then
-      FCurrentSummary.DisplayLabel.Value:= Trim(FSummaryLELabel.Text)
+      FCurrentSummary.DisplayLabel.Assign(Trim(FSummaryLELabel.Text), false)
     else
       FCurrentSummary.DisplayLabel.IsNull:= true;
     FListBoxDataFields.Invalidate;
+    FSomethingChanged := true;
   end;
 end;
 
@@ -576,7 +612,9 @@ var
   ok : TmGroupByOperationKind;
   tmpOp : TGroupByOperationKindShell;
   so : TmSummaryOperator;
+  ss : TmSortByCondition;
   tmpSo : TSummaryOperatorShell;
+  tmpSort : TSortByKindShell;
 begin
   FPropertiesPanel.BevelOuter := bvNone;
 
@@ -585,6 +623,23 @@ begin
   FGroupDefPropertiesPanel.BevelOuter:= bvNone;
   FGroupDefPropertiesPanel.Align:= alClient;
   FGroupDefPropertiesPanel.Visible := false;
+
+  FGroupDefPropertiesSortByCB := TComboBox.Create(FGroupDefPropertiesPanel);
+  FGroupDefPropertiesSortByCB.Parent := FGroupDefPropertiesPanel;
+  FGroupDefPropertiesSortByCB.Align:= alTop;
+  FGroupDefPropertiesSortByCB.Style:= csDropDownList;
+  FGroupDefPropertiesSortByCB.OnChange:= @OnGroupDefPropertiesSortByCBChange;
+  for ss := Low(TmSortByCondition) to High(TmSortByCondition) do
+  begin
+    tmpSort := TSortByKindShell.Create(ss);
+    FGarbage.Add(tmpSort);
+    FGroupDefPropertiesSortByCB.AddItem(TmSortByConditionToString(ss), tmpSort);
+  end;
+  FGroupDefPropertiesSortByLabel := TLabel.Create(FGroupDefPropertiesPanel);
+  FGroupDefPropertiesSortByLabel.Parent := FGroupDefPropertiesPanel;
+  FGroupDefPropertiesSortByLabel.Align:= alTop;
+  FGroupDefPropertiesSortByLabel.Caption:= SLabelGroupByDefSortBy;
+
 
   FGroupDefPropertiesOperatorCB := TComboBox.Create(FGroupDefPropertiesPanel);
   FGroupDefPropertiesOperatorCB.Parent := FGroupDefPropertiesPanel;
@@ -689,8 +744,10 @@ begin
     FGroupDefPropertiesLELabel.Text := '';
     if Assigned(FCurrentGroupByDef) then
     begin
-      FGroupDefPropertiesLEFormat.Text:= FCurrentGroupByDef.DisplayFormat.AsString;
-      FGroupDefPropertiesLELabel.Text := FCurrentGroupByDef.DisplayLabel.AsString;
+      if FCurrentGroupByDef.DisplayFormat.NotNull then
+        FGroupDefPropertiesLEFormat.Text:= FCurrentGroupByDef.DisplayFormat.AsString;
+      if FCurrentGroupByDef.DisplayLabel.NotNull then
+        FGroupDefPropertiesLELabel.Text := FCurrentGroupByDef.DisplayLabel.AsString;
       i := 0;
       idx := 0;
       for op := Low(TmGroupByOperationKind) to High(TmGroupByOperationKind) do
@@ -706,6 +763,15 @@ begin
         end;
       end;
       FGroupDefPropertiesOperatorCB.ItemIndex:= idx;
+
+      for i := 0 to FGroupDefPropertiesSortByCB.Items.Count - 1 do
+      begin
+        if (FGroupDefPropertiesSortByCB.Items.Objects[i] as TSortByKindShell).sortBy = FCurrentGroupByDef.SortBy then
+        begin
+          FGroupDefPropertiesSortByCB.ItemIndex:= i;
+          break;
+        end;
+      end;
     end;
   end
   else if FSummaryPropertiesPanel.Visible then
@@ -715,8 +781,10 @@ begin
     FSummaryLELabel.Text := '';
     if Assigned(FCurrentSummary) then
     begin
-      FSummaryLEFormat.Text:= FCurrentSummary.DisplayFormat.AsString;
-      FSummaryLELabel.Text := FCurrentSummary.DisplayLabel.AsString;
+      if FCurrentSummary.DisplayFormat.NotNull then
+        FSummaryLEFormat.Text:= FCurrentSummary.DisplayFormat.AsString;
+      if FCurrentSummary.DisplayLabel.NotNull then
+        FSummaryLELabel.Text := FCurrentSummary.DisplayLabel.AsString;
 
       i := 0;
       idx := 0;
@@ -890,6 +958,11 @@ begin
   begin
     FListBoxHorizontalFields.DeleteSelected;
     FSomethingChanged:= true;
+    if Assigned(FCurrentGroupByDef) then
+      FCurrentGroupByDef := nil;
+    FSummaryPropertiesPanel.Visible := false;
+    FGroupDefPropertiesPanel.Visible:= false;
+    UpdatePropertiesPanel;
   end;
 end;
 
@@ -899,6 +972,11 @@ begin
   begin
     FListBoxVerticalFields.DeleteSelected;
     FSomethingChanged:= true;
+    if Assigned(FCurrentGroupByDef) then
+      FCurrentGroupByDef := nil;
+    FSummaryPropertiesPanel.Visible := false;
+    FGroupDefPropertiesPanel.Visible:= false;
+    UpdatePropertiesPanel;
   end;
 end;
 
@@ -907,6 +985,11 @@ begin
   if FListBoxDataFields.ItemIndex >= 0 then
   begin
     FListBoxDataFields.DeleteSelected;
+    if Assigned(FCurrentSummary) then
+      FCurrentSummary := nil;
+    UpdatePropertiesPanel;
+    FSummaryPropertiesPanel.Visible := false;
+    FGroupDefPropertiesPanel.Visible:= false;
     FSomethingChanged:= true;
   end;
 end;

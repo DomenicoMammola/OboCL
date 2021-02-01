@@ -19,22 +19,8 @@ interface
 uses
   mPivoter, mXML, mSummary, mNullables;
 
-
-type
-
-
-  TPivotConfiguration = class
-  strict private
-    FVerticalGroupByDefs : TmGroupByDefs;
-    FHorizontalGroupByDefs : TmGroupByDefs;
-    FSummaryDefinitions : TmSummaryDefinitions;
-  public
-
-  end;
-
 procedure SavePivotConfigurationToXML(const aVerticalGroupByDefs, aHorizontalGroupByDefs : TmGroupByDefs; const aSummaryDefinitions : TmSummaryDefinitions; aXMLElement : TmXmlElement);
 procedure LoadPivotConfigurationToXML(aVerticalGroupByDefs, aHorizontalGroupByDefs : TmGroupByDefs; aSummaryDefinitions : TmSummaryDefinitions; aXMLElement : TmXmlElement);
-
 
 implementation
 
@@ -50,6 +36,7 @@ begin
   aXMLElement.SetAttribute('formula', aGroupByDef.Formula);
   aXMLElement.SetAttribute('displayLabel', aGroupByDef.DisplayLabel);
   aXMLElement.SetAttribute('displayFormat', aGroupByDef.DisplayFormat);
+  aXMLElement.SetAttribute('sortBy', GetEnumName(TypeInfo(TmSortByCondition), integer(aGroupByDef.SortBy)));
 end;
 
 procedure LoadGroupByDef (aGroupByDef : TmGroupByDef; const aXMLElement : TmXmlElement);
@@ -60,6 +47,8 @@ begin
   aXMLElement.GetAttribute('formula', aGroupByDef.Formula);
   aXMLElement.GetAttribute('displayLabel', aGroupByDef.DisplayLabel);
   aXMLElement.GetAttribute('displayFormat', aGroupByDef.DisplayFormat);
+  aGroupByDef.SortBy:= TmSortByCondition(GetEnumValue(TypeInfo(TmSortByCondition), aXmlElement.GetAttribute('sortBy')));
+
 end;
 
 procedure SavePivotConfigurationToXML(const aVerticalGroupByDefs, aHorizontalGroupByDefs: TmGroupByDefs; const aSummaryDefinitions: TmSummaryDefinitions; aXMLElement: TmXmlElement);

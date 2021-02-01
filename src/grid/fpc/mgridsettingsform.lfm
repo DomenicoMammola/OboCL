@@ -1,14 +1,14 @@
 object GridSettingsForm: TGridSettingsForm
-  Left = 1679
+  Left = 435
   Height = 389
-  Top = 321
+  Top = 210
   Width = 959
   Caption = 'Grid settings'
   ClientHeight = 389
   ClientWidth = 959
   OnCreate = FormCreate
   Position = poMainFormCenter
-  LCLVersion = '1.6.4.0'
+  LCLVersion = '2.0.8.0'
   object BottomPanel: TPanel
     Left = 0
     Height = 50

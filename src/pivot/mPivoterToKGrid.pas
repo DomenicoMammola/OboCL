@@ -300,7 +300,7 @@ procedure TmKGridAsPivotHelper.Init(aPivoter: TmPivoter; aGrid: TKGrid);
 begin
   FNumericColumns.Clear;
   FPivoter := aPivoter;
-  FPivoter.Options:= FPivoter.Options + [poEnableSort];
+  FPivoter.EnableSort:= true;
   FGrid := aGrid;
   FGrid.OnDrawCell:= Self.OnDrawGridCell;
   FGrid.Options := FGrid.Options - [goThemes, goThemedCells];

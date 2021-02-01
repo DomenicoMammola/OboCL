@@ -26,7 +26,7 @@ uses
   LResources,
   LMessages,
   {$ENDIF}
-  mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML, mIntList, mMaps,
+  mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML, mIntList, mMaps, mPivoterToKGrid,
   UramakiBase, UramakiToolbar;
 
 const
@@ -50,10 +50,10 @@ type
     FPivoter : TmPivoter;
     FDataProvider : IVDDataProvider;
     FGrid : TKGrid;
+    FGridHelper : TmKGridAsPivotHelper;
     FFilterPanel : TmFilterPanel;
     FToolbar : TUramakiToolbar;
     FConfigurePopupMenu : TPopupMenu;
-    FNumericColumns : TmIntegerDictionary;
 
     procedure OnClearFilter (Sender : TObject);
     procedure OnExecuteFilter (Sender : TObject);
@@ -61,7 +61,6 @@ type
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
     procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
     procedure OnEditSettings(Sender : TObject);
-    procedure OnDrawGridCell (Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -79,8 +78,7 @@ implementation
 
 uses
   sysutils,
-  kgraphics,
-  mWaitCursor, mPivotSettings, mPivotSettingsForm, mPivoterToKGrid;
+  mWaitCursor, mPivotSettings, mPivotSettingsForm;
 
 { TUramakiKGridAsPivotPlate }
 
@@ -177,26 +175,6 @@ begin
   end;
 end;
 
-procedure TUramakiKGridAsPivotPlate.OnDrawGridCell(Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
-begin
-  // https://forum.lazarus.freepascal.org/index.php/topic,44833.msg315562.html#msg315562
-
-  FGrid.Cell[ACol, ARow].ApplyDrawProperties;
-
-  if (ARow < FGrid.FixedRows) and (ACol >= FGrid.FixedCols) then
-  begin
-    FGrid.CellPainter.HAlign:=halCenter;
-    FGrid.CellPainter.VAlign:=valCenter;
-    FGrid.CellPainter.BackColor:= COLOR_clButton;
-  end
-  else if FNumericColumns.Contains(ACol) then
-  begin
-    FGrid.CellPainter.HAlign:=halRight;
-  end;
-
-  FGrid.CellPainter.DefaultDraw;
-end;
-
 constructor TUramakiKGridAsPivotPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -207,18 +185,16 @@ begin
   FGrid.RowCount:= 0;
   FGrid.ColCount:= 0;
   FGrid.ClearGrid;
-  FGrid.OnDrawCell:= Self.OnDrawGridCell;
   FGrid.Flat:= true;
-  FGrid.Options := FGrid.Options - [goThemes, goThemedCells];
-  FGrid.OptionsEx:= [gxMouseWheelScroll];
-  FNumericColumns := TmIntegerDictionary.Create(false);
+  FGridHelper := TmKGridAsPivotHelper.Create;
+  FGridHelper.Init(FPivoter, FGrid);
 end;
 
 destructor TUramakiKGridAsPivotPlate.Destroy;
 begin
   FPivoter.Free;
   FreeAndNil(FToolbar);
-  FNumericColumns.Free;
+  FGridHelper.Free;
   inherited Destroy;
 end;
 
@@ -237,26 +213,15 @@ begin
     FGrid.FixedRows:= 0;
     FGrid.RowCount:= 0;
     FGrid.ColCount:= 0;
-    FNumericColumns.Clear;
+    FGridHelper.Clear;
   finally
     FGrid.UnlockUpdate;
   end;
 end;
 
 procedure TUramakiKGridAsPivotPlate.DrawPivot;
-var
-  list : TCardinalList;
-  i : integer;
 begin
-  list := TCardinalList.Create;
-  try
-    ApplyPivotToKGrid(FPivoter, FGrid, list);
-    FNumericColumns.Clear;
-    for i := 0 to list.Count - 1 do
-      FNumericColumns.Add(list.Nums[i], FNumericColumns);
-  finally
-    list.Free;
-  end;
+  FGridHelper.ApplyPivotToKGrid;
 end;
 
 procedure TUramakiKGridAsPivotPlate.LoadConfigurationFromXML(aXMLElement: TmXmlElement);

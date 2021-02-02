@@ -31,7 +31,7 @@ resourcestring
   SLabelGroupByDefOperator = 'Group-by operator:';
   SLabelGroupByDefSortBy = 'Sort';
   SLabelSummaryOperator = 'Summary operator:';
-  sMenuItemRemove = 'Remove..';
+  SMenuItemRemove = 'Remove..';
   SLabelLabel = 'Label:';
   SLabelFormat = 'Display format:';
 
@@ -91,18 +91,26 @@ type
     procedure LBFieldsDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure LBFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
     procedure LBFieldsSelectionChange(Sender: TObject; User: boolean);
+    procedure LBFieldsEnter (Sender: TObject);
+    procedure DoTriggerLBFieldsChange;
 
     procedure LBHorizontalFieldsDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure LBHorizontalFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
     procedure LBHorizontalFieldsSelectionChange(Sender: TObject; User: boolean);
+    procedure LBHorizontalFieldsEnter(Sender: TObject);
+    procedure DoTriggerLBHorizontalFieldsChange;
 
     procedure LBVerticalFieldsDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure LBVerticalFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
     procedure LBVerticalFieldsSelectionChange(Sender: TObject; User: boolean);
+    procedure LBVerticalFieldsEnter(Sender: TObject);
+    procedure DoTriggerLBVerticalFieldsChange;
 
     procedure LBDataFieldsDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure LBDataFieldsDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
     procedure LBDataFieldsSelectionChange(Sender: TObject; User: boolean);
+    procedure LBDataFieldsEnter(Sender: TObject);
+    procedure DoTriggerLBDataFieldsChange;
 
     function GetLBFieldLine (const aFieldDef : TmVirtualFieldDef) : String;
     function GetLBDataFieldLine (const aSummaryDef : TmSummaryDefinition) : String;
@@ -268,6 +276,16 @@ end;
 
 procedure TPivotFieldsSettingsFrame.LBFieldsSelectionChange(Sender: TObject; User: boolean);
 begin
+  DoTriggerLBFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.LBFieldsEnter(Sender: TObject);
+begin
+  DoTriggerLBFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.DoTriggerLBFieldsChange;
+begin
   ClearProperties;
   if (FListBoxFields.SelCount = 1) and (FListBoxFields.ItemIndex >= 0) then
   begin
@@ -334,6 +352,16 @@ begin
 end;
 
 procedure TPivotFieldsSettingsFrame.LBHorizontalFieldsSelectionChange(Sender: TObject; User: boolean);
+begin
+  DoTriggerLBHorizontalFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.LBHorizontalFieldsEnter(Sender: TObject);
+begin
+  DoTriggerLBHorizontalFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.DoTriggerLBHorizontalFieldsChange;
 begin
   ClearProperties;
   if (FListBoxHorizontalFields.SelCount = 1) and (FListBoxHorizontalFields.ItemIndex >= 0) then
@@ -405,6 +433,16 @@ end;
 
 procedure TPivotFieldsSettingsFrame.LBVerticalFieldsSelectionChange(Sender: TObject; User: boolean);
 begin
+  DoTriggerLBVerticalFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.LBVerticalFieldsEnter(Sender: TObject);
+begin
+  DoTriggerLBVerticalFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.DoTriggerLBVerticalFieldsChange;
+begin
   ClearProperties;
   if (FListBoxVerticalFields.SelCount = 1) and (FListBoxVerticalFields.ItemIndex >= 0) then
   begin
@@ -475,6 +513,16 @@ begin
 end;
 
 procedure TPivotFieldsSettingsFrame.LBDataFieldsSelectionChange(Sender: TObject; User: boolean);
+begin
+  DoTriggerLBDataFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.LBDataFieldsEnter(Sender: TObject);
+begin
+  DoTriggerLBDataFieldsChange;
+end;
+
+procedure TPivotFieldsSettingsFrame.DoTriggerLBDataFieldsChange;
 begin
   ClearProperties;
   if (FListBoxDataFields.SelCount = 1) and (FListBoxDataFields.ItemIndex >= 0) then
@@ -837,6 +885,7 @@ begin
   FListBoxFields.OnDragDrop:= @LBFieldsDragDrop;
   FListBoxFields.OnDragOver:= @LBFieldsDragOver;
   FListBoxFields.OnSelectionChange:= @LBFieldsSelectionChange;
+  FListBoxFields.OnEnter:= @LBFieldsEnter;
   FListBoxFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxFields.Style:= lbOwnerDrawFixed;
   FListBoxFields.ItemHeight:= 20;
@@ -875,6 +924,8 @@ begin
   FListBoxHorizontalFields.OnDragDrop:= @LBHorizontalFieldsDragDrop;
   FListBoxHorizontalFields.OnDragOver:= @LBHorizontalFieldsDragOver;
   FListBoxHorizontalFields.OnSelectionChange:= @LBHorizontalFieldsSelectionChange;
+  FListBoxHorizontalFields.OnEnter:= @LBHorizontalFieldsEnter;
+
 //  FListBoxHorizontalFields.OnStartDrag:= @LBFieldsStartDrag;
   FListBoxHorizontalFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxHorizontalFields.Style:= lbOwnerDrawFixed;
@@ -907,6 +958,7 @@ begin
   FListBoxVerticalFields.OnDragDrop:= @LBVerticalFieldsDragDrop;
   FListBoxVerticalFields.OnDragOver:= @LBVerticalFieldsDragOver;
   FListBoxVerticalFields.OnSelectionChange:= @LBVerticalFieldsSelectionChange;
+  FListBoxVerticalFields.OnEnter:= @LBVerticalFieldsEnter;
 //  FListBoxVerticalFields.OnStartDrag:= @LBVerticalFieldsStartDrag;
   FListBoxVerticalFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxVerticalFields.Style:= lbOwnerDrawFixed;
@@ -939,6 +991,7 @@ begin
   FListBoxDataFields.OnDragDrop:= @LBDataFieldsDragDrop;
   FListBoxDataFields.OnDragOver:= @LBDataFieldsDragOver;
   FListBoxDataFields.OnSelectionChange:= @LBDataFieldsSelectionChange;
+  FListBoxDataFields.OnEnter:= @LBDataFieldsEnter;
 //  FListBoxDataFields.OnStartDrag:= @LBFieldsStartDrag;
   FListBoxDataFields.OnDrawItem:= @Self.LBDrawItem;
   FListBoxDataFields.Style:= lbOwnerDrawFixed;

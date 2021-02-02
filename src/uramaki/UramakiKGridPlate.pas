@@ -89,7 +89,11 @@ end;
 
 procedure TUramakiKGridAsPivotPlate.OnClearFilter(Sender: TObject);
 begin
-  //
+  if Assigned(FFilterPanel) then
+  begin
+    FFilterPanel.ClearAll();
+    Self.Clear;
+  end;
 end;
 
 procedure TUramakiKGridAsPivotPlate.OnExecuteFilter(Sender: TObject);
@@ -161,6 +165,7 @@ begin
           TWaitCursor.ShowWaitCursor('TUramakiKGridAsPivotPlate.OnEditSettings');
           Self.ClearPivot;
           FPivoter.Clear(true);
+          FPivoter.Options:= [poHorizontalGrandTotal, poVerticalGrandTotal];
           frm.UpdateSettingsInPivot(FPivoter);
           FPivoter.Calculate;
           Self.DrawPivot;
@@ -244,10 +249,15 @@ end;
 
 procedure TUramakiKGridAsPivotPlate.Clear;
 begin
-  Self.ClearPivot;
-  FPivoter.Clear(false);
-  if Assigned(FPivoter.DataProvider) then
-    FPivoter.DataProvider.Clear;
+  FGrid.LockUpdate;
+  try
+    Self.ClearPivot;
+    FPivoter.Clear(false);
+    if Assigned(FPivoter.DataProvider) then
+      FPivoter.DataProvider.Clear;
+  finally
+    FGrid.UnlockUpdate;
+  end;
   InvokeChildsClear;
 end;
 

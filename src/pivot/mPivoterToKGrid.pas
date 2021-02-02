@@ -21,6 +21,9 @@ uses
   kgrids,
   mPivoter, mSummary, mIntList, mMaps;
 
+resourcestring
+  SGrandTotalHeader = 'Grand Total';
+
 type
 
   { TmKGridAsPivotHelper }
@@ -32,6 +35,15 @@ type
     FNumericColumns : TCardinalList;
     FNumericColumnsIndex : TmIntegerDictionary;
     procedure OnDrawGridCell (Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
+
+    procedure FillRowHeaderGrandTotal;
+    procedure FillRowHeader(const aKeyValues : TmKeysIndex; const aCol : integer; var aRow : integer; out aAdditiveCellSpan : integer);
+    procedure FillColHeaderGrandTotal;
+    procedure FillColHeader(const aKeyValues : TmKeysIndex; var aCol : integer; const aRow : integer; out aAdditiveCellSpan : integer);
+    procedure FillFieldsHeader;
+    procedure CalculateHeaderSize (const aKeyValues : TmKeysIndex; var aLevels : integer; const aTopLevel : boolean; const aTopHeader : boolean);
+    procedure FillValues;
+    procedure FillGrandTotalsValues;
   public
     constructor Create;
     destructor Destroy; override;
@@ -52,14 +64,14 @@ uses
 var
   logger : TmLog;
 
-procedure CalculateHeaderSize (const aKeyValues : TmKeysIndex; var aLevels : integer; const aTopLevel : boolean; const aTopHeader : boolean; const aSummaryDefs : TmSummaryDefinitions);
+procedure TmKGridAsPivotHelper.CalculateHeaderSize (const aKeyValues : TmKeysIndex; var aLevels : integer; const aTopLevel : boolean; const aTopHeader : boolean);
 var
   i : integer;
 begin
   if not Assigned(aKeyValues) then
     exit;
   if aTopHeader and aKeyValues.Terminal then
-    aLevels := aLevels + (aKeyValues.KeyValuesCount * aSummaryDefs.Count)
+    aLevels := aLevels + (aKeyValues.KeyValuesCount * FPivoter.SummaryDefinitions.Count)
   else
     aLevels := aLevels + aKeyValues.KeyValuesCount;
   if not aTopLevel then
@@ -67,39 +79,40 @@ begin
   if not aKeyValues.Terminal then
   begin
     for i := 0 to aKeyValues.KeyValuesCount - 1 do
-      CalculateHeaderSize(aKeyValues.GetSubIndex(i), aLevels, false, aTopHeader, aSummaryDefs);
+      CalculateHeaderSize(aKeyValues.GetSubIndex(i), aLevels, false, aTopHeader);
   end;
 end;
 
-procedure FillRowHeader(const aGroupByDefs : TmGroupByDefs; const aKeyValues : TmKeysIndex; const aCol : integer; var aRow : integer; aGrid : TKGrid; out aAdditiveCellSpan : integer);
+procedure TmKGridAsPivotHelper.FillRowHeader(const aKeyValues : TmKeysIndex; const aCol : integer; var aRow : integer; out aAdditiveCellSpan : integer);
 var
   i: integer;
   childsCellSpan : integer;
   curR, curC : integer;
 begin
   aAdditiveCellSpan:= 0;
+  childsCellSpan := 0;
   if not Assigned(aKeyValues) then
     exit;
 
   for i := 0 to aKeyValues.KeyValuesCount - 1 do
   begin
-    aGrid.Cells[aCol, aRow] := aGroupByDefs.Get(aKeyValues.Level).FormatValue(aKeyValues.GetKeyValue(i));
+    FGrid.Cells[aCol, aRow] := FPivoter.HorizontalGroupByDefs.Get(aKeyValues.Level).FormatValue(aKeyValues.GetKeyValue(i));
     logger.Debug('ROW HEADER Row ' + IntToStr(aRow) + ' Col ' + IntToStr(aCol) +  ' value ' + aKeyValues.GetKeyValue(i).KeyValueAsString);
     inc(aAdditiveCellSpan);
     if aKeyValues.Terminal then
     begin
-      aGrid.CellSpan[aCol, aRow] := MakeCellSpan(2, 1);
+      FGrid.CellSpan[aCol, aRow] := MakeCellSpan(2, 1);
       inc(aRow);
     end
     else
     begin
       curR := aRow;
       curC := aCol;
-      FillRowHeader(aGroupByDefs, aKeyValues.GetSubIndex(i), curC + 1, aRow, aGrid, childsCellSpan);
+      FillRowHeader(aKeyValues.GetSubIndex(i), curC + 1, aRow, childsCellSpan);
       if childsCellSpan > 1 then
       begin
         logger.Debug('ROW HEADER cell span ' + IntToStr(childsCellSpan) + ' starting from  Row ' + IntToStr(curR) + ' Col ' + IntToStr(curC));
-        aGrid.CellSpan[curC, curR] := MakeCellSpan(1, childsCellSpan);
+        FGrid.CellSpan[curC, curR] := MakeCellSpan(1, childsCellSpan);
         aAdditiveCellSpan:= aAdditiveCellSpan + childsCellSpan  - 1;
       end;
       aRow := curR + childsCellSpan;
@@ -107,46 +120,68 @@ begin
   end;
 end;
 
+procedure TmKGridAsPivotHelper.FillColHeaderGrandTotal;
+var
+  k, c : integer;
+begin
+  if FGrid.ColCount > 1 then
+  begin
+    FGrid.Cells[FGrid.ColCount - FPivoter.SummaryDefinitions.Count, 0] := sGrandTotalHeader;
+    FGrid.CellSpan[FGrid.ColCount - FPivoter.SummaryDefinitions.Count, 0] := MakeCellSpan(FPivoter.SummaryDefinitions.Count, FGrid.FixedRows - 1);
+    for k := 0 to FPivoter.SummaryDefinitions.Count - 1 do
+    begin
+      c := FGrid.ColCount - FPivoter.SummaryDefinitions.Count + k;
+      if FPivoter.SummaryDefinitions.Get(k).DisplayLabel.NotNull then
+        FGrid.Cells[c, FGrid.FixedRows - 1] := FPivoter.SummaryDefinitions.Get(k).DisplayLabel.AsString
+      else
+        FGrid.Cells[c, FGrid.FixedRows - 1] := GenerateDisplayLabel(FPivoter.SummaryDefinitions.Get(k).FieldName) + ' [' + TmSummaryOperatorToString(FPivoter.SummaryDefinitions.Get(k).SummaryOperator) + ']';
+      if FieldTypeIsFloat(FPivoter.SummaryDefinitions.Get(k).FieldType) or FieldTypeIsInteger(FPivoter.SummaryDefinitions.Get(k).FieldType) then
+        FNumericColumns.Add(c);
+    end;
+  end;
+end;
 
-procedure FillColHeader(const aGroupByDefs : TmGroupByDefs; const aKeyValues : TmKeysIndex; var aCol : integer; const aRow : integer; aGrid : TKGrid; const aSummaryDefs : TmSummaryDefinitions; out aAdditiveCellSpan : integer; aNumericColumns : TCardinalList);
+
+procedure TmKGridAsPivotHelper.FillColHeader(const aKeyValues : TmKeysIndex; var aCol : integer; const aRow : integer; out aAdditiveCellSpan : integer);
 var
   i, k: integer;
   childsCellSpan : integer;
   curR, curC : integer;
 begin
   aAdditiveCellSpan:= 0;
+  childsCellSpan := 0;
   if not Assigned(aKeyValues) then
     exit;
   for i := 0 to aKeyValues.KeyValuesCount - 1 do
   begin
-    aGrid.Cells[aCol, aRow] := aGroupByDefs.Get(aKeyValues.Level).FormatValue(aKeyValues.GetKeyValue(i));
+    FGrid.Cells[aCol, aRow] := FPivoter.VerticalGroupByDefs.Get(aKeyValues.Level).FormatValue(aKeyValues.GetKeyValue(i));
     logger.Debug('COL HEADER Row ' + IntToStr(aRow) + ' Col ' + IntToStr(aCol) +  ' value ' + aKeyValues.GetKeyValue(i).KeyValueAsString);
     inc(aAdditiveCellSpan);
     if aKeyValues.Terminal then
     begin
-      if aSummaryDefs.Count > 1 then
-        aGrid.CellSpan[aCol, aRow] := MakeCellSpan(aSummaryDefs.Count, 1);
-      aAdditiveCellSpan:= aAdditiveCellSpan + aSummaryDefs.Count - 1;
-      for k := 0 to aSummaryDefs.Count - 1 do
+      if FPivoter.SummaryDefinitions.Count > 1 then
+        FGrid.CellSpan[aCol, aRow] := MakeCellSpan(FPivoter.SummaryDefinitions.Count, 1);
+      aAdditiveCellSpan:= aAdditiveCellSpan + FPivoter.SummaryDefinitions.Count - 1;
+      for k := 0 to FPivoter.SummaryDefinitions.Count - 1 do
       begin
-        if aSummaryDefs.Get(k).DisplayLabel.NotNull then
-          aGrid.Cells[aCol + k, aRow + 1] := aSummaryDefs.Get(k).DisplayLabel.AsString
+        if FPivoter.SummaryDefinitions.Get(k).DisplayLabel.NotNull then
+          FGrid.Cells[aCol + k, aRow + 1] := FPivoter.SummaryDefinitions.Get(k).DisplayLabel.AsString
         else
-          aGrid.Cells[aCol + k, aRow + 1] := GenerateDisplayLabel(aSummaryDefs.Get(k).FieldName) + ' [' + TmSummaryOperatorToString(aSummaryDefs.Get(k).SummaryOperator) + ']';
-        if FieldTypeIsFloat(aSummaryDefs.Get(k).FieldType) or FieldTypeIsInteger(aSummaryDefs.Get(k).FieldType) then
-          aNumericColumns.Add(aCol + k);
+          FGrid.Cells[aCol + k, aRow + 1] := GenerateDisplayLabel(FPivoter.SummaryDefinitions.Get(k).FieldName) + ' [' + TmSummaryOperatorToString(FPivoter.SummaryDefinitions.Get(k).SummaryOperator) + ']';
+        if FieldTypeIsFloat(FPivoter.SummaryDefinitions.Get(k).FieldType) or FieldTypeIsInteger(FPivoter.SummaryDefinitions.Get(k).FieldType) then
+          FNumericColumns.Add(aCol + k);
       end;
-      aCol := aCol + aSummaryDefs.Count;
+      aCol := aCol + FPivoter.SummaryDefinitions.Count;
     end
     else
     begin
       curR := aRow;
       curC := aCol;
-      FillColHeader(aGroupByDefs, aKeyValues.GetSubIndex(i), aCol, curR + 1, aGrid, aSummaryDefs, childsCellSpan, aNumericColumns);
+      FillColHeader(aKeyValues.GetSubIndex(i), aCol, curR + 1, childsCellSpan);
       if childsCellSpan > 1 then
       begin
         logger.Debug('COL HEADER cell span ' + IntToStr(childsCellSpan) + ' starting from  Row ' + IntToStr(curR) + ' Col ' + IntToStr(curC));
-        aGrid.CellSpan[curC, curR] := MakeCellSpan(childsCellSpan, 1);
+        FGrid.CellSpan[curC, curR] := MakeCellSpan(childsCellSpan, 1);
         aAdditiveCellSpan:= aAdditiveCellSpan + childsCellSpan - 1;
       end;
       aCol := curC + childsCellSpan;
@@ -154,30 +189,33 @@ begin
   end;
 end;
 
-procedure FillFieldsHeader(const aHorizontalGroupByDefs, aVerticalGroupByDefs : TmGroupByDefs; aGrid: TKGrid);
+procedure TmKGridAsPivotHelper.FillFieldsHeader;
 var
   i : integer;
 begin
-  if aVerticalGroupByDefs.Count > 0 then
+  if FPivoter.VerticalGroupByDefs.Count > 0 then
   begin
-    for i := 0 to aHorizontalGroupByDefs.Count - 1 do
+    for i := 0 to FPivoter.HorizontalGroupByDefs.Count - 1 do
     begin
-      if aHorizontalGroupByDefs.Get(i).DisplayLabel.NotNull then
-        aGrid.Cells[i, aVerticalGroupByDefs.Count] := aHorizontalGroupByDefs.Get(i).DisplayLabel.AsString
+      if FPivoter.HorizontalGroupByDefs.Get(i).DisplayLabel.NotNull then
+        FGrid.Cells[i, FPivoter.VerticalGroupByDefs.Count] := FPivoter.HorizontalGroupByDefs.Get(i).DisplayLabel.AsString
       else
-        aGrid.Cells[i, aVerticalGroupByDefs.Count] := GenerateDisplayLabel(aHorizontalGroupByDefs.Get(i).FieldName);
+        FGrid.Cells[i, FPivoter.VerticalGroupByDefs.Count] := GenerateDisplayLabel(FPivoter.HorizontalGroupByDefs.Get(i).FieldName);
     end;
   end;
-  if aHorizontalGroupByDefs.Count > 0 then
+  if FPivoter.HorizontalGroupByDefs.Count > 0 then
   begin
-    for i := 0 to aVerticalGroupByDefs.Count - 1 do
+    for i := 0 to FPivoter.VerticalGroupByDefs.Count - 1 do
     begin
-      if aVerticalGroupByDefs.Get(i).DisplayLabel.NotNull then
-        aGrid.Cells[aHorizontalGroupByDefs.Count, i] := aVerticalGroupByDefs.Get(i).DisplayLabel.AsString
+      if FPivoter.VerticalGroupByDefs.Get(i).DisplayLabel.NotNull then
+        FGrid.Cells[FPivoter.HorizontalGroupByDefs.Count, i] := FPivoter.VerticalGroupByDefs.Get(i).DisplayLabel.AsString
       else
-        aGrid.Cells[aHorizontalGroupByDefs.Count, i] := GenerateDisplayLabel(aVerticalGroupByDefs.Get(i).FieldName);
+        FGrid.Cells[FPivoter.HorizontalGroupByDefs.Count, i] := GenerateDisplayLabel(FPivoter.VerticalGroupByDefs.Get(i).FieldName);
     end;
   end;
+
+//  if poHorizontalGrandTotal in aPivoter.Options then
+//    aGrid.Cells(aPivoter.HorizontalGroupByDefs.Count, ;
 end;
 
 procedure RecursiveExploreVertical(aKeysIndex : TmKeysIndex; aVerticalValues, aHorizontalValues : TStringList; const aPivoter : TmPivoter; aGrid: TKGrid; var r, c : integer);
@@ -244,23 +282,130 @@ begin
   end;
 end;
 
-procedure FillValues (const aPivoter : TmPivoter; aGrid : TKGrid);
+procedure RecursiveExploreHorizontalGrandTotals(aVerticalKeysIndex : TmKeysIndex; aVerticalValues : TStringList; const aPivoter : TmPivoter; aGrid: TKGrid; var c : integer);
+var
+  i, k, r : integer;
+  vList : TStringList;
+  value : TmSummaryValue;
+  tmp : String;
+begin
+  for i := 0 to aVerticalKeysIndex.KeyValuesCount - 1 do
+  begin
+    vList := TStringList.Create;
+    try
+      vList.AddStrings(aVerticalValues);
+      vList.Add(aVerticalKeysIndex.GetKeyValue(i).KeyValueAsString);
+      if aVerticalKeysIndex.Terminal then
+      begin
+        for k := 0 to aPivoter.SummaryDefinitions.Count - 1 do
+        begin
+          value := aPivoter.GetHorizontalGrandTotalValue(vList, aPivoter.SummaryDefinitions.Get(k));
+          if Assigned(value) then
+          begin
+            tmp := value.ValueAsString;
+            r := aGrid.RowCount - 1;
+            aGrid.Cells[c, r] := tmp;
+            logger.Debug('Writing in R ' + IntToStr(r) + ' C ' + IntToStr(c) + ' value ' + tmp);
+          end;
+          inc(c);
+        end;
+      end
+      else
+        RecursiveExploreHorizontalGrandTotals(aVerticalKeysIndex.GetSubIndexOfKey(aVerticalKeysIndex.GetKeyValue(i).KeyValueAsString), vList, aPivoter, aGrid, c);
+    finally
+      vList.Free;
+    end;
+  end;
+end;
+
+
+procedure RecursiveExploreVerticalGrandTotals(aHorizontalKeysIndex : TmKeysIndex; aHorizontalValues : TStringList; const aPivoter : TmPivoter; aGrid: TKGrid; var r : integer);
+var
+  i, k, c : integer;
+  hList : TStringList;
+  value : TmSummaryValue;
+  tmp : String;
+begin
+  for i := 0 to aHorizontalKeysIndex.KeyValuesCount - 1 do
+  begin
+    hList := TStringList.Create;
+    try
+      hList.AddStrings(aHorizontalValues);
+      hList.Add(aHorizontalKeysIndex.GetKeyValue(i).KeyValueAsString);
+      if aHorizontalKeysIndex.Terminal then
+      begin
+        for k := 0 to aPivoter.SummaryDefinitions.Count - 1 do
+        begin
+          value := aPivoter.GetVerticalGrandTotalValue(hList, aPivoter.SummaryDefinitions.Get(k));
+          if Assigned(value) then
+          begin
+            tmp := value.ValueAsString;
+            c := aGrid.ColCount - aPivoter.SummaryDefinitions.Count;
+            aGrid.Cells[c + k, r] := tmp;
+            logger.Debug('Writing GRAND TOTAL in R ' + IntToStr(r) + ' C ' + IntToStr(c) + ' value ' + tmp);
+          end;
+        end;
+        inc(r);
+      end
+      else
+        RecursiveExploreVerticalGrandTotals(aHorizontalKeysIndex.GetSubIndexOfKey(aHorizontalKeysIndex.GetKeyValue(i).KeyValueAsString), hList, aPivoter, aGrid, r);
+    finally
+      hList.Free;
+    end;
+  end;
+end;
+
+procedure TmKGridAsPivotHelper.FillValues;
 var
   r, c : integer;
   i, k : integer;
   hList, vList: TStringList;
 begin
-  r := aGrid.FixedRows;
-  c := aGrid.FixedCols;
+  r := FGrid.FixedRows;
+  c := FGrid.FixedCols;
 
   vList := TStringList.Create;
   hList := TStringList.Create;
   try
-    RecursiveExploreHorizontal(aPivoter.HorizontalKeysIndex, aPivoter.VerticalKeysIndex, vList, hList, aPivoter, aGrid, r, c);
+    RecursiveExploreHorizontal(FPivoter.HorizontalKeysIndex, FPivoter.VerticalKeysIndex, vList, hList, FPivoter, FGrid, r, c);
   finally
     vList.Free;
     hList.Free;
   end;
+end;
+
+procedure TmKGridAsPivotHelper.FillGrandTotalsValues;
+var
+  r, c : integer;
+  i, k : integer;
+  gList: TStringList;
+begin
+  r := FGrid.FixedRows;
+
+  if poVerticalGrandTotal in FPivoter.Options then
+  begin
+    c := FGrid.FixedCols;
+
+    gList := TStringList.Create;
+    try
+      RecursiveExploreHorizontalGrandTotals(FPivoter.VerticalKeysIndex, gList, FPivoter, FGrid, c);
+    finally
+      gList.Free;
+    end;
+  end;
+
+  if poHorizontalGrandTotal in FPivoter.Options then
+  begin
+    r := FGrid.FixedRows;
+
+    gList := TStringList.Create;
+    try
+      RecursiveExploreVerticalGrandTotals(FPivoter.HorizontalKeysIndex, gList, FPivoter, FGrid, r);
+    finally
+      gList.Free;
+    end;
+  end;
+
 end;
 
 procedure TmKGridAsPivotHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
@@ -281,6 +426,15 @@ begin
   end;
 
   FGrid.CellPainter.DefaultDraw;
+end;
+
+procedure TmKGridAsPivotHelper.FillRowHeaderGrandTotal;
+begin
+  if FGrid.RowCount > 1 then
+  begin
+    FGrid.Cells[0, FGrid.RowCount - 1] := sGrandTotalHeader;
+    FGrid.CellSpan[0, FGrid.RowCount - 1] := MakeCellSpan(FGrid.FixedCols, 1);
+  end;
 end;
 
 constructor TmKGridAsPivotHelper.Create;
@@ -327,10 +481,14 @@ begin
     FGrid.FixedRows:= FPivoter.VerticalGroupByDefs.Count + 1;
 
     rc := 0;
-    CalculateHeaderSize(FPivoter.HorizontalKeysIndex, rc, true, false, FPivoter.SummaryDefinitions);
+    CalculateHeaderSize(FPivoter.HorizontalKeysIndex, rc, true, false);
+    if poHorizontalGrandTotal in FPivoter.Options then
+      rc := rc + 1;
     logger.Debug('horizontal levels: ' + IntToStr(rc));
     cc := 0;
-    CalculateHeaderSize(FPivoter.VerticalKeysIndex, cc, true, true, FPivoter.SummaryDefinitions);
+    CalculateHeaderSize(FPivoter.VerticalKeysIndex, cc, true, true);
+    if poVerticalGrandTotal in FPivoter.Options then
+      cc := cc + FPivoter.SummaryDefinitions.Count;
     logger.Debug('vertical levels: ' + IntToStr(cc));
     FGrid.RowCount:= FGrid.FixedRows + rc;
     FGrid.ColCount:= FGrid.FixedCols + cc;
@@ -339,14 +497,18 @@ begin
 
     acs := 0;
     r :=  FGrid.FixedRows;
-    FillRowHeader(FPivoter.HorizontalGroupByDefs, FPivoter.HorizontalKeysIndex, 0, r, FGrid, acs);
+    FillRowHeader(FPivoter.HorizontalKeysIndex, 0, r, acs);
+    FillRowHeaderGrandTotal;
+
     acs := 0;
     c :=  FGrid.FixedCols;
-    FillColHeader(FPivoter.VerticalGroupByDefs, FPivoter.VerticalKeysIndex, c, 0, FGrid, FPivoter.SummaryDefinitions, acs, FNumericColumns);
+    FillColHeader(FPivoter.VerticalKeysIndex, c, 0, acs);
+    FillColHeaderGrandTotal;
 
-    FillFieldsHeader(FPivoter.HorizontalGroupByDefs, FPivoter.VerticalGroupByDefs, FGrid);
+    FillFieldsHeader;
 
-    FillValues (FPivoter, FGrid);
+    FillValues;
+    FillGrandTotalsValues;
 
     FGrid.AutoSizeGrid(mpColWidth);
   finally

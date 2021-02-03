@@ -1,5 +1,5 @@
 object PivotSettingsForm: TPivotSettingsForm
-  Left = 435
+  Left = 319
   Height = 389
   Top = 210
   Width = 959
@@ -8,7 +8,7 @@ object PivotSettingsForm: TPivotSettingsForm
   ClientWidth = 959
   OnCreate = FormCreate
   Position = poMainFormCenter
-  LCLVersion = '2.0.8.0'
+  LCLVersion = '2.0.6.0'
   object BottomPanel: TPanel
     Left = 0
     Height = 50
@@ -54,6 +54,9 @@ object PivotSettingsForm: TPivotSettingsForm
     TabOrder = 1
     object TSFields: TTabSheet
       Caption = 'Fields'
+    end
+    object TSProperties: TTabSheet
+      Caption = 'Properties'
     end
   end
 end

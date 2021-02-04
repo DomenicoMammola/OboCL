@@ -53,7 +53,7 @@ uses
   fpstypes, fpspreadsheet,
   fpsallformats, // necessary to register all the input/output formats that fpspreadsheet can handle
   {$ENDIF}
-  mVirtualGridSpreadsheet;
+  mVirtualGridSpreadsheet, mGraphicsUtility;
 
 
 procedure TmKGridAsPivotHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
@@ -62,18 +62,39 @@ begin
 
   FKGrid.Cell[ACol, ARow].ApplyDrawProperties;
 
+  if FKGrid.CellPainter.Canvas.Brush.Style = bsClear then FKGrid.CellPainter.Canvas.Brush.Style := bsSolid;
+
   if (ARow < FKGrid.FixedRows) and (ACol >= FKGrid.FixedCols) then
   begin
     FKGrid.CellPainter.HAlign:=halCenter;
     FKGrid.CellPainter.VAlign:=valCenter;
-    FKGrid.CellPainter.BackColor:= FHeaderColor;
+    FKGrid.CellPainter.BackColor:= FKGrid.Colors.FixedCellBkGnd;
+    FKGrid.CellPainter.Canvas.Brush.Color:= FKGrid.Colors.FixedCellBkGnd;
   end
   else
   begin
     if FNumericColumnsIndex.Contains(ACol) then
       FKGrid.CellPainter.HAlign:=halRight;
-    if ((ACol = FKGrid.ColCount -1) and (poVerticalGrandTotal in FPivoter.Options)) or ((ARow = FKGrid.RowCount -1) and (poHorizontalGrandTotal in FPivoter.Options)) then
-      FKGrid.CellPainter.BackColor:= FGrandtotalsColor;
+    if ((ACol = FKGrid.ColCount -1) and (poVerticalGrandTotal in FPivoter.Options)) or ((ARow = FKGrid.RowCount -1) and (poHorizontalGrandTotal in FPivoter.Options) and (ACol >= FGrid.FixedCols)) then
+    begin
+      if State * [gdFixed, gdSelected] = [] then
+      begin
+        FKGrid.CellPainter.BackColor:= LighterColor(FKGrid.Colors.FixedCellBkGnd, 15);
+        FKGrid.CellPainter.Canvas.Brush.Color:= FKGrid.CellPainter.BackColor;
+      end;
+    end
+    (*
+    else
+    begin
+      if State * [gdFixed, gdSelected] = [] then
+      begin
+        if ARow mod 2 = 0 then
+          FKGrid.CellPainter.Canvas.Brush.Color := FKGrid.Color
+        else
+          FKGrid.CellPainter.Canvas.Brush.Color := DefaultPivotAlternateColor;
+      end;
+    end;
+    *)
   end;
 
   FKGrid.CellPainter.DefaultDraw;
@@ -98,7 +119,7 @@ begin
   assert(not Assigned(FKGridAsVirtualGrid));
   FKGrid := aGrid;
   FKGrid.OnDrawCell:= Self.OnDrawGridCell;
-  FKGrid.Options := FKGrid.Options - [goThemes, goThemedCells];
+  FKGrid.Options := FKGrid.Options - [goThemes, goThemedCells] + [goColSizing];
   FKGrid.OptionsEx:= [gxMouseWheelScroll];
   FKGridAsVirtualGrid := TmKGridAsVirtualGrid.Create(FKGrid);
   Self.InternalInit(aPivoter, FKGridAsVirtualGrid);

@@ -34,6 +34,7 @@ type
     FHeaderColor : TColor;
     FGrandtotalsColor : TColor;
     procedure OnDrawGridCell (Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
+    procedure OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -47,7 +48,7 @@ type
 implementation
 
 uses
-  sysutils, LCLType,
+  sysutils, LCLType, Clipbrd,
   kfunctions, kgraphics,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet,
@@ -100,6 +101,14 @@ begin
   FKGrid.CellPainter.DefaultDraw;
 end;
 
+procedure TmKGridAsPivotHelper.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Shift = [ssCtrl]) and (Key = VK_C) then
+  begin
+    Clipboard.AsText:= FKGrid.Cells[FKGrid.Col, FKGrid.Row];
+  end;
+end;
+
 
 constructor TmKGridAsPivotHelper.Create;
 begin
@@ -122,6 +131,7 @@ begin
   FKGrid.Options := FKGrid.Options - [goThemes, goThemedCells] + [goColSizing];
   FKGrid.OptionsEx:= [gxMouseWheelScroll];
   FKGridAsVirtualGrid := TmKGridAsVirtualGrid.Create(FKGrid);
+  FKGrid.OnKeyDown:= OnKeyDown;
   Self.InternalInit(aPivoter, FKGridAsVirtualGrid);
 end;
 

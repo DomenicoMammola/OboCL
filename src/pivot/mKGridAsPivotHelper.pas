@@ -76,7 +76,7 @@ begin
   begin
     if FNumericColumnsIndex.Contains(ACol) then
       FKGrid.CellPainter.HAlign:=halRight;
-    if ((ACol = FKGrid.ColCount -1) and (poVerticalGrandTotal in FPivoter.Options)) or ((ARow = FKGrid.RowCount -1) and (poHorizontalGrandTotal in FPivoter.Options) and (ACol >= FGrid.FixedCols)) then
+    if ((ACol >= FKGrid.ColCount - FPivoter.SummaryDefinitions.Count) and (poVerticalGrandTotal in FPivoter.Options)) or ((ARow = FKGrid.RowCount -1) and (poHorizontalGrandTotal in FPivoter.Options) and (ACol >= FGrid.FixedCols)) then
     begin
       if State * [gdFixed, gdSelected] = [] then
       begin

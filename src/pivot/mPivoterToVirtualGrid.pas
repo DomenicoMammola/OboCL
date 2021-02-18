@@ -468,7 +468,6 @@ begin
         logger.Debug('Writing SUPERGRANDTOTAL in R ' + IntToStr(r) + ' C ' + IntToStr(c) + ' value ' + value.ValueAsString);
         {$ENDIF}
       end;
-      inc(c);
     end;
   end;
 end;

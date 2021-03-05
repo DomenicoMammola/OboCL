@@ -40,7 +40,8 @@ type
 implementation
 
 uses
-  SysUtils, LazFileUtils;
+  SysUtils, LazFileUtils,
+  mFormSetup;
 
 {$R *.lfm}
 
@@ -53,11 +54,7 @@ end;
 
 procedure TmMemoForm.FormCreate(Sender: TObject);
 begin
-  if Screen.MonitorCount > 1 then
-  begin
-    Left := Screen.Monitors[0].Left;
-    Top := Screen.Monitors[0].Top;
-  end;
+  SetupFormAndCenter(Self);
 end;
 
 procedure TmMemoForm.LoadTextFile(const aFileName: string);

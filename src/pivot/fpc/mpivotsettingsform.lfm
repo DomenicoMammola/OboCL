@@ -58,5 +58,8 @@ object PivotSettingsForm: TPivotSettingsForm
     object TSProperties: TTabSheet
       Caption = 'Properties'
     end
+    object TSFormulaFields: TTabSheet
+      Caption = 'Formula fields'
+    end
   end
 end

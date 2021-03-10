@@ -27,7 +27,7 @@ uses
   LMessages,
   {$ENDIF}
   mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML, mIntList, mMaps,
-  mKGridAsPivotHelper, mSpreadsheetAsPivotHelper,
+  mKGridAsPivotHelper, mSpreadsheetAsPivotHelper, mQuickReadOnlyVirtualDataSet,
   UramakiBase, UramakiToolbar;
 
 const
@@ -55,7 +55,6 @@ type
     procedure InvokeChildsClear;
   protected
     FPivoter : TmPivoter;
-    FDataProvider : IVDDataProvider;
     FGrid : TKGrid;
     FGridHelper : TmKGridAsPivotHelper;
     FFilterPanel : TmFilterPanel;
@@ -291,8 +290,7 @@ end;
 
 procedure TUramakiKGridAsPivotPlate.Init(aDataProvider: IVDDataProvider);
 begin
-  FDataProvider := aDataProvider;
-  FPivoter.DataProvider := FDataProvider;
+  FPivoter.Provider.Init(aDataProvider);
 end;
 
 procedure TUramakiKGridAsPivotPlate.ClearPivot;
@@ -339,8 +337,8 @@ begin
   try
     Self.ClearPivot;
     FPivoter.Clear(false);
-    if Assigned(FPivoter.DataProvider) then
-      FPivoter.DataProvider.Clear;
+    if Assigned(FPivoter.Provider) then
+      FPivoter.Provider.Clear;
   finally
     FGrid.UnlockUpdate;
   end;

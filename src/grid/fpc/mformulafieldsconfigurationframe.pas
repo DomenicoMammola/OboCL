@@ -52,6 +52,7 @@ type
     FGrid : TStringGrid;
     FFormulas : TmFormulaFields;
     FFieldsList : TStringList;
+    FSomethingChanged : boolean;
     procedure OnSelectEditor (Sender: TObject; aCol, aRow: Integer; var Editor: TWinControl);
     procedure OnEditButtonClick (Sender: TObject; aCol, aRow: Integer);
     procedure OnEditingDone(Sender : TObject);
@@ -61,8 +62,11 @@ type
     destructor Destroy; override;
 
     function Check : boolean;
-    procedure Init (aFormulas : TmFormulaFields; const aFields : TmFields);
+    procedure Init (aFormulas : TmFormulaFields; const aFields : TmFields); overload;
+    procedure Init (aFormulas : TmFormulaFields; const aFields : TStringList); overload;
     procedure UpdateFormulaFields;
+
+    property SomethingChanged : boolean read FSomethingChanged;
   end;
 
 implementation
@@ -78,6 +82,7 @@ uses
 procedure TFormulaFieldsConfFrame.AddButtonClick(Sender: TObject);
 begin
   FGrid.InsertRowWithValues(FGrid.RowCount, ['NEWFIELD', 'DOUBLE', '', '1']);
+  FSomethingChanged:= true;
 end;
 
 procedure TFormulaFieldsConfFrame.RemoveButtonClick(Sender: TObject);
@@ -88,6 +93,7 @@ begin
   if FGrid.Row >= 0 then
   begin
     FGrid.DeleteRow(FGrid.Row);
+    FSomethingChanged:= true;
   end;
 end;
 
@@ -115,6 +121,7 @@ begin
       if dlg.ShowModal = mrOK then
       begin
         FGrid.Cells[IDX_FORMULA, aRow] := trim(dlg.GetFormula);
+        FSomethingChanged:= true;
       end;
     finally
       dlg.Free;
@@ -126,6 +133,7 @@ procedure TFormulaFieldsConfFrame.OnEditingDone(Sender: TObject);
 var
   newSize : integer;
 begin
+  FSomethingChanged:= true;
   if FGrid.SelectedColumn.Index = IDX_NAME then
   begin
     FGrid.Cells[IDX_NAME, FGrid.Row] := StringReplace(UpperCase(Trim(FGrid.Cells[IDX_NAME, FGrid.Row])), ' ', '_', [rfReplaceAll]);
@@ -148,6 +156,8 @@ end;
 constructor TFormulaFieldsConfFrame.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+
+  FSomethingChanged:= false;
 
   FFieldsList := TStringList.Create;
 
@@ -260,6 +270,22 @@ end;
 procedure TFormulaFieldsConfFrame.Init(aFormulas: TmFormulaFields; const aFields : TmFields);
 var
   i : integer;
+  tmpList : TStringList;
+begin
+  tmpList := TStringList.Create;
+  try
+    for i := 0 to aFields.Count - 1 do
+      tmpList.Add(aFields.Get(i).FieldName);
+
+    Self.Init(aFormulas, tmpList);
+  finally
+    tmpList.Free;
+  end;
+end;
+
+procedure TFormulaFieldsConfFrame.Init(aFormulas: TmFormulaFields; const aFields: TStringList);
+var
+  i : integer;
 begin
   for i := 0 to aFormulas.Count - 1 do
   begin
@@ -280,8 +306,8 @@ begin
 
   for i := 0 to aFields.Count - 1 do
   begin
-    if (not Assigned(aFormulas.FindByName(aFields.Get(i).FieldName))) and (not IsSystemField(aFields.Get(i).FieldName)) then
-        FFieldsList.Add(aFields.Get(i).FieldName);
+    if (not Assigned(aFormulas.FindByName(aFields.Strings[i]))) and (not IsSystemField(aFields.Strings[i])) then
+        FFieldsList.Add(aFields.Strings[i]);
   end;
   FFormulas := aFormulas;
 end;

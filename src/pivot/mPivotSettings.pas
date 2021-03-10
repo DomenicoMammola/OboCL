@@ -26,7 +26,7 @@ implementation
 
 uses
   typinfo, DB,
-  mSummaryToXml;
+  mSummaryToXml, mVirtualDatasetFormulasToXml;
 
 procedure SaveGroupByDef (const aGroupByDef : TmGroupByDef; aXMLElement : TmXmlElement);
 begin
@@ -87,6 +87,8 @@ begin
   SaveSummaryDefinitionsToXmlElement(aPivoter.SummaryDefinitions, aXMLElement);
 
   SavePropertiesToXmlElement(aPivoter, aXMLElement);
+
+  SaveFormulaFieldsToXmlElement(aPivoter.Provider.FormulaFields, aXMLElement.AddElement('formulaFields'));
 end;
 
 procedure LoadPivotConfigurationToXML(const aPivoter : TmPivoter; aXMLElement: TmXmlElement);
@@ -112,6 +114,15 @@ begin
   end;
   LoadSummaryDefinitionsFromXmlElement(aPivoter.SummaryDefinitions, aXMLElement);
   LoadPropertiesFromXmlElement(aPivoter, aXMLElement);
+
+  aPivoter.Provider.FormulaFields.Clear;
+  cursor := TmXmlElementCursor.Create(aXMLElement, 'formulaFields');
+  try
+    if cursor.Count > 0 then
+      LoadFormulaFieldsFromXmlElement(aPivoter.Provider.FormulaFields, cursor.Elements[0]);
+  finally
+    cursor.Free;
+  end;
 end;
 
 end.

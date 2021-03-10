@@ -16,7 +16,7 @@ interface
 
 uses
   Classes, SysUtils, BufDataset, FileUtil, Forms, Controls,
-  Menus, ExtCtrls, StdCtrls, EditBtn, contnrs,
+  Menus, ExtCtrls, StdCtrls, EditBtn, contnrs, DB,
 
   OMultiPanel, OMultiPanelSetup,
 
@@ -44,7 +44,7 @@ type
     FVerticalGroupByDefs : TmGroupByDefs;
     FHorizontalGroupByDefs : TmGroupByDefs;
     FSummaryDefinitions : TmSummaryDefinitions;
-    FFieldDefs: TmVirtualFieldDefs;
+    FFieldDefs: TFieldDefs;
     FSomethingChanged : boolean;
 
     FRootPanel : TOMultiPanel;
@@ -66,7 +66,7 @@ type
     FFieldsFindBtn : TEditButton;
     FLabelFields, FLabelHorizontalFields, FLabelVerticalFields, FLabelDataFields : TLabel;
 
-    FCurrentField : TmVirtualFieldDef;
+    FCurrentField : TFieldDef;
     FCurrentGroupByDef : TmGroupByDef;
     FGarbageGroupByDefs : TmGroupByDefs;
     FCurrentSummary : TmSummaryDefinition;
@@ -112,12 +112,12 @@ type
     procedure LBDataFieldsEnter(Sender: TObject);
     procedure DoTriggerLBDataFieldsChange;
 
-    function GetLBFieldLine (const aFieldDef : TmVirtualFieldDef) : String;
+    function GetLBFieldLine (const aFieldDef : TFieldDef) : String;
     function GetLBDataFieldLine (const aSummaryDef : TmSummaryDefinition) : String;
     function GetLBVertHorizFieldLine(const aGroupByDef : TmGroupByDef) : String;
 
-    procedure ImportGroupByFromField (const aSource : TmVirtualFieldDef; aDestination : TmGroupByDef);
-    procedure ImportSummaryFromField (const aSource : TmVirtualFieldDef; aDestination : TmSummaryDefinition);
+    procedure ImportGroupByFromField (const aSource : TFieldDef; aDestination : TmGroupByDef);
+    procedure ImportSummaryFromField (const aSource : TFieldDef; aDestination : TmSummaryDefinition);
     procedure OnGroupDefPropertiesOperatorCBChange (aSender : TObject);
     procedure OnGroupDefPropertiesSortByCBChange (aSender : TObject);
     procedure OnSummaryOperatorCBChange (aSender : TObject);
@@ -223,8 +223,8 @@ begin
   tmpListBox.Canvas.FillRect(ARect);
   if Assigned(tmpListBox.Items.Objects[index]) then
   begin
-    if tmpListBox.Items.Objects[index] is TmVirtualFieldDef then
-      tmpListBox.Canvas.TextRect(ARect, 2, ARect.Top + 2, GetLBFieldLine(tmpListBox.Items.Objects[index] as TmVirtualFieldDef))
+    if tmpListBox.Items.Objects[index] is TFieldDef then
+      tmpListBox.Canvas.TextRect(ARect, 2, ARect.Top + 2, GetLBFieldLine(tmpListBox.Items.Objects[index] as TFieldDef))
     else if tmpListBox.Items.Objects[index] is TmSummaryDefinition then
       tmpListBox.Canvas.TextRect(ARect, 2, ARect.Top + 2, GetLBDataFieldLine(tmpListBox.Items.Objects[index] as TmSummaryDefinition))
     else if tmpListBox.Items.Objects[index] is TmGroupByDef then
@@ -289,7 +289,7 @@ begin
   ClearProperties;
   if (FListBoxFields.SelCount = 1) and (FListBoxFields.ItemIndex >= 0) then
   begin
-    FCurrentField := FListBoxFields.Items.Objects[FListBoxFields.ItemIndex] as TmVirtualFieldDef;
+    FCurrentField := FListBoxFields.Items.Objects[FListBoxFields.ItemIndex] as TFieldDef;
   end;
 end;
 
@@ -335,7 +335,7 @@ begin
     oldObj := FListBoxFields.Items.Objects[prev];
 
     newGroupBy := FGarbageGroupByDefs.Add;
-    ImportGroupByFromField((oldObj as TmVirtualFieldDef), newGroupBy);
+    ImportGroupByFromField((oldObj as TFieldDef), newGroupBy);
 
     if dest >= 0 then
       FListBoxHorizontalFields.Items.InsertObject(dest, old, newGroupBy)
@@ -415,7 +415,7 @@ begin
     oldObj := FListBoxFields.Items.Objects[prev];
 
     newGroupBy := FGarbageGroupByDefs.Add;
-    ImportGroupByFromField((oldObj as TmVirtualFieldDef), newGroupBy);
+    ImportGroupByFromField((oldObj as TFieldDef), newGroupBy);
 
     if dest >= 0 then
       FListBoxVerticalFields.Items.InsertObject(dest, old, newGroupBy)
@@ -496,7 +496,7 @@ begin
 
     newSummary := TmSummaryDefinition.Create;
     FGarbage.Add(newSummary);
-    ImportSummaryFromField((oldObj as TmVirtualFieldDef), newSummary);
+    ImportSummaryFromField((oldObj as TFieldDef), newSummary);
 
     if dest >= 0 then
       FListBoxDataFields.Items.InsertObject(dest, old, newSummary)
@@ -535,7 +535,7 @@ begin
 end;
 
 
-function TPivotFieldsSettingsFrame.GetLBFieldLine(const aFieldDef: TmVirtualFieldDef): String;
+function TPivotFieldsSettingsFrame.GetLBFieldLine(const aFieldDef: TFieldDef): String;
 begin
   Result := aFieldDef.Name;
 end;
@@ -550,20 +550,20 @@ begin
   Result := aGroupByDef.FieldName + ' [' + TmGroupByOperationKindToString(aGroupByDef.OperationKind) + ']';
 end;
 
-procedure TPivotFieldsSettingsFrame.ImportGroupByFromField(const aSource: TmVirtualFieldDef; aDestination: TmGroupByDef);
+procedure TPivotFieldsSettingsFrame.ImportGroupByFromField(const aSource: TFieldDef; aDestination: TmGroupByDef);
 begin
   aDestination.FieldName:= aSource.Name;
-  aDestination.DataType:= FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
+  aDestination.DataType:= aSource.DataType;
   aDestination.OperationKind:= gpoDistinct;
   if FieldTypeIsFloat(aDestination.DataType) then
     aDestination.DisplayFormat.Value := '#,##0.00';
   aDestination.DisplayLabel.IsNull:= true;
 end;
 
-procedure TPivotFieldsSettingsFrame.ImportSummaryFromField(const aSource: TmVirtualFieldDef; aDestination: TmSummaryDefinition);
+procedure TPivotFieldsSettingsFrame.ImportSummaryFromField(const aSource: TFieldDef; aDestination: TmSummaryDefinition);
 begin
   aDestination.FieldName:= aSource.Name;
-  aDestination.FieldType:= FromTmVirtualFieldDefTypeToTFieldType(aSource.DataType);
+  aDestination.FieldType:= aSource.DataType;
   aDestination.SummaryOperator:= soCount;
   if FieldTypeIsFloat(aDestination.FieldType) then
     aDestination.DisplayFormat.Value := '#,##0.00'
@@ -1054,7 +1054,7 @@ begin
   FVerticalGroupByDefs := TmGroupByDefs.Create;
   FHorizontalGroupByDefs := TmGroupByDefs.Create;
   FSummaryDefinitions := TmSummaryDefinitions.Create;
-  FFieldDefs := TmVirtualFieldDefs.Create;
+  FFieldDefs := TFieldDefs.Create(nil);
 
   FGarbageGroupByDefs := TmGroupByDefs.Create;
   FGarbage := TObjectList.Create(true);
@@ -1144,10 +1144,10 @@ begin
   FHorizontalGroupByDefs.Assign(aPivoter.HorizontalGroupByDefs);
   FSummaryDefinitions.Assign(aPivoter.SummaryDefinitions);
 
-  aPivoter.DataProvider.FillVirtualFieldDefs(FFieldDefs, '');
+  aPivoter.Provider.FillFieldDefsOfDataset(FFieldDefs, false);
 
   for i := 0 to FFieldDefs.Count - 1 do
-    FListBoxFields.AddItem(GetLBFieldLine(FFieldDefs.VirtualFieldDefs[i]), FFieldDefs.VirtualFieldDefs[i]);
+    FListBoxFields.AddItem(GetLBFieldLine(FFieldDefs.Items[i]), FFieldDefs.Items[i]);
 
   for i := 0 to FHorizontalGroupByDefs.Count - 1 do
     FListBoxHorizontalFields.AddItem(FHorizontalGroupByDefs.Get(i).FieldName, FHorizontalGroupByDefs.Get(i));

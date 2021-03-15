@@ -29,6 +29,7 @@ uses
   mISO6346Utility, mDataProviderInterfaces, mBooleanDataProvider;
 
 resourcestring
+  SOkToAllBtnCaption = 'OK to all';
   SPropertyColumnTitle = 'Property';
   SValueColumnTitle = 'Value';
   SMissingValuesTitle = 'Missing values';
@@ -209,13 +210,18 @@ type
     FBottomPanel: TPanel;
     FCancelBtn: TBitBtn;
     FOkBtn: TBitBtn;
+    FOkToAllBtn : TBitBtn;
+    FOkToAllBtnOnClick : TNotifyEvent;
     procedure FormShow(Sender: TObject);
     procedure OkBtnClick(Sender: TObject);
+    procedure OkToAllBtnClick(Sender: TObject);
   public
     constructor CreateNew(AOwner: TComponent; Num: Integer = 0); override;
     procedure SetReadOnly;
+    procedure ShowOkToAllButton; virtual;
   public
     property EditingPanel: TmEditingPanel read FEditingPanel;
+    property OkToAllBtnOnClick : TNotifyEvent read FOkToAllBtnOnClick write FOkToAllBtnOnClick;
   end;
 
 
@@ -393,6 +399,27 @@ begin
   end;
 end;
 
+procedure TmEditingForm.OkToAllBtnClick(Sender: TObject);
+var
+  missingValues: string;
+begin
+  if FOkToAllBtn.Focused then
+  begin
+    if not FEditingPanel.CheckMandatoryLines(missingValues) then
+    begin
+      MessageDlg(SMissingValuesTitle, SMissingValuesWarning + sLineBreak + missingValues , mtInformation, [mbOK],0);
+      exit;
+    end;
+
+    FEditingPanel.CommitChanges;
+
+    if Assigned(FOkToAllBtnOnClick) then
+      FOkToAllBtnOnClick(Sender);
+
+    ModalResult := mrOk;
+  end;
+end;
+
 constructor TmEditingForm.CreateNew(AOwner: TComponent; Num: Integer = 0);
 begin
   inherited CreateNew(AOwner, Num);
@@ -421,6 +448,23 @@ begin
   FOkBtn.OnClick:= OkBtnClick;
   FOkBtn.ModalResult:= mrNone;
 
+  FOkToAllBtn:= TBitBtn.Create(FBottomPanel);
+  FOkToAllBtn.Kind:= bkOK;
+  FOkToAllBtn.Caption:= SOkToAllBtnCaption;
+
+  FOkToAllBtn.Width := ScaleForMagnification(75, true);
+  FOkToAllBtn.Height := ScaleForMagnification(30, true);
+  FOkToAllBtn.Parent:= FBottomPanel;
+  FOkToAllBtn.Left := 0;
+  FOkToAllBtn.Top := ScaleForMagnification(8, true);
+  FOkToAllBtn.Anchors:= [akTop, akRight];
+  FOkToAllBtn.DefaultCaption:= true;
+  FOkToAllBtn.OnClick:= OkToAllBtnClick;
+  FOkToAllBtn.ModalResult:= mrNone;
+  FOkToAllBtn.Visible := false;
+
+  FOkToAllBtnOnClick := nil;
+
   FCancelBtn:= TBitBtn.Create(FBottomPanel);
   FCancelBtn.Kind:= bkCancel;
 
@@ -446,6 +490,13 @@ end;
 procedure TmEditingForm.SetReadOnly;
 begin
   FOkBtn.Visible:= false;
+end;
+
+procedure TmEditingForm.ShowOkToAllButton;
+begin
+  FOkToAllBtn.Visible:= true;
+  FOkToAllBtn.Left:= FCancelBtn.Left - FOkToAllBtn.Width - ScaleForMagnification(10, true);
+  FOkBtn.Left:= FOkToAllBtn.Left - FOkBtn.Width - ScaleForMagnification(10, true);
 end;
 
 { TmEditingPanel }

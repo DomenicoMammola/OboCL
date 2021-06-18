@@ -93,10 +93,10 @@ end;
 
 procedure TmLookupPanel.AdjustColumnsWidth;
 var
-  // ColWidth : integer;
   i, eqWidth, tmp : integer;
   curFieldDef : TmVirtualFieldDef;
   flex : double;
+  fn : String;
 begin
   if FFieldsList.Count > 0 then
   begin
@@ -104,20 +104,24 @@ begin
     tmp := 0;
     for i := 0 to FFieldsList.Count - 1 do
     begin
-      curFieldDef := FFieldDefs.FindByName(FFieldsList.Strings[i]);
-      if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
+      fn := FFieldsList.Strings[i];
+      curFieldDef := FFieldDefs.FindByName(fn);
+      if Assigned(curFieldDef) then
       begin
-        tmp := min(curFieldDef.Size div 4, 12) + max((curFieldDef.Size - 50) div 14, 0) + max((curFieldDef.Size - 100) div 28, 0);
-        eqWidth:= eqWidth + tmp
-      end
-      else if curFieldDef.DataType = vftBoolean then
-        eqWidth:= eqWidth + 2
-      else if curFieldDef.DataType = vftInteger then
-        eqWidth:= eqWidth + 4
-      else if curFieldDef.DataType = vftFloat then
-        eqWidth:= eqWidth + 7
-      else
-        eqWidth:= eqWidth + 6;
+        if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
+        begin
+          tmp := min(curFieldDef.Size div 4, 12) + max((curFieldDef.Size - 50) div 14, 0) + max((curFieldDef.Size - 100) div 28, 0);
+          eqWidth:= eqWidth + tmp
+        end
+        else if curFieldDef.DataType = vftBoolean then
+          eqWidth:= eqWidth + 2
+        else if curFieldDef.DataType = vftInteger then
+          eqWidth:= eqWidth + 4
+        else if curFieldDef.DataType = vftFloat then
+          eqWidth:= eqWidth + 7
+        else
+          eqWidth:= eqWidth + 6;
+      end;
     end;
 
     flex := (Self.Width - 30) / eqWidth;
@@ -125,20 +129,24 @@ begin
     try
       for i := 0 to LValues.Columns.Count -1 do
       begin
-        curFieldDef := FFieldDefs.FindByName(FFieldsList.Strings[i]);
-        if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
+        fn := FFieldsList.Strings[i];
+        curFieldDef := FFieldDefs.FindByName(fn);
+        if Assigned(curFieldDef) then
         begin
-          tmp := min(curFieldDef.Size div 4, 12) + max((curFieldDef.Size - 50) div 14, 0) + max((curFieldDef.Size - 100) div 28, 0);
-          LValues.Columns[i].Width:= trunc(tmp * flex);
-        end
-        else if curFieldDef.DataType = vftBoolean then
-          LValues.Columns[i].Width:= trunc(flex * 2)
-        else if curFieldDef.DataType = vftInteger then
-          LValues.Columns[i].Width:= trunc(flex * 4)
-        else if curFieldDef.DataType = vftFloat then
-          LValues.Columns[i].Width:= trunc(flex * 7)
-        else
-          LValues.Columns[i].Width:= trunc(flex * 6);
+          if (curFieldDef.DataType = vftString) or (curFieldDef.DataType = vftWideString) then
+          begin
+            tmp := min(curFieldDef.Size div 4, 12) + max((curFieldDef.Size - 50) div 14, 0) + max((curFieldDef.Size - 100) div 28, 0);
+            LValues.Columns[i].Width:= trunc(tmp * flex);
+          end
+          else if curFieldDef.DataType = vftBoolean then
+            LValues.Columns[i].Width:= trunc(flex * 2)
+          else if curFieldDef.DataType = vftInteger then
+            LValues.Columns[i].Width:= trunc(flex * 4)
+          else if curFieldDef.DataType = vftFloat then
+            LValues.Columns[i].Width:= trunc(flex * 7)
+          else
+            LValues.Columns[i].Width:= trunc(flex * 6);
+        end;
       end;
     finally
       LValues.EndUpdate;

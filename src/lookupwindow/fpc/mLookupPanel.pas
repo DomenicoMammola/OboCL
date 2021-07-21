@@ -121,7 +121,9 @@ begin
           eqWidth:= eqWidth + 7
         else
           eqWidth:= eqWidth + 6;
-      end;
+      end
+      else
+        raise Exception.Create('Field not found:' + fn);
     end;
 
     flex := (Self.Width - 30) / eqWidth;
@@ -146,7 +148,9 @@ begin
             LValues.Columns[i].Width:= trunc(flex * 7)
           else
             LValues.Columns[i].Width:= trunc(flex * 6);
-        end;
+        end
+        else
+          raise Exception.Create('Field not found:' + fn);
       end;
     finally
       LValues.EndUpdate;

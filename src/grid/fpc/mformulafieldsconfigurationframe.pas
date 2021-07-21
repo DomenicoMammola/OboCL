@@ -334,9 +334,15 @@ begin
           tmpFormula := FFormulas.Add;
         tmpFormula.Name:= tmpString;
         if FGrid.Cells[IDX_TYPE, i] = 'DOUBLE' then
-          tmpFormula.DataType:= fftFloat
+        begin
+          tmpFormula.DataType:= fftFloat;
+          tmpFormula.ResetSize;
+        end
         else if FGrid.Cells[IDX_TYPE, i] = 'DATE' then
-          tmpFormula.DataType:= fftDateTime
+        begin
+          tmpFormula.DataType:= fftDateTime;
+          tmpFormula.ResetSize;
+        end
         else
         begin
           tmpFormula.DataType:= fftString;

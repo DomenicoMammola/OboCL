@@ -31,8 +31,6 @@ type
   strict private
     FKGrid : TKGrid;
     FKGridAsVirtualGrid: TmKGridAsVirtualGrid;
-    FHeaderColor : TColor;
-    FGrandtotalsColor : TColor;
     procedure OnDrawGridCell (Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
     procedure OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
@@ -40,24 +38,25 @@ type
     destructor Destroy; override;
 
     procedure Init(aPivoter : TmPivoter; aGrid : TKGrid);
-
-    property HeaderColor : TColor read FHeaderColor write FHeaderColor;
-    property GrandtotalsColor : TColor read FGrandtotalsColor write FGrandtotalsColor;
+    procedure AutosizeColumns;
   end;
 
 implementation
 
 uses
-  sysutils, LCLType, Clipbrd,
+  sysutils, LCLType, Clipbrd, math,
   kfunctions, kgraphics,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet,
   fpsallformats, // necessary to register all the input/output formats that fpspreadsheet can handle
   {$ENDIF}
-  mVirtualGridSpreadsheet, mGraphicsUtility;
+  mVirtualGridSpreadsheet, mGraphicsUtility, mKGridUtils;
 
 
 procedure TmKGridAsPivotHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
+var
+  d : boolean;
+  tmpRect : TRect;
 begin
   // https://forum.lazarus.freepascal.org/index.php/topic,44833.msg315562.html#msg315562
 
@@ -65,12 +64,27 @@ begin
 
   if FKGrid.CellPainter.Canvas.Brush.Style = bsClear then FKGrid.CellPainter.Canvas.Brush.Style := bsSolid;
 
+  d := true;
+
   if (ARow < FKGrid.FixedRows) and (ACol >= FKGrid.FixedCols) then
   begin
     FKGrid.CellPainter.HAlign:=halCenter;
     FKGrid.CellPainter.VAlign:=valCenter;
     FKGrid.CellPainter.BackColor:= FKGrid.Colors.FixedCellBkGnd;
     FKGrid.CellPainter.Canvas.Brush.Color:= FKGrid.Colors.FixedCellBkGnd;
+  end
+  else if (aCol < FKGrid.FixedCols) and (ARow >= FKGrid.FixedRows) then
+  begin
+    tmpRect := R;
+    tmpRect.Bottom:= Min(FKGrid.Height - 1, tmpRect.Bottom);
+    tmpRect.Top := Max(FKGrid.DefaultRowHeight * FKGrid.FixedRows, tmpRect.Top);
+    if tmpRect.Height <= (FKGrid.DefaultRowHeight * 2) then
+      if tmpRect.Bottom < R.Bottom then
+        FKGrid.CellPainter.VAlign:= valTop
+      else if tmpRect.Top > R.Top then
+        FKGrid.CellPainter.VAlign:= valBottom;
+    FKGrid.CellPainter.DrawCellText(tmpRect);
+    d := false;
   end
   else
   begin
@@ -83,22 +97,11 @@ begin
         FKGrid.CellPainter.BackColor:= LighterColor(FKGrid.Colors.FixedCellBkGnd, 15);
         FKGrid.CellPainter.Canvas.Brush.Color:= FKGrid.CellPainter.BackColor;
       end;
-    end
-    (*
-    else
-    begin
-      if State * [gdFixed, gdSelected] = [] then
-      begin
-        if ARow mod 2 = 0 then
-          FKGrid.CellPainter.Canvas.Brush.Color := FKGrid.Color
-        else
-          FKGrid.CellPainter.Canvas.Brush.Color := DefaultPivotAlternateColor;
-      end;
     end;
-    *)
   end;
 
-  FKGrid.CellPainter.DefaultDraw;
+  if d then
+    FKGrid.CellPainter.DefaultDraw;
 end;
 
 procedure TmKGridAsPivotHelper.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -113,8 +116,6 @@ end;
 constructor TmKGridAsPivotHelper.Create;
 begin
   inherited;
-  FHeaderColor:= COLOR_clButton;
-  FGrandtotalsColor:= COLOR_clForeground;
 end;
 
 destructor TmKGridAsPivotHelper.Destroy;
@@ -133,6 +134,11 @@ begin
   FKGridAsVirtualGrid := TmKGridAsVirtualGrid.Create(FKGrid);
   FKGrid.OnKeyDown:= OnKeyDown;
   Self.InternalInit(aPivoter, FKGridAsVirtualGrid);
+end;
+
+procedure TmKGridAsPivotHelper.AutosizeColumns;
+begin
+  mKGridUtils.AutoSizeColumns(FKGrid);
 end;
 
 

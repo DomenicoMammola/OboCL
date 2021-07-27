@@ -45,6 +45,9 @@ resourcestring
   SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again. Detail:';
   SWantToOpenFileMessage = 'Do you want to open the file?';
   SExcelFileDescription = 'Excel 97-2003 files';
+  SAutoAdjustColumnsMenuCaption = 'Auto-size columns';
+  SAutoAdjustColumnsMenuHint = 'Set optimal width to columns';
+  SPivotActionsHint = 'Pivot actions...';
 
 type
 
@@ -60,15 +63,17 @@ type
     FFilterPanel : TmFilterPanel;
     FToolbar : TUramakiToolbar;
     FConfigurePopupMenu : TPopupMenu;
+    FPivotCommandsPopupMenu : TPopupMenu;
     FSaveDialog : TSaveDialog;
 
     procedure OnClearFilter (Sender : TObject);
     procedure OnExecuteFilter (Sender : TObject);
     procedure ReloadData (aFilters : TmFilters); virtual; abstract;
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
-    procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex : integer);
+    procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aPivotCommandsImageIndex : integer);
     procedure OnEditSettings(Sender : TObject);
     procedure OnExportToXlsFile(Sender : TObject);
+    procedure OnAutoAdjustColumns(Sender : TObject);
     function ConfirmFileOverwrite : boolean;
   public
     constructor Create(TheOwner: TComponent); override;
@@ -143,7 +148,7 @@ begin
   EngineMediator.PleaseClearMyChilds(Self);
 end;
 
-procedure TUramakiKGridAsPivotPlate.CreateToolbar(aImageList: TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aGridCommandsImageIndex: integer);
+procedure TUramakiKGridAsPivotPlate.CreateToolbar(aImageList: TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aPivotCommandsImageIndex: integer);
 var
   mItm : TMenuItem;
 begin
@@ -152,6 +157,7 @@ begin
   FToolbar.Parent := Self;
 
   FConfigurePopupMenu := TPopupMenu.Create(FToolbar);
+  FPivotCommandsPopupMenu := TPopupMenu.Create(FToolbar);
 
   with FToolbar.AddDropDownButton(FConfigurePopupMenu) do
   begin
@@ -175,6 +181,22 @@ begin
   mItm.OnClick:= Self.OnExportToXlsFile;
   mItm.Hint:= SExportPivotAsXlsCommandHint;
   mItm.Caption:= SExportPivotAsXlsCommandCaption;
+
+  FToolbar.AddSeparator;
+  with FToolbar.AddDropDownButton(FPivotCommandsPopupMenu) do
+  begin
+    Hint:= SPivotActionsHint;
+    ImageIndex:=aPivotCommandsImageIndex;
+    Kind := bkIcon;
+  end;
+  FToolbar.AddSeparator;
+  FToolbar.Update;
+
+  mItm := TMenuItem.Create(FPivotCommandsPopupMenu);
+  FPivotCommandsPopupMenu.Items.Add(mItm);
+  mItm.OnClick:= Self.OnAutoAdjustColumns;
+  mItm.Hint:= SAutoAdjustColumnsMenuHint;
+  mItm.Caption:= SAutoAdjustColumnsMenuCaption;
 
   FToolbar.Update;
 end;
@@ -256,6 +278,11 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TUramakiKGridAsPivotPlate.OnAutoAdjustColumns(Sender: TObject);
+begin
+  FGridHelper.AutosizeColumns;
 end;
 
 function TUramakiKGridAsPivotPlate.ConfirmFileOverwrite: boolean;

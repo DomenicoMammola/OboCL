@@ -34,6 +34,16 @@ type
     procedure Clear;
   end;
 
+  { TmGanttMouseMoveData }
+
+  TmGanttMouseMoveData = class
+  public
+    RowIndex : integer;
+    CurrentInstant : TDateTime;
+    constructor Create;
+    procedure Clear;
+  end;
+
   { TmTimerulerMouseMoveData }
 
   TmTimerulerMouseMoveData = class
@@ -52,8 +62,20 @@ type
   end;
 
 
-
 implementation
+
+{ TmGanttMouseMoveData }
+
+constructor TmGanttMouseMoveData.Create;
+begin
+  Self.Clear;
+end;
+
+procedure TmGanttMouseMoveData.Clear;
+begin
+  RowIndex:= 0;
+  CurrentInstant := 0;
+end;
 
 { TmTimerulerMouseMoveData }
 

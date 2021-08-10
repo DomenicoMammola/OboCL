@@ -238,7 +238,7 @@ var
   CurrentScale : TmScale;
   CurrentPixelLeft, CurrentPixelRight : integer;
 begin
-  FMouseMoveData.Clear;;
+  FMouseMoveData.Clear;
   if not PtInRect(ClientRect, Classes.Point(X, Y)) then
     exit;
   if FTimelines.Count > 0 then

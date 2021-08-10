@@ -25,7 +25,7 @@ uses
   LResources,
   LMessages,
   {$ENDIF}
-  mTimeruler, mGanttDataProvider, mGanttHead;
+  mTimeruler, mGanttDataProvider, mGanttHead, mGanttGUIClasses;
 
 type
 
@@ -42,6 +42,7 @@ type
     FDoubleBufferedBitmap: Graphics.TBitmap;
     FTopRow: integer;
     FCurrentDrawingStartDate, FCurrentDrawingEndDate : TDateTime;
+    FMouseMoveData : TmGanttMouseMoveData;
 
     procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
@@ -53,8 +54,12 @@ type
     procedure DoForEveryRow(aCanvas: TCanvas; const aDrawingRect : TRect; aDrawingAction : TmGanttRowDrawingAction);
     procedure DrawRowBottomLine(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
     procedure DrawRowBars(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
+    procedure SaveMouseMoveData(X, Y: integer);
   protected
     procedure Paint; override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: integer); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -71,7 +76,7 @@ type
 implementation
 
 uses
-  math, Forms,
+  math, Forms, sysutils,
   mGanttEvents, mGanttGraphics;
 
 type
@@ -216,7 +221,6 @@ begin
     rowRect.Bottom := rowRect.Bottom + FHead.RowHeight;
     inc(k);
   end;
-
 end;
 
 procedure TmGantt.DrawRowBottomLine(aCanvas: TCanvas; const aDrawingRect: TRect; const aRowIndex : integer);
@@ -254,6 +258,48 @@ begin
   end;
 end;
 
+procedure TmGantt.SaveMouseMoveData(X, Y: integer);
+var
+  tempHeight : integer;
+  bars : TList;
+  currentBar : TmGanttBarDatum;
+begin
+  FMouseMoveData.Clear;
+
+  if not PtInRect(ClientRect, Classes.Point(X, Y)) then
+    exit;
+
+  FMouseMoveData.CurrentInstant := FTimeRuler.PixelsToDateTime(X);
+
+  if Assigned(FHead.DataProvider) and (FHead.DataProvider.RowCount > 0) then
+  begin
+    tempHeight:= (FHead.DataProvider.RowCount - FHead.TopRow + 1) * FHead.RowHeight;
+
+    if (Y >= 0) and ( Y <= tempHeight) then
+    begin
+      FMouseMoveData.RowIndex := Y  div FHead.RowHeight;
+      {$IFDEF DEBUG}
+      DebugLn('Y:' + IntToStr(Y));
+      DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
+      {$ENDIF}
+    end;
+
+    bars := TList.Create;
+    try
+      FHead.DataProvider.GetGanttBars(FMouseMoveData.RowIndex, FMouseMoveData.CurrentInstant, FMouseMoveData.CurrentInstant, bars);
+      if bars.Count > 0 then
+      begin
+        currentBar := TmGanttBarDatum(bars.Items[0]);
+        {$IFDEF DEBUG}
+        DebugLn('Click on bar');
+        {$ENDIF}
+      end;
+    finally
+      bars.Free;
+    end;
+  end;
+end;
+
 procedure TmGantt.Paint;
 var
   drawingRect : TRect;
@@ -284,6 +330,26 @@ begin
   end;
 end;
 
+procedure TmGantt.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
+begin
+  inherited MouseUp(Button, Shift, X, Y);
+end;
+
+procedure TmGantt.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
+begin
+  if (Button = mbLeft) then
+  begin
+    SaveMouseMoveData(X, Y);
+  end;
+
+  inherited MouseDown(Button, Shift, X, Y);
+end;
+
+procedure TmGantt.MouseMove(Shift: TShiftState; X, Y: integer);
+begin
+  inherited MouseMove(Shift, X, Y);
+end;
+
 constructor TmGantt.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -297,11 +363,13 @@ begin
   Self.Color:= clWhite;
   FVerticalLinesColor:= clDkGray;
   FHorizontalLinesColor:= clLtGray;
+  FMouseMoveData:= TmGanttMouseMoveData.Create;
 end;
 
 destructor TmGantt.Destroy;
 begin
   FDoubleBufferedBitmap.Free;
+  FMouseMoveData.Free;
   inherited Destroy;
 end;
 

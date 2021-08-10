@@ -59,6 +59,8 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: integer); override;
   public
+    const DELIMITER_CLICKING_AREA : integer = 4;
+  public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function SubscribeToEvents(SubscriberClass: TmGanttHeadEventsSubscriptionClass) : TmGanttHeadEventsSubscription;
@@ -77,9 +79,6 @@ implementation
 uses
   math, Forms, sysutils,
   mGanttGraphics;
-
-const
-  DELIMITER_CLICKING_AREA : integer = 4;
 
 { TmGanttHead }
 
@@ -190,7 +189,6 @@ begin
     exit;
   if Assigned(FDataProvider) and (FDataProvider.RowCount > 0) then
   begin
-
     if Assigned(FTimeruler) then
       timerulHeight:= FTimeruler.Height
     else

@@ -20,15 +20,22 @@ uses
   mGanttEvents;
 
 type
+
+  { TmGanttBarDatum }
+
   TmGanttBarDatum = class
   strict private
     FStartTime : TDateTime;
     FEndTime : TDateTime;
     FColor : TColor;
+    FZOrder : integer;
   public
+    constructor Create;
+
     property StartTime: TDateTime read FStartTime write FStartTime;
     property EndTime: TDateTime read FEndTime write FEndTime;
     property Color : TColor read FColor write FColor;
+    property ZOrder : Integer read FZOrder write FZOrder;
   end;
 
   { TmGanttDataProvider }
@@ -48,6 +55,16 @@ type
 implementation
 uses
   Math;
+
+{ TmGanttBarDatum }
+
+constructor TmGanttBarDatum.Create;
+begin
+  FStartTime:= 0;
+  FEndTime:= 0;
+  FColor:= clBlue;
+  FZOrder:= 0;
+end;
 
 { TmGanttDataProvider }
 

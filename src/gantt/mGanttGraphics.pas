@@ -38,7 +38,7 @@ procedure DrawBar(ACanvas: TCanvas; const ARect: TRect; aBar: TmGanttBarDatum);
 begin
   ACanvas.Brush.Color:= aBar.Color;
   ACanvas.FillRect(ARect);
-  ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+  ACanvas.Pen.Color:= aBar.BorderColor;
   ACanvas.Rectangle(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom);
 end;
 

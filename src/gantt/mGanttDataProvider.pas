@@ -28,6 +28,7 @@ type
     FStartTime : TDateTime;
     FEndTime : TDateTime;
     FColor : TColor;
+    FBorderColor : TColor;
     FZOrder : integer;
   public
     constructor Create;
@@ -35,6 +36,7 @@ type
     property StartTime: TDateTime read FStartTime write FStartTime;
     property EndTime: TDateTime read FEndTime write FEndTime;
     property Color : TColor read FColor write FColor;
+    property BorderColor : TColor read FBorderColor write FBorderColor;
     property ZOrder : Integer read FZOrder write FZOrder;
   end;
 
@@ -54,7 +56,8 @@ type
 
 implementation
 uses
-  Math;
+  Math,
+  mGraphicsUtility;
 
 { TmGanttBarDatum }
 
@@ -63,6 +66,7 @@ begin
   FStartTime:= 0;
   FEndTime:= 0;
   FColor:= clBlue;
+  FBorderColor:= DarkerColor(FColor, 20);
   FZOrder:= 0;
 end;
 

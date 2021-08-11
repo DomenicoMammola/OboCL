@@ -13,7 +13,7 @@ interface
 
 uses
   Classes,
-  mTimerulerTimelines;
+  mTimerulerTimelines, mGanttDataProvider;
 
 type
 
@@ -38,6 +38,12 @@ type
 
   TmGanttMouseMoveData = class
   public
+    MouseOnBarDelimiter : boolean;
+    MouseOnBar : boolean;
+    CurrentBar : TmGanttBarDatum;
+    CurrentBarOriginalStartTime : TDateTime;
+    CurrentBarOriginalEndTime : TDateTime;
+
     RowIndex : integer;
     CurrentInstant : TDateTime;
     constructor Create;
@@ -74,7 +80,12 @@ end;
 procedure TmGanttMouseMoveData.Clear;
 begin
   RowIndex:= 0;
-  CurrentInstant := 0;
+  CurrentInstant:= 0;
+  MouseOnBarDelimiter:= false;
+  MouseOnBar:= false;
+  CurrentBar := nil;
+  CurrentBarOriginalStartTime := 0;
+  CurrentBarOriginalEndTime := 0;
 end;
 
 { TmTimerulerMouseMoveData }

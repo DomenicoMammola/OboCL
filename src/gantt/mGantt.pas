@@ -43,6 +43,8 @@ type
     FTopRow: integer;
     FCurrentDrawingStartDate, FCurrentDrawingEndDate : TDateTime;
     FMouseMoveData : TmGanttMouseMoveData;
+    FResizingBar : boolean;
+    FMovingBar : boolean;
 
     procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
@@ -55,11 +57,14 @@ type
     procedure DrawRowBottomLine(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
     procedure DrawRowBars(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
     procedure SaveMouseMoveData(X, Y: integer);
+    procedure NotifyBarsChanged(const AMustInvalidateGantt : boolean);
   protected
     procedure Paint; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: integer); override;
+  public
+    const DELIMITER_CLICKING_AREA : integer = 4;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -263,6 +268,7 @@ var
   tempHeight : integer;
   bars : TList;
   currentBar : TmGanttBarDatum;
+  left, right : integer;
 begin
   FMouseMoveData.Clear;
 
@@ -284,20 +290,41 @@ begin
       {$ENDIF}
     end;
 
-    bars := TList.Create;
-    try
-      FHead.DataProvider.GetGanttBars(FMouseMoveData.RowIndex, FMouseMoveData.CurrentInstant, FMouseMoveData.CurrentInstant, bars);
-      if bars.Count > 0 then
-      begin
-        currentBar := TmGanttBarDatum(bars.Items[0]);
-        {$IFDEF DEBUG}
-        DebugLn('Click on bar');
-        {$ENDIF}
+    if FMouseMoveData.RowIndex < FHead.DataProvider.RowCount then
+    begin
+      bars := TList.Create;
+      try
+        FHead.DataProvider.GetGanttBars(FMouseMoveData.RowIndex, FMouseMoveData.CurrentInstant, FMouseMoveData.CurrentInstant, bars);
+        if bars.Count > 0 then
+        begin
+          FMouseMoveData.MouseOnBar:= true;
+
+          currentBar := TmGanttBarDatum(bars.Items[0]);
+          FMouseMoveData.CurrentBar:= currentBar;
+          FMouseMoveData.CurrentBarOriginalStartTime:= currentBar.StartTime;
+          FMouseMoveData.CurrentBarOriginalEndTime:= currentBar.EndTime;
+
+          right := FTimeRuler.DateTimeToPixels(currentBar.EndTime);
+          if (abs (X - right) <= DELIMITER_CLICKING_AREA) then
+          begin
+            FMouseMoveData.MouseOnBarDelimiter:= true;
+            FMouseMoveData.MouseOnBar:= false;
+          end;
+          {$IFDEF DEBUG}
+          DebugLn('Click on bar');
+          {$ENDIF}
+        end;
+      finally
+        bars.Free;
       end;
-    finally
-      bars.Free;
     end;
   end;
+end;
+
+procedure TmGantt.NotifyBarsChanged(const AMustInvalidateGantt: boolean);
+begin
+  if AMustInvalidateGantt then
+    Self.Invalidate;
 end;
 
 procedure TmGantt.Paint;
@@ -332,6 +359,13 @@ end;
 
 procedure TmGantt.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
 begin
+  if FResizingBar or FMovingBar then
+  begin
+    FResizingBar := false;
+    FMovingBar := false;
+    NotifyBarsChanged(false);
+  end;
+  Self.Cursor:= crDefault;
   inherited MouseUp(Button, Shift, X, Y);
 end;
 
@@ -340,13 +374,49 @@ begin
   if (Button = mbLeft) then
   begin
     SaveMouseMoveData(X, Y);
+    if FMouseMoveData.MouseOnBarDelimiter then
+    begin
+      FResizingBar:= true;
+    end
+    else if FMouseMoveData.MouseOnBar then
+    begin
+      FMovingBar := true;
+    end
   end;
 
   inherited MouseDown(Button, Shift, X, Y);
 end;
 
 procedure TmGantt.MouseMove(Shift: TShiftState; X, Y: integer);
+var
+  curTime : TDateTime;
+  delta : Double;
 begin
+  if FMovingBar and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
+  begin
+    if Assigned(FMouseMoveData.CurrentBar) then
+    begin
+      curTime := FTimeRuler.PixelsToDateTime(X);
+      delta := curTime - FMouseMoveData.CurrentInstant;
+      FMouseMoveData.CurrentBar.StartTime := FMouseMoveData.CurrentBarOriginalStartTime + delta;
+      FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
+      NotifyBarsChanged(true);
+    end;
+  end
+  else if FResizingBar and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
+  begin
+  end
+  else
+  begin
+    SaveMouseMoveData(X, Y);
+    if FMouseMoveData.MouseOnBarDelimiter then
+      Cursor := crSizeWE
+    else if FMouseMoveData.MouseOnBar then
+      Cursor := crSizeAll
+    else
+      Cursor := crDefault;
+  end;
+
   inherited MouseMove(Shift, X, Y);
 end;
 
@@ -364,6 +434,8 @@ begin
   FVerticalLinesColor:= clDkGray;
   FHorizontalLinesColor:= clLtGray;
   FMouseMoveData:= TmGanttMouseMoveData.Create;
+  FResizingBar:= false;
+  FMovingBar:= false;
 end;
 
 destructor TmGantt.Destroy;

@@ -279,7 +279,6 @@ begin
     begin
       FMouseMoveData.OriginalRowHeight := Self.RowHeight;
       FMouseMoveData.CalculatedIncrement := 0;
-      // MouseCapture;
       FResizingRows := true;
     end;
   end;
@@ -299,32 +298,8 @@ begin
       DebugLn('Calculated increment:' + FloatToStr(FMouseMoveData.CalculatedIncrement));
       {$ENDIF}
     end;
-    //if FMouseMoveData.Distance <> 0 then
-    //begin
-      //FMouseMoveData.LastCalculatedOneRowHeight:= FMouseMoveData.LastCalculatedOneRowHeight + FMouseMoveData.Distance;
-      RowHeight:= max(5, FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement));
-      //FMouseMoveData.Distance:= 0;
-      //Invalidate;
-      NotifyLayoutChanged(true);
-    //end;
-(*    if (FMouseMoveData.LastCalculatedOneRowHeight = 0) then
-      FMouseMoveData.LastCalculatedOneRowHeight := RowHeight;
-    if (FMouseMoveData.Distance < FMouseMoveData.LastCalculatedOneRowHeight) then
-    begin
-      factor := 1 / FMouseMoveData.LastCalculatedOneRowHeight;
-      FMouseMoveData.LastCalculatedOneRowHeight := max(5,FMouseMoveData.LastCalculatedOneRowHeight + (Y - ((FMouseMoveData.Distance - 1) * RowHeight) - FMouseMoveData.Distance));
-      RowHeight := min(Self.Height, round(FMouseMoveData.LastCalculatedOneRowHeight));
-      FMouseMoveData.Distance := trunc ((FMouseMoveData.LastCalculatedOneRowHeight * factor) * FMouseMoveData.Distance);
-    end
-    else
-    begin
-      FMouseMoveData.LastCalculatedOneRowHeight := max(5, Y/ FMouseMoveData.Distance );
-      RowHeight := round(FMouseMoveData.LastCalculatedOneRowHeight);
-      FMouseMoveData.Distance := trunc(FMouseMoveData.LastCalculatedOneRowHeight);
-    end;
-    end;
-    end;
-    //DebugLn('dopo OneBucketWidth:' + IntToStr(FTimeScalesHeader.OneBucketWidth));*)
+    RowHeight:= max(5, FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement));
+    NotifyLayoutChanged(true);
   end
   else
   begin

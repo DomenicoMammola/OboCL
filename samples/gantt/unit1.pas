@@ -52,22 +52,28 @@ constructor TTestDataProvider.Create;
 var
   i : integer;
   tmp : TmGanttBarDatum;
+  tmpList : TObjectList;
+  dt : TDateTime;
 begin
   inherited;
   FBars := TObjectList.Create(true);
   for i := 0 to 15 do
   begin
-    tmp := TmGanttBarDatum.Create;
-    tmp.StartTime:= EncodeDate(2018, 1, i + 1);
-    tmp.EndTime:= tmp.StartTime + Random(100) / 10;
-    tmp.Color:= clYellow;
-    FBars.Add(tmp);
+    tmpList := TObjectList.Create(true);
+    FBars.Add(tmpList);
 
     tmp := TmGanttBarDatum.Create;
-    tmp.StartTime:= EncodeDate(2018, 1, 1 + (i * 2));
-    tmp.EndTime:= tmp.StartTime + Random(100) / 10;
+    tmp.StartTime:= EncodeDate(2018, 1, i + 1);
+    dt := tmp.StartTime + Random(100) / 10;
+    tmp.EndTime:= dt;
     tmp.Color:= clYellow;
-    FBars.Add(tmp);
+    tmpList.Add(tmp);
+
+    tmp := TmGanttBarDatum.Create;
+    tmp.StartTime:= dt + Random(400) / 100;
+    tmp.EndTime:= tmp.StartTime + Random(100) / 10;
+    tmp.Color:= clRed;
+    tmpList.Add(tmp);
   end;
 end;
 
@@ -85,20 +91,25 @@ end;
 procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TList);
 var
   curBar : TmGanttBarDatum;
+  curList : TObjectList;
+  i : integer;
 begin
   aGanttBars.Clear;
-  curBar := FBars.Items[aRowIndex] as TmGanttBarDatum;
-  if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
+  if aRowIndex >= FBars.Count  then
+    exit;
+  curList := FBars.Items[aRowIndex] as TObjectList;
+  for i := 0 to curList.Count -1 do
   begin
-    aGanttBars.Add(curBar);
-    {$IFDEF DEBUG}
-    DebugLn('Intersect OK - curBar.StartTime:' + DateTimeToStr(curBar.StartTime) + ' curBar.EndTime:' + DateTimeToStr(curBar.EndTime) +
-      ' aStartDate:' + DateTimeToStr(aStartDate) + ' aEndDate:' + DateTimeToStr(aEndDate));
-    {$ENDIF}
+    curBar := curList.Items[i] as TmGanttBarDatum;
+    if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
+    begin
+      aGanttBars.Add(curBar);
+      {$IFDEF DEBUG}
+      DebugLn('Intersect OK - curBar.StartTime:' + DateTimeToStr(curBar.StartTime) + ' curBar.EndTime:' + DateTimeToStr(curBar.EndTime) +
+        ' aStartDate:' + DateTimeToStr(aStartDate) + ' aEndDate:' + DateTimeToStr(aEndDate));
+      {$ENDIF}
+    end;
   end;
-(*  curBar := FBars.Items[aRowIndex * 2 - 1] as TmGanttBarDatum;
-  if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
-    aGanttBars.Add(curBar);*)
 end;
 
 { TForm1 }
@@ -121,9 +132,9 @@ begin
   tmp.Scale.DisplayFormat:= '<UPPERCASE>dd';
   tmp.Color:= clSkyBlue;
   tmp.Flex:=4;
-  FGanttChart.TimeRuler.CurrentDate:= Now;
   FGanttChart.TimeRuler.MinDate:= EncodeDate(2018,1,1);
-  FGanttChart.TimeRuler.MaxDate:= EncodeDate(2018,12,31);
+  FGanttChart.TimeRuler.MaxDate:= EncodeDate(2018,6,30);
+  FGanttChart.TimeRuler.CurrentDate:= FGanttChart.TimeRuler.MinDate;
   FGanttChart.DataProvider := FDataProvider;
   FGanttChart.Head.CellsColor:= clMoneyGreen;
   FGanttChart.Rebuild;

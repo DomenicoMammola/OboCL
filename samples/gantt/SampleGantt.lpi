@@ -24,7 +24,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../src;../../src/gantt;../../src/timeruler;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
+            <OtherUnitFiles Value="../../src;../../src/gantt;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -70,7 +70,7 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../src/gantt;../../src/timeruler;../../thirdparties/Mommon/src"/>
+            <OtherUnitFiles Value="../../src;../../src/gantt;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -90,6 +90,11 @@
               </Win32>
             </Options>
           </Linking>
+          <Other>
+            <OtherDefines Count="1">
+              <Define0 Value="-dDEBUG"/>
+            </OtherDefines>
+          </Other>
         </CompilerOptions>
       </Item3>
     </BuildModes>
@@ -129,7 +134,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../src;../../src/gantt;../../src/timeruler;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
+      <OtherUnitFiles Value="../../src;../../src/gantt;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>

@@ -2,5 +2,5 @@
 Obo Component Library for Pascal/Lazarus/Delphi
 
 ## Timeruler
-![Timeruler screenshot](timeruler.jpg)
+![Timeruler screenshot](timeruler.gif)
 

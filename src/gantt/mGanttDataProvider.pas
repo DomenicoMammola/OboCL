@@ -29,15 +29,17 @@ type
     FEndTime : TDateTime;
     FColor : TColor;
     FBorderColor : TColor;
+    FBarLabel : String;
     FZOrder : integer;
   public
-    constructor Create;
+    constructor Create; virtual;
 
     property StartTime: TDateTime read FStartTime write FStartTime;
     property EndTime: TDateTime read FEndTime write FEndTime;
     property Color : TColor read FColor write FColor;
     property BorderColor : TColor read FBorderColor write FBorderColor;
     property ZOrder : Integer read FZOrder write FZOrder;
+    property BarLabel : String read FBarLabel write FBarLabel;
   end;
 
   { TmGanttDataProvider }
@@ -68,6 +70,7 @@ begin
   FColor:= clBlue;
   FBorderColor:= DarkerColor(FColor, 20);
   FZOrder:= 0;
+  FBarLabel := '';
 end;
 
 { TmGanttDataProvider }

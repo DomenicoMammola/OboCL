@@ -25,9 +25,14 @@ uses
   LResources,
   LMessages,
   {$ENDIF}
+  {$IFDEF WINDOWS}Windows,{$ENDIF}
   mTimeruler, mGanttDataProvider, mGanttHead, mGanttGUIClasses;
 
 type
+
+  TmGanttStartMovingBarEvent = procedure (aBar: TmGanttBarDatum; var aAllow: boolean) of object;
+  TmGanttMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+  TmGanttEndMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
 
   TmGanttRowDrawingAction = procedure (aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer) of object;
 
@@ -45,6 +50,10 @@ type
     FMouseMoveData : TmGanttMouseMoveData;
     FResizingBar : boolean;
     FMovingBar : boolean;
+    // external events
+    FOnStartMovingBar: TmGanttStartMovingBarEvent;
+    FOnMovingBar : TmGanttMovingBarEvent;
+    FOnEndMovingBar : TmGanttEndMovingBarEvent;
 
     procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
@@ -75,6 +84,10 @@ type
     property VerticalLinesColor : TColor read FVerticalLinesColor write FVerticalLinesColor;
     property HorizontalLinesColor : TColor read FHorizontalLinesColor write FHorizontalLinesColor;
     property TopRow: integer read FTopRow write SetTopRow;
+    // external events
+    property OnStartMovingBar: TmGanttStartMovingBarEvent read FOnStartMovingBar write FOnStartMovingBar;
+    property OnMovingBar : TmGanttMovingBarEvent read FOnMovingBar write FOnMovingBar;
+    property OnEndMovingBar : TmGanttEndMovingBarEvent read FOnEndMovingBar write FOnEndMovingBar;
   end;
 
 
@@ -363,6 +376,8 @@ begin
   begin
     FResizingBar := false;
     FMovingBar := false;
+    if Assigned(FOnEndMovingBar) then
+      FOnEndMovingBar(FMouseMoveData.CurrentBar);
     NotifyBarsChanged(false);
   end;
   Self.Cursor:= crDefault;
@@ -370,6 +385,8 @@ begin
 end;
 
 procedure TmGantt.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
+var
+  allow : boolean;
 begin
   if (Button = mbLeft) then
   begin
@@ -380,7 +397,15 @@ begin
     end
     else if FMouseMoveData.MouseOnBar then
     begin
-      FMovingBar := true;
+      if Assigned(FOnStartMovingBar) then
+      begin
+        allow := true;
+        FOnStartMovingBar(FMouseMoveData.CurrentBar, allow);
+        if allow then
+          FMovingBar := true;
+      end
+      else
+        FMovingBar := true;
     end
   end;
 
@@ -400,6 +425,8 @@ begin
       delta := curTime - FMouseMoveData.CurrentInstant;
       FMouseMoveData.CurrentBar.StartTime := FMouseMoveData.CurrentBarOriginalStartTime + delta;
       FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
+      if Assigned(FOnMovingBar) then
+        FOnMovingBar(FMouseMoveData.CurrentBar);
       NotifyBarsChanged(true);
     end;
   end
@@ -436,6 +463,9 @@ begin
   FMouseMoveData:= TmGanttMouseMoveData.Create;
   FResizingBar:= false;
   FMovingBar:= false;
+  FOnStartMovingBar := nil;
+  FOnMovingBar := nil;
+  FOnEndMovingBar := nil;
 end;
 
 destructor TmGantt.Destroy;

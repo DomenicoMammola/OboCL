@@ -59,7 +59,7 @@ type
     FGanttChart : TmGanttChart;
     FDataProvider : TTestDataProvider;
     FDataProvider2 : TTestExperimentsDataProvider;
-    procedure OnStartMovingGanttBar(aBar: TmGanttBarDatum; var aAllow: boolean);
+    function OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
     procedure OnMovingGanttBar (aBar: TmGanttBarDatum);
   public
 
@@ -353,7 +353,7 @@ begin
   FGanttChart.DataProvider := FDataProvider2;
   FGanttChart.Head.CellsColor:= clMoneyGreen;
 
-  FGanttChart.Gantt.OnStartMovingBar:= @Self.OnStartMovingGanttBar;
+  FGanttChart.Gantt.AllowMovingBar := @Self.OnAllowMovingGanttBar;
   FGanttChart.Gantt.OnMovingBar:= @Self.OnMovingGanttBar;
 
   FGanttChart.Rebuild;
@@ -365,9 +365,9 @@ begin
   FDataProvider2.Free;
 end;
 
-procedure TForm1.OnStartMovingGanttBar(aBar: TmGanttBarDatum; var aAllow: boolean);
+function TForm1.OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
 begin
-  aAllow := (aBar as TTaskExperimentGanttBarDatum).HeadTask;
+  Result := (aBar as TTaskExperimentGanttBarDatum).HeadTask;
 end;
 
 procedure TForm1.OnMovingGanttBar(aBar: TmGanttBarDatum);

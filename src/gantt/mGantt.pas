@@ -30,7 +30,9 @@ uses
 
 type
 
-  TmGanttStartMovingBarEvent = procedure (aBar: TmGanttBarDatum; var aAllow: boolean) of object;
+  TmGanttAllowMovingBar = function (aBar: TmGanttBarDatum) : boolean of object;
+  TmGanttAllowResizeBar = function (aBar: TmGanttBarDatum): boolean of object;
+  TmGanttStartMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
   TmGanttMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
   TmGanttEndMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
 
@@ -54,6 +56,9 @@ type
     FOnStartMovingBar: TmGanttStartMovingBarEvent;
     FOnMovingBar : TmGanttMovingBarEvent;
     FOnEndMovingBar : TmGanttEndMovingBarEvent;
+    // external checks
+    FAllowMovingBar : TmGanttAllowMovingBar;
+    FAllowResizeBar : TmGanttAllowResizeBar;
 
     procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
@@ -88,6 +93,9 @@ type
     property OnStartMovingBar: TmGanttStartMovingBarEvent read FOnStartMovingBar write FOnStartMovingBar;
     property OnMovingBar : TmGanttMovingBarEvent read FOnMovingBar write FOnMovingBar;
     property OnEndMovingBar : TmGanttEndMovingBarEvent read FOnEndMovingBar write FOnEndMovingBar;
+    // external checks
+    property  AllowMovingBar : TmGanttAllowMovingBar read FAllowMovingBar write FAllowMovingBar;
+    property  AllowResizeBar : TmGanttAllowResizeBar read FAllowResizeBar write FAllowResizeBar;
   end;
 
 
@@ -385,8 +393,6 @@ begin
 end;
 
 procedure TmGantt.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
-var
-  allow : boolean;
 begin
   if (Button = mbLeft) then
   begin
@@ -397,11 +403,9 @@ begin
     end
     else if FMouseMoveData.MouseOnBar then
     begin
-      if Assigned(FOnStartMovingBar) then
+      if Assigned(FAllowMovingBar) then
       begin
-        allow := true;
-        FOnStartMovingBar(FMouseMoveData.CurrentBar, allow);
-        if allow then
+        if AllowMovingBar(FMouseMoveData.CurrentBar) then
           FMovingBar := true;
       end
       else
@@ -416,6 +420,7 @@ procedure TmGantt.MouseMove(Shift: TShiftState; X, Y: integer);
 var
   curTime : TDateTime;
   delta : Double;
+  allow : boolean;
 begin
   if FMovingBar and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
   begin
@@ -437,9 +442,21 @@ begin
   begin
     SaveMouseMoveData(X, Y);
     if FMouseMoveData.MouseOnBarDelimiter then
-      Cursor := crSizeWE
+    begin
+      allow := true;
+      if Assigned(FAllowResizeBar) then
+        allow := FAllowResizeBar(FMouseMoveData.CurrentBar);
+      if allow then
+        Cursor := crSizeWE;
+    end
     else if FMouseMoveData.MouseOnBar then
-      Cursor := crSizeAll
+    begin
+      allow := true;
+      if Assigned(FAllowMovingBar) then
+        allow := FAllowMovingBar(FMouseMoveData.CurrentBar);
+      if allow then
+        Cursor := crSizeAll;
+    end
     else
       Cursor := crDefault;
   end;
@@ -466,6 +483,8 @@ begin
   FOnStartMovingBar := nil;
   FOnMovingBar := nil;
   FOnEndMovingBar := nil;
+  FAllowMovingBar := nil;
+  FAllowResizeBar := nil;
 end;
 
 destructor TmGantt.Destroy;

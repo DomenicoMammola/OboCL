@@ -25,11 +25,13 @@ type
 
   TTaskExperimentGanttBarDatum = class (TmGanttBarDatum)
   strict private
+    FId: integer;
     FExperimentId: integer;
     FHeadTask : boolean;
   public
     property ExperimentId : integer read FExperimentId write FExperimentId;
     property HeadTask : boolean read FHeadTask write FHeadTask;
+    property Id : integer read FId write FId;
   end;
 
   { TTestExperimentsDataProvider }
@@ -61,8 +63,8 @@ type
     FDataProvider2 : TTestExperimentsDataProvider;
     function OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
     procedure OnMovingGanttBar (aBar: TmGanttBarDatum);
+    procedure OnResizingGanttBar (aBar: TmGanttBarDatum);
   public
-
   end;
 
 var
@@ -94,6 +96,7 @@ begin
   tmp.EndTime:= dt;
   tmp.Color:= FColorExperiment1;
   tmp.ExperimentId:= 1;
+  tmp.Id := 1;
   tmp.HeadTask:= true;
   FExperiment1Bars.Add(tmp);
 
@@ -103,6 +106,7 @@ begin
   tmp.EndTime:= dt;
   tmp.Color:= FColorExperiment1;
   tmp.ExperimentId:= 1;
+  tmp.Id := 2;
   tmp.HeadTask:= false;
   FExperiment1Bars.Add(tmp);
 
@@ -112,6 +116,7 @@ begin
   tmp.EndTime:= dt;
   tmp.Color:= FColorExperiment1;
   tmp.ExperimentId:= 1;
+  tmp.Id := 3;
   tmp.HeadTask:= false;
   FExperiment1Bars.Add(tmp);
 
@@ -122,6 +127,7 @@ begin
   tmp.Color:= FColorExperiment2;
   tmp.ExperimentId:= 2;
   tmp.HeadTask:= true;
+  tmp.Id := 4;
   FExperiment2Bars.Add(tmp);
 
   tmp := TTaskExperimentGanttBarDatum.Create;
@@ -131,6 +137,7 @@ begin
   tmp.Color:= FColorExperiment2;
   tmp.ExperimentId:= 2;
   tmp.HeadTask:= false;
+  tmp.Id := 5;
   FExperiment2Bars.Add(tmp);
 
   tmp := TTaskExperimentGanttBarDatum.Create;
@@ -140,6 +147,7 @@ begin
   tmp.Color:= FColorExperiment2;
   tmp.ExperimentId:= 2;
   tmp.HeadTask:= false;
+  tmp.Id := 6;
   FExperiment2Bars.Add(tmp);
 
   tmp := TTaskExperimentGanttBarDatum.Create;
@@ -149,6 +157,7 @@ begin
   tmp.Color:= FColorExperiment3;
   tmp.ExperimentId:= 3;
   tmp.HeadTask:= true;
+  tmp.Id := 7;
   FExperiment3Bars.Add(tmp);
 
   tmp := TTaskExperimentGanttBarDatum.Create;
@@ -158,6 +167,7 @@ begin
   tmp.Color:= FColorExperiment3;
   tmp.ExperimentId:= 3;
   tmp.HeadTask:= false;
+  tmp.Id := 8;
   FExperiment3Bars.Add(tmp);
 
   tmp := TTaskExperimentGanttBarDatum.Create;
@@ -167,6 +177,7 @@ begin
   tmp.Color:= FColorExperiment3;
   tmp.ExperimentId:= 3;
   tmp.HeadTask:= false;
+  tmp.Id := 9;
   FExperiment3Bars.Add(tmp);
 
 end;
@@ -355,6 +366,7 @@ begin
 
   FGanttChart.Gantt.AllowMovingBar := @Self.OnAllowMovingGanttBar;
   FGanttChart.Gantt.OnMovingBar:= @Self.OnMovingGanttBar;
+  FGanttChart.Gantt.OnResizingBar:= @Self.OnResizingGanttBar;
 
   FGanttChart.Rebuild;
 end;
@@ -373,7 +385,6 @@ end;
 procedure TForm1.OnMovingGanttBar(aBar: TmGanttBarDatum);
 var
   list : TObjectList;
-  i : integer;
   prevBar, curBar : TTaskExperimentGanttBarDatum;
   dt : TDateTime;
 begin
@@ -395,6 +406,39 @@ begin
   dt := curBar.StartTime;
   curBar.StartTime:= prevBar.EndTime;
   curBar.EndTime:= curBar.EndTime + (curBar.StartTime - dt);
+end;
+
+procedure TForm1.OnResizingGanttBar(aBar: TmGanttBarDatum);
+var
+  list : TObjectList;
+  prevBar, curBar : TTaskExperimentGanttBarDatum;
+  dt : TDateTime;
+  i, k : integer;
+begin
+  if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 1 then
+    list := FDataProvider2.FExperiment1Bars
+  else if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 2 then
+    list := FDataProvider2.FExperiment2Bars
+  else
+    list := FDataProvider2.FExperiment3Bars;
+
+  for i := 0 to list.Count -1 do
+  begin
+    curBar := list.Items[i] as TTaskExperimentGanttBarDatum;
+    if curBar.Id = (aBar as TTaskExperimentGanttBarDatum).Id then
+    begin
+      prevBar := aBar as TTaskExperimentGanttBarDatum;
+      for k := i + 1 to list.Count -1 do
+      begin
+        curBar := list.Items[k] as TTaskExperimentGanttBarDatum;
+        dt := curBar.StartTime;
+        curBar.StartTime:= prevBar.EndTime;
+        curBar.EndTime:= curBar.EndTime + (curBar.StartTime - dt);
+        prevBar := curBar;
+      end;
+      break;
+    end;
+  end;
 end;
 
 end.

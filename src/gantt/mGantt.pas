@@ -35,6 +35,9 @@ type
   TmGanttStartMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
   TmGanttMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
   TmGanttEndMovingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+  TmGanttStartResizingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+  TmGanttResizingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+  TmGanttEndResizingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
 
   TmGanttRowDrawingAction = procedure (aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer) of object;
 
@@ -56,6 +59,9 @@ type
     FOnStartMovingBar: TmGanttStartMovingBarEvent;
     FOnMovingBar : TmGanttMovingBarEvent;
     FOnEndMovingBar : TmGanttEndMovingBarEvent;
+    FOnStartResizingBar: TmGanttStartResizingBarEvent;
+    FOnResizingBar : TmGanttResizingBarEvent;
+    FOnEndResizingBar : TmGanttEndResizingBarEvent;
     // external checks
     FAllowMovingBar : TmGanttAllowMovingBar;
     FAllowResizeBar : TmGanttAllowResizeBar;
@@ -93,6 +99,10 @@ type
     property OnStartMovingBar: TmGanttStartMovingBarEvent read FOnStartMovingBar write FOnStartMovingBar;
     property OnMovingBar : TmGanttMovingBarEvent read FOnMovingBar write FOnMovingBar;
     property OnEndMovingBar : TmGanttEndMovingBarEvent read FOnEndMovingBar write FOnEndMovingBar;
+    property OnStartResizingBar : TmGanttStartResizingBarEvent read FOnStartResizingBar write FOnStartResizingBar;
+    property OnResizingBar : TmGanttResizingBarEvent read FOnResizingBar write FOnResizingBar;
+    property OnEndResizingBar : TmGanttEndResizingBarEvent read FOnEndResizingBar write FOnEndResizingBar;
+
     // external checks
     property  AllowMovingBar : TmGanttAllowMovingBar read FAllowMovingBar write FAllowMovingBar;
     property  AllowResizeBar : TmGanttAllowResizeBar read FAllowResizeBar write FAllowResizeBar;
@@ -231,7 +241,7 @@ end;
 
 procedure TmGantt.DoForEveryRow(aCanvas: TCanvas; const aDrawingRect: TRect; aDrawingAction: TmGanttRowDrawingAction);
 var
-  i, k, limit : integer;
+ k, limit : integer;
   rowRect : TRect;
 begin
   limit := FHead.DataProvider.RowCount - FHead.TopRow;
@@ -289,7 +299,7 @@ var
   tempHeight : integer;
   bars : TList;
   currentBar : TmGanttBarDatum;
-  left, right : integer;
+  right : integer;
 begin
   FMouseMoveData.Clear;
 
@@ -380,14 +390,20 @@ end;
 
 procedure TmGantt.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
 begin
-  if FResizingBar or FMovingBar then
+  if FResizingBar then
   begin
     FResizingBar := false;
+    if Assigned(FOnEndResizingBar) then
+      FOnEndResizingBar  (FMouseMoveData.CurrentBar);
+  end;
+  if FMovingBar then
+  begin
     FMovingBar := false;
     if Assigned(FOnEndMovingBar) then
       FOnEndMovingBar(FMouseMoveData.CurrentBar);
-    NotifyBarsChanged(false);
   end;
+  if FResizingBar or FMovingBar then
+    NotifyBarsChanged(false);
   Self.Cursor:= crDefault;
   inherited MouseUp(Button, Shift, X, Y);
 end;
@@ -399,7 +415,13 @@ begin
     SaveMouseMoveData(X, Y);
     if FMouseMoveData.MouseOnBarDelimiter then
     begin
-      FResizingBar:= true;
+      if Assigned(FAllowResizeBar) then
+      begin
+        if AllowResizeBar(FMouseMoveData.CurrentBar) then
+          FResizingBar := true;
+      end
+      else
+        FResizingBar:= true;
     end
     else if FMouseMoveData.MouseOnBar then
     begin
@@ -437,6 +459,15 @@ begin
   end
   else if FResizingBar and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
   begin
+    if Assigned(FMouseMoveData.CurrentBar) then
+    begin
+      curTime := FTimeRuler.PixelsToDateTime(X);
+      delta := curTime - FMouseMoveData.CurrentInstant;
+      FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
+      if Assigned(FOnResizingBar) then
+        FOnResizingBar(FMouseMoveData.CurrentBar);
+      NotifyBarsChanged(true);
+    end;
   end
   else
   begin
@@ -447,7 +478,9 @@ begin
       if Assigned(FAllowResizeBar) then
         allow := FAllowResizeBar(FMouseMoveData.CurrentBar);
       if allow then
-        Cursor := crSizeWE;
+        Cursor := crSizeWE
+      else
+        Cursor := crDefault;
     end
     else if FMouseMoveData.MouseOnBar then
     begin
@@ -455,7 +488,9 @@ begin
       if Assigned(FAllowMovingBar) then
         allow := FAllowMovingBar(FMouseMoveData.CurrentBar);
       if allow then
-        Cursor := crSizeAll;
+        Cursor := crSizeAll
+      else
+        Cursor := crDefault;
     end
     else
       Cursor := crDefault;
@@ -483,6 +518,9 @@ begin
   FOnStartMovingBar := nil;
   FOnMovingBar := nil;
   FOnEndMovingBar := nil;
+  FOnStartResizingBar := nil;
+  FOnResizingBar := nil;
+  FOnEndResizingBar := nil;
   FAllowMovingBar := nil;
   FAllowResizeBar := nil;
 end;

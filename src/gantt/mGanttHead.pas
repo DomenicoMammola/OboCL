@@ -181,7 +181,7 @@ end;
 
 procedure TmGanttHead.SaveMouseMoveData(X, Y: integer);
 var
-  dummy, tempHeight, timerulHeight : integer;
+  tempHeight, timerulHeight : integer;
   CurrentPixelTop, CurrentPixelBottom : integer;
 begin
   FMouseMoveData.Clear;

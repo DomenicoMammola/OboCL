@@ -23,7 +23,7 @@ uses
 
 procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
-procedure DrawBar(ACanvas: TCanvas; const ARect: TRect; aBar : TmGanttBarDatum);
+procedure DrawBar(ACanvas: TCanvas; aBar : TmGanttBarDatum);
 {$ifdef fpc}
 function IsDoubleBufferedNeeded: boolean;
 {$endif}
@@ -34,12 +34,12 @@ implementation
 uses
   mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF} {$IFDEF FPC},graphutil{$ENDIF};
 
-procedure DrawBar(ACanvas: TCanvas; const ARect: TRect; aBar: TmGanttBarDatum);
+procedure DrawBar(ACanvas: TCanvas; aBar: TmGanttBarDatum);
 begin
   ACanvas.Brush.Color:= aBar.Color;
-  ACanvas.FillRect(ARect);
+  ACanvas.FillRect(aBar.BarRect);
   ACanvas.Pen.Color:= aBar.BorderColor;
-  ACanvas.Rectangle(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom);
+  ACanvas.Rectangle(aBar.BarRect.Left, aBar.BarRect.Top, aBar.BarRect.Right, aBar.BarRect.Bottom);
 end;
 
 {$ifdef fpc}

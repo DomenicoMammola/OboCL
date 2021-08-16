@@ -270,7 +270,7 @@ var
   bars : TList;
   i : integer;
   currentBar : TmGanttBarDatum;
-  barRect : TRect;
+  curRect : TRect;
 begin
   if not Assigned(FHead) then
     exit;
@@ -283,11 +283,12 @@ begin
     for i := 0 to bars.Count -1 do
     begin
       currentBar := TmGanttBarDatum(bars.Items[i]);
-      barRect.Left := FTimeRuler.DateTimeToPixels(currentBar.StartTime);
-      barRect.Right := FTimeRuler.DateTimeToPixels(currentBar.EndTime);
-      barRect.Top := trunc(aDrawingRect.Height * 0.1) + aDrawingRect.Top;
-      barRect.Bottom := aDrawingRect.Bottom - trunc(aDrawingRect.Height * 0.1);
-      DrawBar(aCanvas, barRect, currentBar);
+      curRect.Left := FTimeRuler.DateTimeToPixels(currentBar.StartTime);
+      curRect.Right := FTimeRuler.DateTimeToPixels(currentBar.EndTime);
+      curRect.Top := trunc(aDrawingRect.Height * 0.1) + aDrawingRect.Top;
+      curRect.Bottom := aDrawingRect.Bottom - trunc(aDrawingRect.Height * 0.1);
+      currentBar.BarRect := curRect;
+      DrawBar(aCanvas, currentBar);
     end;
   finally
     bars.Free;
@@ -453,7 +454,7 @@ begin
       delta := curTime - FMouseMoveData.CurrentInstant;
       FMouseMoveData.CurrentBar.StartTime := FMouseMoveData.CurrentBarOriginalStartTime + delta;
       FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
-      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.StartTime), X + INT_GANTT_HINT_SCREEN_SPACING, Y - INT_GANTT_HINT_SCREEN_SPACING);
+      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.StartTime), Self, FTimeRuler.DateTimeToPixels(FMouseMoveData.CurrentBar.EndTime) + INT_GANTT_HINT_SCREEN_SPACING, ((Y div FHead.RowHeight) * FHead.RowHeight) - INT_GANTT_HINT_SCREEN_SPACING);
       if Assigned(FOnMovingBar) then
         FOnMovingBar(FMouseMoveData.CurrentBar);
       NotifyBarsChanged(true);
@@ -466,6 +467,7 @@ begin
       curTime := FTimeRuler.PixelsToDateTime(X);
       delta := curTime - FMouseMoveData.CurrentInstant;
       FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
+      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.EndTime), Self, FTimeRuler.DateTimeToPixels(FMouseMoveData.CurrentBar.EndTime) + INT_GANTT_HINT_SCREEN_SPACING, ((Y div FHead.RowHeight) * FHead.RowHeight) - INT_GANTT_HINT_SCREEN_SPACING);
       if Assigned(FOnResizingBar) then
         FOnResizingBar(FMouseMoveData.CurrentBar);
       NotifyBarsChanged(true);

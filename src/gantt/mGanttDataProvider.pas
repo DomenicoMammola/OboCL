@@ -31,6 +31,7 @@ type
     FBorderColor : TColor;
     FBarLabel : String;
     FZOrder : integer;
+    FBarRect : TRect;
   public
     constructor Create; virtual;
 
@@ -40,6 +41,8 @@ type
     property BorderColor : TColor read FBorderColor write FBorderColor;
     property ZOrder : Integer read FZOrder write FZOrder;
     property BarLabel : String read FBarLabel write FBarLabel;
+
+    property BarRect : TRect read FBarRect write FBarRect;
   end;
 
   { TmGanttDataProvider }

@@ -16,7 +16,7 @@ unit mGanttHintWindow;
 interface
 
 uses
-  Classes, ExtCtrls, Forms,
+  Classes, ExtCtrls, Forms, Controls,
   StdCtrls, Graphics;
 
 const
@@ -38,55 +38,62 @@ type
     property LblText : TLabel read FLblText;
   end;
 
-  procedure ShowGanttHintAtPos(const aText: String; aParent : TComponent;  const x, y: Integer);
+  procedure ShowGanttHintAtPos(const aText: String; aParent : TWinControl;  const x, y: Integer);
   procedure HideGanttHint;
 
 implementation
 
 uses
-  sysutils, Controls,
+  sysutils,
   mMagnificationFactor;
 
 const
-  INT_GANTT_HINT_FORM_WIDTH  = 325;
-  INT_GANTT_HINT_FORM_HEIGHT = 60;
+  INT_GANTT_HINT_FORM_WIDTH  = 125;
+  INT_GANTT_HINT_FORM_HEIGHT = 20;
 
 var
   _HintForm : TmGanttHintForm;
 
 
 
-procedure ShowGanttHintAtPos(const aText: String; aParent : TComponent; const x, y: Integer);
+procedure ShowGanttHintAtPos(const aText: String; aParent : TWinControl; const x, y: Integer);
 var
-  curParent : TComponent;
+  curParent : TWinControl;
+  pt : TPoint;
 begin
   if not Assigned(_HintForm) then
   begin
     _HintForm := TmGanttHintForm.Create(nil);
     _HintForm.Visible := false;
   end;
-  if x + _HintForm.Width > Screen.Width then
+
+  curParent := aParent;
+  while Assigned(curParent) and (not (curParent is TCustomForm)) do
+    curParent := curParent.Parent;
+  if Assigned(curParent) then
   begin
-    _HintForm.left := x - _HintForm.Width;
+    if _HintForm.Monitor.MonitorNum <> (curParent as TCustomForm).Monitor.MonitorNum then
+      _HintForm.MakeFullyVisible((curParent as TCustomForm).Monitor);
+  end;
+
+  pt := aParent.ClientToScreen(TPoint.Create(x, y));
+  if pt.x + _HintForm.Width > Screen.Width then
+  begin
+    _HintForm.left := pt.x - _HintForm.Width;
     if _HintForm.Left < 0 then _HintForm.Left := 0;
   end
   else
-    _HintForm.left := x;
+    _HintForm.left := pt.x;
 
-  if y + _HintForm.Height > Screen.Height then
+  if pt.y + _HintForm.Height > Screen.Height then
   begin
-    _HintForm.Top := y - _HintForm.Height;
+    _HintForm.Top := pt.y - _HintForm.Height;
     if _HintForm.top < 0 then _HintForm.top := 0;
   end
   else
-    _HintForm.top := y;
+    _HintForm.top := pt.y;
 
   _HintForm.LblText.Caption:= aText;
-  curParent := aParent;
-  while Assigned(curParent) and (not (curParent is TCustomForm)) do
-    curParent := aParent.GetParentComponent;
-  if Assigned(curParent) and (curParent is TCustomForm) then
-    _HintForm.Monitor := (curParent as TCustomForm).Monitor;
   _HintForm.Show;
 end;
 

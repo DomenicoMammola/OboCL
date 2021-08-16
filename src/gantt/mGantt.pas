@@ -454,9 +454,9 @@ begin
       delta := curTime - FMouseMoveData.CurrentInstant;
       FMouseMoveData.CurrentBar.StartTime := FMouseMoveData.CurrentBarOriginalStartTime + delta;
       FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
-      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.StartTime), Self, FTimeRuler.DateTimeToPixels(FMouseMoveData.CurrentBar.EndTime) + INT_GANTT_HINT_SCREEN_SPACING, ((Y div FHead.RowHeight) * FHead.RowHeight) - INT_GANTT_HINT_SCREEN_SPACING);
       if Assigned(FOnMovingBar) then
         FOnMovingBar(FMouseMoveData.CurrentBar);
+      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.StartTime), Self, FTimeRuler.DateTimeToPixels(FMouseMoveData.CurrentBar.EndTime) + INT_GANTT_HINT_SCREEN_SPACING, ((Y div FHead.RowHeight) * FHead.RowHeight) - INT_GANTT_HINT_SCREEN_SPACING);
       NotifyBarsChanged(true);
     end;
   end
@@ -467,9 +467,9 @@ begin
       curTime := FTimeRuler.PixelsToDateTime(X);
       delta := curTime - FMouseMoveData.CurrentInstant;
       FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
-      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.EndTime), Self, FTimeRuler.DateTimeToPixels(FMouseMoveData.CurrentBar.EndTime) + INT_GANTT_HINT_SCREEN_SPACING, ((Y div FHead.RowHeight) * FHead.RowHeight) - INT_GANTT_HINT_SCREEN_SPACING);
       if Assigned(FOnResizingBar) then
         FOnResizingBar(FMouseMoveData.CurrentBar);
+      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.EndTime), Self, FTimeRuler.DateTimeToPixels(FMouseMoveData.CurrentBar.EndTime) + INT_GANTT_HINT_SCREEN_SPACING, ((Y div FHead.RowHeight) * FHead.RowHeight) - INT_GANTT_HINT_SCREEN_SPACING);
       NotifyBarsChanged(true);
     end;
   end

@@ -23,15 +23,25 @@ type
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); override;
   end;
 
+  { TTaskExperimentGanttBarDatum }
+
   TTaskExperimentGanttBarDatum = class (TmGanttBarDatum)
   strict private
     FId: integer;
     FExperimentId: integer;
     FHeadTask : boolean;
+    FOriginalLength : double;
+    FMinLength : double;
+    FMaxLength : double;
+  private
+    procedure SetMinMaxLength; // it cannot be resized more -/+ 20%
   public
     property ExperimentId : integer read FExperimentId write FExperimentId;
     property HeadTask : boolean read FHeadTask write FHeadTask;
     property Id : integer read FId write FId;
+    property OriginalLength : double read FOriginalLength write FOriginalLength;
+    property MinLength : double read FMinLength write FMinLength;
+    property MaxLength : double read FMaxLength write FMaxLength;
   end;
 
   { TTestExperimentsDataProvider }
@@ -63,6 +73,7 @@ type
     FDataProvider2 : TTestExperimentsDataProvider;
     function OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
     procedure OnMovingGanttBar (aBar: TmGanttBarDatum);
+    procedure OnAllowResizingGanttBar(aBar: TmGanttBarDatum);
     procedure OnResizingGanttBar (aBar: TmGanttBarDatum);
   public
   end;
@@ -71,6 +82,17 @@ var
   Form1: TForm1;
 
 implementation
+
+{ TTaskExperimentGanttBarDatum }
+
+procedure TTaskExperimentGanttBarDatum.SetMinMaxLength;
+var
+  le : double;
+begin
+  le := Self.EndTime - Self.StartTime;
+  MinLength:= le * 0.8;
+  MaxLength:= le * 1.2;
+end;
 
 {$IFDEF FPC}{$IFDEF DEBUG}uses LazLogger;{$ENDIF}{$ENDIF}
 
@@ -94,6 +116,7 @@ begin
   tmp.StartTime:= EncodeDate(2018, 1, 1);
   dt := tmp.StartTime + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment1;
   tmp.ExperimentId:= 1;
   tmp.Id := 1;
@@ -104,6 +127,7 @@ begin
   tmp.StartTime:= dt;
   dt := dt + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment1;
   tmp.ExperimentId:= 1;
   tmp.Id := 2;
@@ -114,6 +138,7 @@ begin
   tmp.StartTime:= dt;
   dt := dt + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment1;
   tmp.ExperimentId:= 1;
   tmp.Id := 3;
@@ -124,6 +149,7 @@ begin
   tmp.StartTime:= EncodeDate(2018, 1, 6);
   dt := tmp.StartTime + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment2;
   tmp.ExperimentId:= 2;
   tmp.HeadTask:= true;
@@ -134,6 +160,7 @@ begin
   tmp.StartTime:= dt;
   dt := dt + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment2;
   tmp.ExperimentId:= 2;
   tmp.HeadTask:= false;
@@ -144,6 +171,7 @@ begin
   tmp.StartTime:= dt;
   dt := dt + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment2;
   tmp.ExperimentId:= 2;
   tmp.HeadTask:= false;
@@ -154,6 +182,7 @@ begin
   tmp.StartTime:= EncodeDate(2018, 1, 10);
   dt := tmp.StartTime + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment3;
   tmp.ExperimentId:= 3;
   tmp.HeadTask:= true;
@@ -164,6 +193,7 @@ begin
   tmp.StartTime:= dt;
   dt := dt + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment3;
   tmp.ExperimentId:= 3;
   tmp.HeadTask:= false;
@@ -174,12 +204,12 @@ begin
   tmp.StartTime:= dt;
   dt := dt + Random(100) / 10;
   tmp.EndTime:= dt;
+  tmp.SetMinMaxLength;
   tmp.Color:= FColorExperiment3;
   tmp.ExperimentId:= 3;
   tmp.HeadTask:= false;
   tmp.Id := 9;
   FExperiment3Bars.Add(tmp);
-
 end;
 
 destructor TTestExperimentsDataProvider.Destroy;
@@ -408,13 +438,26 @@ begin
   curBar.EndTime:= curBar.EndTime + (curBar.StartTime - dt);
 end;
 
+procedure TForm1.OnAllowResizingGanttBar(aBar: TmGanttBarDatum);
+begin
+  //
+end;
+
 procedure TForm1.OnResizingGanttBar(aBar: TmGanttBarDatum);
 var
   list : TObjectList;
   prevBar, curBar : TTaskExperimentGanttBarDatum;
   dt : TDateTime;
   i, k : integer;
+  curLength : double;
 begin
+  curLength:= aBar.EndTime - aBar.StartTime;
+
+  if curLength < (aBar as TTaskExperimentGanttBarDatum).MinLength then
+    aBar.EndTime:= aBar.StartTime + (aBar as TTaskExperimentGanttBarDatum).MinLength
+  else if curLength > (aBar as TTaskExperimentGanttBarDatum).MaxLength then
+    aBar.EndTime:= aBar.StartTime + (aBar as TTaskExperimentGanttBarDatum).MaxLength;
+
   if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 1 then
     list := FDataProvider2.FExperiment1Bars
   else if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 2 then

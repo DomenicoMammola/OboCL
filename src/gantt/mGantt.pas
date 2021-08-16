@@ -113,7 +113,7 @@ implementation
 
 uses
   math, Forms, sysutils,
-  mGanttEvents, mGanttGraphics;
+  mGanttEvents, mGanttGraphics, mGanttHintWindow;
 
 type
 
@@ -405,6 +405,7 @@ begin
   if FResizingBar or FMovingBar then
     NotifyBarsChanged(false);
   Self.Cursor:= crDefault;
+  HideGanttHint;
   inherited MouseUp(Button, Shift, X, Y);
 end;
 
@@ -452,6 +453,7 @@ begin
       delta := curTime - FMouseMoveData.CurrentInstant;
       FMouseMoveData.CurrentBar.StartTime := FMouseMoveData.CurrentBarOriginalStartTime + delta;
       FMouseMoveData.CurrentBar.EndTime:= FMouseMoveData.CurrentBarOriginalEndTime + delta;
+      ShowGanttHintAtPos(DateTimeToStr(FMouseMoveData.CurrentBar.StartTime), X + INT_GANTT_HINT_SCREEN_SPACING, Y - INT_GANTT_HINT_SCREEN_SPACING);
       if Assigned(FOnMovingBar) then
         FOnMovingBar(FMouseMoveData.CurrentBar);
       NotifyBarsChanged(true);
@@ -472,6 +474,7 @@ begin
   else
   begin
     SaveMouseMoveData(X, Y);
+    HideGanttHint;
     if FMouseMoveData.MouseOnBarDelimiter then
     begin
       allow := true;

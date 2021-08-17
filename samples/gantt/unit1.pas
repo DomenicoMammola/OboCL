@@ -5,7 +5,7 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, contnrs,
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, contnrs, Menus,
   mGanttChart, mTimerulerScales, mTimerulerTimelines, mGanttDataProvider, mDateTimeUtility;
 
 type
@@ -71,10 +71,14 @@ type
     FGanttChart : TmGanttChart;
     FDataProvider : TTestDataProvider;
     FDataProvider2 : TTestExperimentsDataProvider;
+    FBarsPopupMenu : TPopupMenu;
     function OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
     procedure OnMovingGanttBar (aBar: TmGanttBarDatum);
     procedure OnAllowResizingGanttBar(aBar: TmGanttBarDatum);
     procedure OnResizingGanttBar (aBar: TmGanttBarDatum);
+    procedure OnClickOnBar (aBar: TmGanttBarDatum);
+    procedure OnDblClickOnBar (aBar: TmGanttBarDatum);
+    procedure OnPopupBarsMenu (aSender : TObject);
   public
   end;
 
@@ -372,6 +376,7 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 var
   tmp : TmTimeline;
+  barsMenuItem : TMenuItem;
 begin
   FDataProvider := TTestDataProvider.Create;
   FDataProvider2 := TTestExperimentsDataProvider.Create;
@@ -397,6 +402,16 @@ begin
   FGanttChart.Gantt.AllowMovingBar := @Self.OnAllowMovingGanttBar;
   FGanttChart.Gantt.OnMovingBar:= @Self.OnMovingGanttBar;
   FGanttChart.Gantt.OnResizingBar:= @Self.OnResizingGanttBar;
+  // FGanttChart.Gantt.OnClickOnBar:= @Self.OnClickOnBar;
+  FGanttChart.Gantt.OnDblClickOnBar:= @Self.OnDblClickOnBar;
+
+  FBarsPopupMenu := TPopupMenu.Create(FGanttChart.Gantt);
+  FGanttChart.Gantt.BarsPopupMenu := FBarsPopupMenu;
+  FBarsPopupMenu.OnPopup:= @Self.OnPopupBarsMenu;
+
+  barsMenuItem := TMenuItem.Create(FBarsPopupMenu);
+  FBarsPopupMenu.Items.Add(barsMenuItem);
+  barsMenuItem.Caption:= 'do something';
 
   FGanttChart.Rebuild;
 end;
@@ -482,6 +497,24 @@ begin
       break;
     end;
   end;
+end;
+
+procedure TForm1.OnClickOnBar(aBar: TmGanttBarDatum);
+begin
+  ShowMessage('Clicked on bar #' + IntToStr((aBar as TTaskExperimentGanttBarDatum).Id));
+end;
+
+procedure TForm1.OnDblClickOnBar(aBar: TmGanttBarDatum);
+begin
+  ShowMessage('Double clicked on bar #' + IntToStr((aBar as TTaskExperimentGanttBarDatum).Id));
+end;
+
+procedure TForm1.OnPopupBarsMenu(aSender: TObject);
+begin
+  if Assigned(FGanttChart.Gantt.SelectedBar) then
+    FBarsPopupMenu.Items[0].Caption:= 'Do something with bar #' + IntToStr((FGanttChart.Gantt.SelectedBar as TTaskExperimentGanttBarDatum).Id)
+  else
+    FBarsPopupMenu.Items[0].Caption:= 'Do nothing';
 end;
 
 end.

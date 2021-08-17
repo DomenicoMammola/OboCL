@@ -16,7 +16,7 @@ unit mGantt;
 interface
 
 uses
-  Classes, Controls, Graphics,
+  Classes, Controls, Graphics, Menus,
   {$IFDEF FPC}
   InterfaceBase,
   LCLIntf,
@@ -38,6 +38,9 @@ type
   TmGanttStartResizingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
   TmGanttResizingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
   TmGanttEndResizingBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+  TmGanttClickOnBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+  TmGanttDblClickOnBarEvent = procedure (aBar: TmGanttBarDatum) of object;
+
 
   TmGanttRowDrawingAction = procedure (aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer) of object;
 
@@ -62,10 +65,17 @@ type
     FOnStartResizingBar: TmGanttStartResizingBarEvent;
     FOnResizingBar : TmGanttResizingBarEvent;
     FOnEndResizingBar : TmGanttEndResizingBarEvent;
+    FOnClickOnBar : TmGanttClickOnBarEvent;
+    FOnDblClickOnBar : TmGanttDblClickOnBarEvent;
+
     // external checks
     FAllowMovingBar : TmGanttAllowMovingBar;
     FAllowResizeBar : TmGanttAllowResizeBar;
 
+    // popup menus
+    FBarsPopupMenu : TPopupmenu;
+
+    function GetSelectedBar: TmGanttBarDatum;
     procedure SetGanttHead(AValue: TmGanttHead);
     procedure SetTimeRuler(AValue: TmTimeruler);
     procedure PaintVerticalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
@@ -83,6 +93,8 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: integer); override;
+    procedure Click; override;
+    procedure DblClick; override;
   public
     const DELIMITER_CLICKING_AREA : integer = 4;
   public
@@ -95,6 +107,8 @@ type
     property VerticalLinesColor : TColor read FVerticalLinesColor write FVerticalLinesColor;
     property HorizontalLinesColor : TColor read FHorizontalLinesColor write FHorizontalLinesColor;
     property TopRow: integer read FTopRow write SetTopRow;
+    property SelectedBar : TmGanttBarDatum read GetSelectedBar;
+    property BarsPopupMenu : TPopupMenu read FBarsPopupMenu write FBarsPopupMenu;
     // external events
     property OnStartMovingBar: TmGanttStartMovingBarEvent read FOnStartMovingBar write FOnStartMovingBar;
     property OnMovingBar : TmGanttMovingBarEvent read FOnMovingBar write FOnMovingBar;
@@ -102,6 +116,8 @@ type
     property OnStartResizingBar : TmGanttStartResizingBarEvent read FOnStartResizingBar write FOnStartResizingBar;
     property OnResizingBar : TmGanttResizingBarEvent read FOnResizingBar write FOnResizingBar;
     property OnEndResizingBar : TmGanttEndResizingBarEvent read FOnEndResizingBar write FOnEndResizingBar;
+    property OnClickOnBar : TmGanttClickOnBarEvent read FOnClickOnBar write FOnClickOnBar;
+    property OnDblClickOnBar : TmGanttDblClickOnBarEvent read FOnDblClickOnBar write FOnDblClickOnBar;
 
     // external checks
     property  AllowMovingBar : TmGanttAllowMovingBar read FAllowMovingBar write FAllowMovingBar;
@@ -175,6 +191,14 @@ begin
   if FHead = AValue then Exit;
   FHead := AValue;
   (FHead.SubscribeToEvents(TmGanttGanttHeadEventsSubscription) as TmGanttGanttHeadEventsSubscription).FGantt := Self;
+end;
+
+function TmGantt.GetSelectedBar: TmGanttBarDatum;
+begin
+  if Assigned(FMouseMoveData) then
+    Result := FMouseMoveData.CurrentBar
+  else
+    Result := nil;
 end;
 
 procedure TmGantt.PaintVerticalLines(aCanvas: TCanvas; const aDrawingRect : TRect);
@@ -411,6 +435,8 @@ begin
 end;
 
 procedure TmGantt.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer);
+var
+  pt1, pt2 : TPoint;
 begin
   if (Button = mbLeft) then
   begin
@@ -435,6 +461,16 @@ begin
       else
         FMovingBar := true;
     end
+  end
+  else if (Button = mbRight) then
+  begin
+    SaveMouseMoveData(X, Y);
+    if Assigned(FMouseMoveData.CurrentBar) and Assigned(FBarsPopupMenu) then
+    begin
+      pt1 := TPoint.Create(X, Y);
+      pt2 := ClientToScreen(pt1);
+      FBarsPopupMenu.PopUp(pt2.x, pt2.y);
+    end;
   end;
 
   inherited MouseDown(Button, Shift, X, Y);
@@ -504,6 +540,20 @@ begin
   inherited MouseMove(Shift, X, Y);
 end;
 
+procedure TmGantt.Click;
+begin
+  if Assigned(FMouseMoveData.CurrentBar) and Assigned(FOnClickOnBar) then
+    FOnClickOnBar(FMouseMoveData.CurrentBar);
+  inherited Click;
+end;
+
+procedure TmGantt.DblClick;
+begin
+  if Assigned(FMouseMoveData.CurrentBar) and Assigned(FOnDblClickOnBar) then
+    FOnDblClickOnBar(FMouseMoveData.CurrentBar);
+  inherited DblClick;
+end;
+
 constructor TmGantt.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
@@ -528,6 +578,8 @@ begin
   FOnEndResizingBar := nil;
   FAllowMovingBar := nil;
   FAllowResizeBar := nil;
+  FOnClickOnBar := nil;
+  FOnDblClickOnBar := nil;
 end;
 
 destructor TmGantt.Destroy;

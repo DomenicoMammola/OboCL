@@ -5,23 +5,11 @@ unit Unit1;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, contnrs, Menus,
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, contnrs, Menus, StdCtrls,
   mGanttChart, mTimerulerScales, mTimerulerTimelines, mGanttDataProvider, mDateTimeUtility;
 
 type
 
-  { TTestDataProvider }
-
-  TTestDataProvider = class (TmGanttDataProvider)
-  private
-    FBars : TObjectList;
-  public
-    constructor Create; override;
-    destructor Destroy; override;
-
-    function RowCount : integer; override;
-    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); override;
-  end;
 
   { TTaskExperimentGanttBarDatum }
 
@@ -65,12 +53,12 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    Memo1: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
     FGanttChart : TmGanttChart;
-    FDataProvider : TTestDataProvider;
-    FDataProvider2 : TTestExperimentsDataProvider;
+    FDataProvider : TTestExperimentsDataProvider;
     FBarsPopupMenu : TPopupMenu;
     function OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
     procedure OnMovingGanttBar (aBar: TmGanttBarDatum);
@@ -305,71 +293,6 @@ end;
 
 {$R *.lfm}
 
-{ TTestDataProvider }
-
-constructor TTestDataProvider.Create;
-var
-  i : integer;
-  tmp : TmGanttBarDatum;
-  tmpList : TObjectList;
-  dt : TDateTime;
-begin
-  inherited;
-  FBars := TObjectList.Create(true);
-  for i := 0 to 15 do
-  begin
-    tmpList := TObjectList.Create(true);
-    FBars.Add(tmpList);
-
-    tmp := TmGanttBarDatum.Create;
-    tmp.StartTime:= EncodeDate(2018, 1, i + 1);
-    dt := tmp.StartTime + Random(100) / 10;
-    tmp.EndTime:= dt;
-    tmp.Color:= clYellow;
-    tmpList.Add(tmp);
-
-    tmp := TmGanttBarDatum.Create;
-    tmp.StartTime:= dt + Random(400) / 100;
-    tmp.EndTime:= tmp.StartTime + Random(100) / 10;
-    tmp.Color:= clRed;
-    tmpList.Add(tmp);
-  end;
-end;
-
-destructor TTestDataProvider.Destroy;
-begin
-  FBars.Free;
-  inherited Destroy;
-end;
-
-function TTestDataProvider.RowCount: integer;
-begin
-  Result := FBars.Count;
-end;
-
-procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TList);
-var
-  curBar : TmGanttBarDatum;
-  curList : TObjectList;
-  i : integer;
-begin
-  aGanttBars.Clear;
-  if aRowIndex >= FBars.Count  then
-    exit;
-  curList := FBars.Items[aRowIndex] as TObjectList;
-  for i := 0 to curList.Count -1 do
-  begin
-    curBar := curList.Items[i] as TmGanttBarDatum;
-    if Intersect(curBar.StartTime, curBar.EndTime, aStartDate, aEndDate) then
-    begin
-      aGanttBars.Add(curBar);
-      {$IFDEF DEBUG}
-      DebugLn('Intersect OK - curBar.StartTime:' + DateTimeToStr(curBar.StartTime) + ' curBar.EndTime:' + DateTimeToStr(curBar.EndTime) +
-        ' aStartDate:' + DateTimeToStr(aStartDate) + ' aEndDate:' + DateTimeToStr(aEndDate));
-      {$ENDIF}
-    end;
-  end;
-end;
 
 { TForm1 }
 
@@ -378,8 +301,7 @@ var
   tmp : TmTimeline;
   barsMenuItem : TMenuItem;
 begin
-  FDataProvider := TTestDataProvider.Create;
-  FDataProvider2 := TTestExperimentsDataProvider.Create;
+  FDataProvider := TTestExperimentsDataProvider.Create;
 
   FGanttChart := TmGanttChart.Create(Self);
   FGanttChart.Align:= alClient;
@@ -396,7 +318,7 @@ begin
   FGanttChart.TimeRuler.MinDate:= EncodeDate(2018,1,1);
   FGanttChart.TimeRuler.MaxDate:= EncodeDate(2018,6,30);
   FGanttChart.TimeRuler.CurrentDate:= FGanttChart.TimeRuler.MinDate;
-  FGanttChart.DataProvider := FDataProvider2;
+  FGanttChart.DataProvider := FDataProvider;
   FGanttChart.Head.CellsColor:= clMoneyGreen;
 
   FGanttChart.Gantt.AllowMovingBar := @Self.OnAllowMovingGanttBar;
@@ -419,7 +341,6 @@ end;
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   FDataProvider.Free;
-  FDataProvider2.Free;
 end;
 
 function TForm1.OnAllowMovingGanttBar(aBar: TmGanttBarDatum) : boolean;
@@ -434,11 +355,11 @@ var
   dt : TDateTime;
 begin
   if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 1 then
-    list := FDataProvider2.FExperiment1Bars
+    list := FDataProvider.FExperiment1Bars
   else if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 2 then
-    list := FDataProvider2.FExperiment2Bars
+    list := FDataProvider.FExperiment2Bars
   else
-    list := FDataProvider2.FExperiment3Bars;
+    list := FDataProvider.FExperiment3Bars;
 
   prevBar := list.Items[0] as TTaskExperimentGanttBarDatum;
   curBar := list.Items[1] as TTaskExperimentGanttBarDatum;
@@ -474,11 +395,11 @@ begin
     aBar.EndTime:= aBar.StartTime + (aBar as TTaskExperimentGanttBarDatum).MaxLength;
 
   if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 1 then
-    list := FDataProvider2.FExperiment1Bars
+    list := FDataProvider.FExperiment1Bars
   else if (aBar as TTaskExperimentGanttBarDatum).ExperimentId = 2 then
-    list := FDataProvider2.FExperiment2Bars
+    list := FDataProvider.FExperiment2Bars
   else
-    list := FDataProvider2.FExperiment3Bars;
+    list := FDataProvider.FExperiment3Bars;
 
   for i := 0 to list.Count -1 do
   begin

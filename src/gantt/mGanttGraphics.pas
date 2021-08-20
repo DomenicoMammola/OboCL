@@ -32,7 +32,7 @@ function IsDoubleBufferedNeeded: boolean;
 implementation
 
 uses
-  mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF} {$IFDEF FPC},graphutil{$ENDIF};
+  mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF};
 
 procedure DrawBar(ACanvas: TCanvas; aBar: TmGanttBarDatum);
 begin

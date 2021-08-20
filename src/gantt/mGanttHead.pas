@@ -17,12 +17,10 @@ interface
 uses
   Classes, Controls, Graphics, contnrs,
   {$IFDEF FPC}
-  InterfaceBase,
   LCLIntf,
   LclType,
   LclProc,
   LResources,
-  LMessages,
   {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ENDIF}
   {$IFDEF WINDOWS}Windows,{$ENDIF}

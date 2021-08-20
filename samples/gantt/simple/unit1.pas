@@ -137,6 +137,7 @@ begin
   FGanttChart.Align:= alClient;
   FGanttChart.Parent := Self;
 
+  FGanttChart.TimeRuler.Height:= 100;
   tmp := FGanttChart.TimeRuler.AddTimeline(TmScaleMonth);
   tmp.Scale.DisplayFormat:= '<UPPERCASE>mmm';
   tmp.Color:= clSkyBlue;

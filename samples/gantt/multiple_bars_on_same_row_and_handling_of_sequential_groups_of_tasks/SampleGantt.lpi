@@ -134,7 +134,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="../../src;../../src/gantt;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
+      <OtherUnitFiles Value="../../../src;../../../src/gantt;../../../thirdparties/Mommon/src;../../../thirdparties/ATFlatControls/atflatcontrols"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>

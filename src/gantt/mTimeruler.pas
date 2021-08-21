@@ -501,7 +501,18 @@ begin
     DummyRect.Right := ARect.Right; // min(Width, ARect.Right);
 
     if Assigned(FOnDrawBucket) and Timeline.OwnerDraw then
-      FOnDrawBucket(Self, ACanvas, Timeline, ARect, DummyDate)
+    begin
+      FOnDrawBucket(Self, ACanvas, Timeline, ARect, DummyDate);
+      if Timeline.ParentColor then
+        ACanvas.Brush.Color := Color
+      else
+        ACanvas.Brush.Color := Timeline.Color;
+
+      if Timeline.ParentFont then
+        ACanvas.Font := Font
+      else
+        ACanvas.Font := Timeline.Font;
+    end
     else
       DrawBucketBox(ACanvas, DummyRect, ExtFormatDateTime(Timeline.Scale.DisplayFormat, DummyDate), Timeline.Alignment);
 

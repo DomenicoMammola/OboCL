@@ -20,7 +20,7 @@ type
     destructor Destroy; override;
 
     function RowCount : integer; override;
-    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); override;
+    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
   end;
 
   { TForm1 }
@@ -100,7 +100,7 @@ begin
   Result := FBars.Count;
 end;
 
-procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TList);
+procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TmGanttBarDataList);
 var
   curBar : TmGanttBarDatum;
   curList : TObjectList;

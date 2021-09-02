@@ -47,7 +47,7 @@ type
     destructor Destroy; override;
 
     function RowCount : integer; override;
-    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); override;
+    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
   end;
 
   { TForm1 }
@@ -219,7 +219,7 @@ begin
 end;
 
 
-procedure TTestExperimentsDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TList);
+procedure TTestExperimentsDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TmGanttBarDataList);
 var
   i, k : integer;
   curBar, b1, b2 : TmGanttBarDatum;
@@ -274,10 +274,10 @@ begin
 
   while i <= aGanttBars.Count -1 do
   begin
-    b1 := TmGanttBarDatum(aGanttBars.Items[i]);
+    b1 := aGanttBars.Get(i);
     for k := i + 1 to aGanttBars.Count -1 do
     begin
-      b2 := TmGanttBarDatum(aGanttBars.Items[k]);
+      b2 := aGanttBars.Get(k);
       if Intersect(b1.StartTime, b1.EndTime, b2.StartTime, b2.EndTime) then
       begin
         b1.Color:= clRed;

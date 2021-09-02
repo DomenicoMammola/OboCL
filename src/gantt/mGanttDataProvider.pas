@@ -45,6 +45,21 @@ type
     property BarRect : TRect read FBarRect write FBarRect;
   end;
 
+  { TmGanttBarDataList }
+
+  TmGanttBarDataList = class
+  strict private
+    FList : TList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    function Count : integer;
+    procedure Add(const aBarDatum: TmGanttBarDatum);
+    function Get(const aIndex : integer): TmGanttBarDatum;
+    procedure Clear;
+  end;
+
   { TmGanttDataProvider }
 
   TmGanttDataProvider = class abstract
@@ -54,7 +69,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     function RowCount : integer; virtual; abstract;
-    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TList); virtual; abstract;
+    procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); virtual; abstract;
     function SubscribeToEvents(SubscriberClass: TmGanttDataProviderEventsSubscriptionClass) : TmGanttDataProviderEventsSubscription;
     procedure UnsubscribeFromEvents(Subscription: TmGanttDataProviderEventsSubscription);
   end;
@@ -63,6 +78,39 @@ implementation
 uses
   Math,
   mGraphicsUtility;
+
+{ TmGanttBarDataList }
+
+constructor TmGanttBarDataList.Create;
+begin
+  FList := TList.Create;
+end;
+
+destructor TmGanttBarDataList.Destroy;
+begin
+  FList.Free;
+  inherited Destroy;
+end;
+
+function TmGanttBarDataList.Count: integer;
+begin
+  Result := FList.Count;
+end;
+
+procedure TmGanttBarDataList.Add(const aBarDatum: TmGanttBarDatum);
+begin
+  FList.Add(aBarDatum);
+end;
+
+function TmGanttBarDataList.Get(const aIndex: integer): TmGanttBarDatum;
+begin
+  Result := TmGanttBarDatum(FList.Items[aIndex]);
+end;
+
+procedure TmGanttBarDataList.Clear;
+begin
+  FList.Clear;
+end;
 
 { TmGanttBarDatum }
 

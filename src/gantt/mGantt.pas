@@ -291,7 +291,7 @@ end;
 
 procedure TmGantt.DrawRowBars(aCanvas: TCanvas; const aDrawingRect: TRect; const aRowIndex: integer);
 var
-  bars : TList;
+  bars : TmGanttBarDataList;
   i : integer;
   currentBar : TmGanttBarDatum;
   curRect : TRect;
@@ -301,12 +301,12 @@ begin
   if not Assigned(FHead.DataProvider) then
     exit;
 
-  bars := TList.Create;
+  bars := TmGanttBarDataList.Create;
   try
     FHead.DataProvider.GetGanttBars(aRowIndex, FCurrentDrawingStartDate, FCurrentDrawingEndDate, bars);
     for i := 0 to bars.Count -1 do
     begin
-      currentBar := TmGanttBarDatum(bars.Items[i]);
+      currentBar := bars.Get(i);
       curRect.Left := FTimeRuler.DateTimeToPixels(currentBar.StartTime);
       curRect.Right := FTimeRuler.DateTimeToPixels(currentBar.EndTime);
       curRect.Top := trunc(aDrawingRect.Height * 0.1) + aDrawingRect.Top;
@@ -322,7 +322,7 @@ end;
 procedure TmGantt.SaveMouseMoveData(X, Y: integer);
 var
   tempHeight : integer;
-  bars : TList;
+  bars : TmGanttBarDataList;
   currentBar : TmGanttBarDatum;
   right : integer;
 begin
@@ -348,14 +348,14 @@ begin
 
     if FMouseMoveData.RowIndex < FHead.DataProvider.RowCount then
     begin
-      bars := TList.Create;
+      bars := TmGanttBarDataList.Create;
       try
         FHead.DataProvider.GetGanttBars(FMouseMoveData.RowIndex, FMouseMoveData.CurrentInstant, FMouseMoveData.CurrentInstant, bars);
         if bars.Count > 0 then
         begin
           FMouseMoveData.MouseOnBar:= true;
 
-          currentBar := TmGanttBarDatum(bars.Items[0]);
+          currentBar := bars.Get(0);
           FMouseMoveData.CurrentBar:= currentBar;
           FMouseMoveData.CurrentBarOriginalStartTime:= currentBar.StartTime;
           FMouseMoveData.CurrentBarOriginalEndTime:= currentBar.EndTime;

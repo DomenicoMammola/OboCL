@@ -55,6 +55,7 @@ begin
     exit
   else
   begin
+    {$IFDEF FPC}
     if aFont.Size = 0 then
     begin
       // http://forum.lazarus.freepascal.org/index.php?topic=39283.0
@@ -63,6 +64,9 @@ begin
     end
     else
       aFont.Height := ScaleForDPI(trunc(aFont.Height * _MagnificationFactor));
+    {$ELSE}
+    aFont.Height := ScaleForDPI(trunc(aFont.Height * _MagnificationFactor));
+    {$ENDIF}
   end;
 end;
 

@@ -13,6 +13,8 @@ unit mTimeruler;
   {$MODE DELPHI}
 {$ENDIF}
 
+{$I mDefines.inc}
+
 interface
 
 uses
@@ -27,6 +29,8 @@ uses
   LResources,
   LMessages,
   {$IFDEF DEBUG}LazLogger,{$ENDIF}
+  {$ELSE}
+  Types,
   {$ENDIF}
 
   mDateTimeUtility,
@@ -138,7 +142,7 @@ end;
 {$ifdef fpc}
 procedure TmTimeruler.CMMouseWheel(var Message: TLMMouseEvent);
 {$else}
-procedure TmTimeruler.WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
+procedure TmTimeruler.WMMouseWheel(var Message: TWMMouseWheel); //message WM_MOUSEWHEEL;
 {$endif}
 var
   ScrollCount, ScrollLines: integer;
@@ -303,7 +307,7 @@ end;
 constructor TmTimeruler.Create(AOwner: TComponent);
 begin
   inherited;
-  ControlStyle:= ControlStyle + [csOpaque] - [csTripleClicks];
+  ControlStyle:= ControlStyle + [csOpaque] {$ifdef fpc} - [csTripleClicks]{$endif};
 
   FDoubleBufferedBitmap := Graphics.TBitmap.Create;
   {$ifdef fpc}

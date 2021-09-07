@@ -13,11 +13,17 @@ unit mGanttHintWindow;
   {$MODE DELPHI}
 {$ENDIF}
 
+{$I mDefines.inc}
+
 interface
 
 uses
   Classes, ExtCtrls, Forms, Controls,
-  StdCtrls, Graphics;
+  StdCtrls, Graphics
+  {$IFDEF DELPHI}
+  ,Types
+  {$ENDIF}
+  ;
 
 const
   INT_GANTT_HINT_SCREEN_SPACING = 10;
@@ -70,11 +76,13 @@ begin
   curParent := aParent;
   while Assigned(curParent) and (not (curParent is TCustomForm)) do
     curParent := curParent.Parent;
+  {$IFDEF FPC}
   if Assigned(curParent) then
   begin
     if _HintForm.Monitor.MonitorNum <> (curParent as TCustomForm).Monitor.MonitorNum then
       _HintForm.MakeFullyVisible((curParent as TCustomForm).Monitor);
   end;
+  {$ENDIF}
 
   pt := aParent.ClientToScreen(TPoint.Create(x, y));
   if pt.x + _HintForm.Width > Screen.Width then
@@ -110,15 +118,19 @@ Var
   NoValue :TCloseAction;
 begin
   NoValue := caNone;
+  {$IFDEF FPC}
   if Assigned(OnClose) then
      OnClose(Self, NoValue);
-    Hide;
+  {$ENDIF}
+  Hide;
 end;
 
 constructor TmGanttHintForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  {$IFDEF FPC}
   BorderStyle := bsNone;
+  {$ENDIF}
 
   Width := ScaleForMagnification(INT_GANTT_HINT_FORM_WIDTH, true);
   Height := ScaleForMagnification(INT_GANTT_HINT_FORM_HEIGHT, true);

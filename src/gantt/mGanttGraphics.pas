@@ -17,7 +17,7 @@ interface
 
 uses
   Classes,
-  {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$endif}
+  {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$else}Types,{$endif}
   Graphics, mGanttDataProvider
   ;
 
@@ -49,6 +49,16 @@ begin
 end;
 {$endif}
 
+procedure DrawLine(aCanvas: TCanvas; aX, aY, aX2, aY2 : integer);
+begin
+  {$ifdef fpc}
+    aCanvas.Line(aX, aY, aX2, aY2);
+  {$else}
+    aCanvas.MoveTo(aX, aY);
+    aCanvas.LineTo(aX2, aY2);
+  {$endif}
+end;
+
 procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
   procedure DrawBox(ACanvas: TCanvas; const ARect: TRect);
   var
@@ -56,9 +66,9 @@ procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: strin
   begin
     ACanvas.FillRect(ARect);
     ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
-    ACanvas.Line(ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
+    DrawLine(ACanvas, ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
     lack := (ARect.Top - ARect.Bottom) div 4;
-    ACanvas.Line(ARect.Left, ARect.Bottom + lack, ARect.Left, ARect.Top - lack);
+    DrawLine(ACanvas, ARect.Left, ARect.Bottom + lack, ARect.Left, ARect.Top - lack);
   end;
 var
   BoxRect : TRect;
@@ -76,11 +86,11 @@ procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string;
   begin
     ACanvas.FillRect(ARect);
     ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
-    ACanvas.Line(ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
-    ACanvas.Line(ARect.Left, ARect.Bottom, ARect.Left, ARect.Top);
-    ACanvas.Line(ARect.Right-1, ARect.Bottom, ARect.Right-1, ARect.Top);
+    DrawLine(ACanvas, ARect.Left, ARect.Bottom-1, ARect.Right, ARect.Bottom-1);
+    DrawLine(ACanvas, ARect.Left, ARect.Bottom, ARect.Left, ARect.Top);
+    DrawLine(ACanvas, ARect.Right-1, ARect.Bottom, ARect.Right-1, ARect.Top);
     if AIsFirst then
-      ACanvas.Line(ARect.Left, ARect.Top, ARect.Right, ARect.Top);
+      DrawLine(ACanvas, ARect.Left, ARect.Top, ARect.Right, ARect.Top);
   end;
 var
   BoxRect : TRect;

@@ -13,6 +13,8 @@ unit mGantt;
   {$MODE DELPHI}
 {$ENDIF}
 
+{$I mDefines.inc}
+
 interface
 
 uses
@@ -24,6 +26,8 @@ uses
   LclProc,
   LResources,
   LMessages,
+  {$ELSE}
+  Types,
   {$ENDIF}
   {$IFDEF WINDOWS}Windows,{$ENDIF}
   mTimeruler, mGanttDataProvider, mGanttHead, mGanttGUIClasses;
@@ -340,10 +344,10 @@ begin
     if (Y >= 0) and ( Y <= tempHeight) then
     begin
       FMouseMoveData.RowIndex := Y  div FHead.RowHeight;
-      {$IFDEF DEBUG}
+      {$IFDEF FPC}{$IFDEF DEBUG}
       DebugLn('Y:' + IntToStr(Y));
       DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
-      {$ENDIF}
+      {$ENDIF}{$ENDIF}
     end;
 
     if FMouseMoveData.RowIndex < FHead.DataProvider.RowCount then
@@ -366,9 +370,9 @@ begin
             FMouseMoveData.MouseOnBarDelimiter:= true;
             FMouseMoveData.MouseOnBar:= false;
           end;
-          {$IFDEF DEBUG}
+          {$IFDEF FPC}{$IFDEF DEBUG}
           DebugLn('Click on bar');
-          {$ENDIF}
+          {$ENDIF}{$ENDIF}
         end;
       finally
         bars.Free;

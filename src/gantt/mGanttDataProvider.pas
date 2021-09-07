@@ -16,7 +16,7 @@ unit mGanttDataProvider;
 interface
 
 uses
-  contnrs, Graphics, Classes,
+  contnrs, Graphics, Classes, Types,
   mGanttEvents;
 
 type

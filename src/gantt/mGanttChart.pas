@@ -32,7 +32,7 @@ type
     FTimeruler : TmTimeruler;
     FGantt : TmGantt;
     FGanttHead : TmGanttHead;
-    FRightPanel : TCustomPanel;
+    FRightPanel : TPanel;
     FHorizontalScrollbar : TATScrollbar;
     FVerticalScrollbar : TATScrollbar;
     FHorizontalScrollbarRelativeIncrement : double;
@@ -66,9 +66,9 @@ procedure TmGanttChart.OnChangeHorizonalScrollbar(Sender: TObject);
 begin
   FTimeruler.OnDateChanged:= nil;
   try
-    {$IFDEF DEBUG}
+    {$IFDEF FPC}{$IFDEF DEBUG}
     DebugLn('OnChangeHorizontalScrollbar - position:' + IntToStr((Sender as TATScrollbar).Position));
-    {$ENDIF}
+    {$ENDIF}{$ENDIF}
     FTimeRuler.CurrentDate:= FTimeruler.MinDate + (Sender as TATScrollbar).Position * FHorizontalScrollbarRelativeIncrement;
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;

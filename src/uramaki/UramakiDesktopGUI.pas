@@ -18,7 +18,7 @@ interface
 uses
   Controls, Classes, StdCtrls, ExtCtrls, contnrs, Forms,
   Graphics, Menus, Dialogs,
-  oMultiPanelSetup, OMultiPanel,
+  OMultiPanel,
   ATTabs,
   UramakiDesktopLayout, UramakiDesktopPanelConfigForm, PilePanel;
 
@@ -161,8 +161,8 @@ begin
   FTabs.Height:= ScaleForMagnification(24, true);
   FTabs.OptTabHeight:= ScaleForMagnification(18, true);
   FTabs.OptTabWidthNormal:= ScaleForMagnification(200, true);
-  FTabs.ColorBg:= clMenu;
-  FTabs.ColorFont:= clInfoText;
+  FTabs.ColorBg:= clLtGray;
+  FTabs.ColorFont:= clCaptionText;
   FTabs.OptMouseDragEnabled:= false; //enable drag-drop
   FTabs.OptMouseDragOutEnabled:= false; //also enable drag-drop to another controls
   FTabs.OptShowArrowsNear:= false;
@@ -171,7 +171,9 @@ begin
   FTabs.OptButtonLayout:= '';
   FTabs.OptShowFlat:= false;
   FTabs.OptSpaceSide := 0;
-   // FTabs.OptShowAngled:= true;
+  //FTabs.OptShowAngled:= true;
+  FTabs.OptFillWidth:= true;
+  FTabs.OptFillWidthLastToo:= true;
   FTabs.OptSpaceBetweenTabs:= 5;
   FTabs.OptActiveFontStyle:= [fsBold];
   FTabs.OptActiveFontStyleUsed:= true;

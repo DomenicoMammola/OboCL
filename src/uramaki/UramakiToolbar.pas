@@ -200,7 +200,6 @@ constructor TUramakiToolbar.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
   FPanel := TPanel.Create(TheOwner);
-  //FPanel.Parent := TheOwner;
   FPanel.Align:= alTop;
   FToolbar := TATFlatToolbar.Create(FPanel);
   FToolbar.Parent := FPanel;
@@ -210,7 +209,6 @@ begin
   FPanel.Height:= 34;
   FToolbar.Align:= alTop;
   FToolbar.Height:= 32;
-  //FToolbar.Images := aImageList;
   FToolbar.ShowHint:= true;
   FGarbage:= TObjectList.Create(true);
 end;
@@ -242,6 +240,7 @@ begin
   Result.ATButton := FToolbar.Buttons[FToolbar.ButtonCount - 1];
   Result.ATButton.Kind:= abuTextOnly;
   Result.ATButton.Images := FToolbar.Images;
+  Result.ATButton.Theme.EnableColorBgOver := true;
 end;
 
 function TUramakiToolbar.AddDropDownButton (aMenu: TPopupMenu): TUramakiToolbarItem;
@@ -250,8 +249,9 @@ begin
   FGarbage.Add(Result);
   FToolbar.AddDropdown(0, aMenu);
   Result.ATButton := FToolbar.Buttons[FToolbar.ButtonCount - 1];
-  Result.ATButton.Kind:= abuTextChoice; // abuTextArrow;
+  Result.ATButton.Kind:= abuTextChoice;
   Result.ATButton.Images := FToolbar.Images;
+  Result.ATButton.Theme.EnableColorBgOver := true;
 end;
 
 procedure TUramakiToolbar.AddSeparator;

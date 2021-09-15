@@ -36,6 +36,7 @@ resourcestring
   SMissingValuesWarning = 'Something is wrong, some mandatory values are missing:';
   SDefaultCaption = 'Edit values';
   SErrorNotADate = 'Not a date.';
+  SErrorNotADateTime = 'Not a date + time.';
   SErrorNotANumber = 'Not a number.';
   SErrorNotAColor = 'Not a color.';
   SErrorNotATime = 'Not a time.';
@@ -49,7 +50,7 @@ resourcestring
 type
 
   TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog, ekLookupInstantQuery, ekLookupInstantQueryPlusWizard);
-  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth, dtColor);
+  TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth, dtColor, dtDateTime);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
   TmEditingPanel = class;
@@ -163,6 +164,7 @@ type
     function GetValueFromMemo (const aName : string; const aTrimValue : boolean) : string;
     procedure CheckDate (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckTime (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
+    procedure CheckDateTime (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckInteger (const aOldStringValue : string; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckYear(const aOldStringValue : string; const aDataType: TmEditorLineDataType; const aDistanceInMonths : integer; var aNewStringValue : string; var aActualValue : variant);
     procedure CheckMonth(const aOldStringValue : string; const aDataType: TmEditorLineDataType; var aNewStringValue : string; var aActualValue : variant);
@@ -618,6 +620,8 @@ begin
       CheckDate (OldValue, NewValue, curLine.ActualValue)
     else if curLine.Configuration.DataType = dtTime then
       CheckTime (OldValue, NewValue, curLine.ActualValue)
+    else if curLine.Configuration.DataType = dtDateTime then
+      CheckDateTime (OldValue, NewValue, curLine.ActualValue)
     else if curLine.Configuration.DataType = dtInteger then
       CheckInteger (OldValue, NewValue, curLine.ActualValue)
     else if (curLine.Configuration.DataType = dtFloat) then
@@ -1098,6 +1102,8 @@ begin
     end
     else if (curLine.Configuration.DataType = dtDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
+    else if (curLine.Configuration.DataType = dtDateTime) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
+      str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(true)
     else if (curLine.Configuration.DataType = dtColor) then
       str := (curLine.Configuration.ChangedValueDestination as TNullableColor).AsString
     else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
@@ -1274,6 +1280,56 @@ begin
   end
   else
     aActualValue:= null;
+end;
+
+procedure TmEditingPanel.CheckDateTime(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant);
+var
+  vDate, vTime : TDateTime;
+  i : integer;
+  dateString, timeString : String;
+begin
+  vDate := 0;
+  if aNewStringValue <> '' then
+  begin
+    dateString := aNewStringValue;
+    timeString := '';
+
+    i := Pos(' ', aNewStringValue);
+    if i > 0 then
+    begin
+      dateString:= Trim(Copy(aNewStringValue, 1, i));
+      timeString:= Trim(Copy(aNewStringValue, i, 999));
+    end;
+
+    if TryToUnderstandDateString(dateString, vDate) then
+    begin
+      if timeString <> '' then
+      begin
+        if TryToUnderstandTimeString(timeString, vTime) then
+        begin
+          aNewStringValue:= DateToStr(vDate) + ' ' + TimeToStr(vTime);
+          aActualValue := vDate + vTime;
+        end
+        else
+        begin
+          aNewStringValue := aOldStringValue;
+          TmToast.ShowText(SErrorNotADateTime);
+        end;
+      end
+      else
+      begin
+        aNewStringValue := DateToStr(vDate);
+        aActualValue := vDate;
+      end;
+    end
+    else
+    begin
+      aNewStringValue := aOldStringValue;
+      TmToast.ShowText(SErrorNotADateTime);
+    end;
+  end
+  else
+    aActualValue := null;
 end;
 
 procedure TmEditingPanel.CheckInteger(const aOldStringValue: string; var aNewStringValue: string; var aActualValue: variant);

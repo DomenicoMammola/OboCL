@@ -16,12 +16,14 @@ type
   TTestDataProvider = class (TmGanttDataProvider)
   private
     FBars : TObjectList;
+    FHatches : TObjectList;
   public
     constructor Create; override;
     destructor Destroy; override;
 
     function RowCount : integer; override;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
+    procedure GetHatches (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aHatches : TmGanttHatchDataList); override;
   end;
 
   { TForm1 }
@@ -77,11 +79,13 @@ begin
     tmp.Color:= GenerateRandomColor;
     tmpList.Add(tmp);
   end;
+  FHatches := TObjectList.Create(true);
 end;
 
 destructor TTestDataProvider.Destroy;
 begin
   FBars.Free;
+  FHatches.Free;
   inherited Destroy;
 end;
 
@@ -111,6 +115,35 @@ begin
         ' aStartDate:' + DateTimeToStr(aStartDate) + ' aEndDate:' + DateTimeToStr(aEndDate));
       {$ENDIF}
     end;
+  end;
+end;
+
+procedure TTestDataProvider.GetHatches(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aHatches: TmGanttHatchDataList);
+var
+  dow : word;
+  sd, ed, i : integer;
+  monday : integer;
+  htc : TmGanttHatchDatum;
+begin
+  FHatches.Clear;
+  dow := DayOfTheWeek(aStartDate);
+  sd := trunc(aStartDate);
+  ed := trunc(aEndDate);
+
+  if (dow = 1) then
+    monday := sd
+  else
+    monday := sd + (8 - dow);
+
+  while monday <= ed do
+  begin
+    htc := TmGanttHatchDatum.Create;
+    FHatches.Add(htc);
+    aHatches.Add(htc);
+    htc.StartTime:= monday;
+    htc.EndTime:= EndOfTheDay(monday);
+    htc.Color:= clRed;
+    monday := monday + 7;
   end;
 end;
 

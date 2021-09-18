@@ -24,6 +24,7 @@ uses
 procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
 procedure DrawBar(ACanvas: TCanvas; aBar : TmGanttBarDatum);
+procedure DrawHatch(ACanvas: TCanvas; aHatch : TmGanttHatchDatum);
 {$ifdef fpc}
 function IsDoubleBufferedNeeded: boolean;
 {$endif}
@@ -32,15 +33,40 @@ function IsDoubleBufferedNeeded: boolean;
 implementation
 
 uses
-  mGraphicsUtility, SysUtils, Math {$IFDEF WINDOWS},Windows{$ENDIF};
+  SysUtils {$IFDEF WINDOWS},Windows{$ENDIF}
+  , mGraphicsUtility;
+
+var
+  DottedBrush : HBrush;
 
 procedure DrawBar(ACanvas: TCanvas; aBar: TmGanttBarDatum);
 begin
+  ACanvas.Pen.Style:= psSolid;
   ACanvas.Brush.Color:= aBar.Color;
+  ACanvas.Brush.Style:= bsSolid;
   ACanvas.FillRect(aBar.BarRect);
   ACanvas.Pen.Color:= aBar.BorderColor;
   ACanvas.Rectangle(aBar.BarRect.Left, aBar.BarRect.Top, aBar.BarRect.Right, aBar.BarRect.Bottom);
 end;
+
+procedure DrawHatch(ACanvas: TCanvas; aHatch: TmGanttHatchDatum);
+const
+  Bits: array[0..5] of Word = (0, 0, 9, 0, 0 , 9);
+var
+  tmpBitmap: HBitmap;
+begin
+  if DottedBrush = 0 then
+  begin
+    tmpBitmap := CreateBitmap(6, 6, 1, 1, @Bits);
+    DottedBrush := CreatePatternBrush(tmpBitmap);
+    DeleteObject(tmpBitmap);
+  end;
+
+  ACanvas.Font.Color := clWhite;
+  ACanvas.Brush.Color := aHatch.Color;
+  FillRect(ACanvas.Handle, aHatch.HatchRect, DottedBrush);
+end;
+
 
 {$ifdef fpc}
 function IsDoubleBufferedNeeded: boolean;
@@ -101,5 +127,8 @@ begin
   WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
 end;
 
+finalization
+  if DottedBrush <> 0 then
+    DeleteObject(DottedBrush);
 
 end.

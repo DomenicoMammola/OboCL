@@ -85,11 +85,13 @@ type
     procedure PaintVerticalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure PaintHorizontalLines (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure PaintBars (aCanvas : TCanvas; const aDrawingRect : TRect);
+    procedure PaintHatches (aCanvas : TCanvas; const aDrawingRect : TRect);
     procedure SetTopRow(AValue: integer);
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
     procedure DoForEveryRow(aCanvas: TCanvas; const aDrawingRect : TRect; aDrawingAction : TmGanttRowDrawingAction);
     procedure DrawRowBottomLine(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
     procedure DrawRowBars(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
+    procedure DrawHatches(aCanvas : TCanvas; const aDrawingRect : TRect; const aRowIndex : integer);
     procedure SaveMouseMoveData(X, Y: integer);
     procedure NotifyBarsChanged(const AMustInvalidateGantt : boolean);
   protected
@@ -242,6 +244,13 @@ begin
   DoForEveryRow(aCanvas, aDrawingRect, DrawRowBars);
 end;
 
+procedure TmGantt.PaintHatches(aCanvas: TCanvas; const aDrawingRect: TRect);
+begin
+  FCurrentDrawingStartDate := FTimeRuler.MainTimeline.Scale.TruncDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Left));
+  FCurrentDrawingEndDate := FTimeRuler.MainTimeline.Scale.CeilDate(FTimeRuler.PixelsToDateTime(aDrawingRect.Right));
+  DoForEveryRow(aCanvas, aDrawingRect, DrawHatches);
+end;
+
 procedure TmGantt.SetTopRow(AValue: integer);
 begin
   if FTopRow = AValue then Exit;
@@ -257,6 +266,8 @@ begin
     aCanvas.Brush.Color := Self.Color;
     aCanvas.Brush.Style := bsSolid;
     aCanvas.FillRect(aRect);
+
+    PaintHatches(aCanvas, aRect);
 
     PaintVerticalLines(aCanvas, aRect);
     PaintHorizontalLines(aCanvas, aRect);
@@ -320,6 +331,36 @@ begin
     end;
   finally
     bars.Free;
+  end;
+end;
+
+procedure TmGantt.DrawHatches(aCanvas: TCanvas; const aDrawingRect: TRect; const aRowIndex: integer);
+var
+  hatches : TmGanttHatchDataList;
+  i : integer;
+  currentHatch : TmGanttHatchDatum;
+  curRect : TRect;
+begin
+  if not Assigned(FHead) then
+    exit;
+  if not Assigned(FHead.DataProvider) then
+    exit;
+
+  hatches := TmGanttHatchDataList.Create;
+  try
+    FHead.DataProvider.GetHatches(aRowIndex, FCurrentDrawingStartDate, FCurrentDrawingEndDate, hatches);
+    for i := 0 to hatches.Count -1 do
+    begin
+      currentHatch := hatches.Get(i);
+      curRect.Left := FTimeRuler.DateTimeToPixels(currentHatch.StartTime);
+      curRect.Right := FTimeRuler.DateTimeToPixels(currentHatch.EndTime);
+      curRect.Top := aDrawingRect.Top;
+      curRect.Bottom := aDrawingRect.Bottom;
+      currentHatch.HatchRect := curRect;
+      DrawHatch(aCanvas, currentHatch);
+    end;
+  finally
+    hatches.Free;
   end;
 end;
 

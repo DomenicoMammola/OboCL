@@ -133,8 +133,8 @@
       <Filename Value="SampleGantt"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="$(ProjOutDir);../../../thirdparties/Mommon/src"/>
-      <OtherUnitFiles Value="../../../src;../../../src/gantt;../../../thirdparties/Mommon/src;../../../thirdparties/ATFlatControls/atflatcontrols"/>
+      <IncludeFiles Value="$(ProjOutDir);../../../../thirdparties/Mommon/src"/>
+      <OtherUnitFiles Value="../../../../src;..;../../../../src/gantt;../../../../thirdparties/Mommon/src;../../../../thirdparties/ATFlatControls/atflatcontrols"/>
       <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <CodeGeneration>

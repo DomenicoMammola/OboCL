@@ -17,9 +17,10 @@ interface
 
 uses
   Classes,
-  {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$else}Types,{$endif}
-  Graphics, mGanttDataProvider
-  ;
+  {$ifdef fpc}LCLIntf, LCLType, LCLProc, InterfaceBase,{$else}Types, WinTypes, WinProcs,{$endif}
+  {$ifdef windows}Windows,{$endif}
+  Graphics,
+  mGanttDataProvider;
 
 procedure DrawBucketBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
 procedure DrawHeadBox(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const AIsFirst : boolean);
@@ -33,8 +34,8 @@ function IsDoubleBufferedNeeded: boolean;
 implementation
 
 uses
-  SysUtils {$IFDEF WINDOWS},Windows{$ENDIF}
-  , mGraphicsUtility;
+  SysUtils,
+  mGraphicsUtility;
 
 var
   DottedBrush : HBrush;
@@ -126,6 +127,8 @@ begin
   InflateRect(BoxRect, -2, -2);
   WriteText(ACanvas, BoxRect, AText, ATextAlignment, true);
 end;
+
+initialization
 
 finalization
   if DottedBrush <> 0 then

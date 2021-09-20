@@ -390,6 +390,15 @@ begin
   FTabs.AddTab(TAB_INFO_INDEX,  tabCaption, nil, false, clr);
   FNotebook.Pages.Add(rsInfoTabCaption);
   AddListBoxOperations(TAB_INFO_INDEX, aLog.Infos);
+
+  if aLog.Results.Count > 0 then
+    FTabs.TabIndex:= TAB_RESULT_INDEX
+  else if aLog.Errors.Count > 0 then
+    FTabs.TabIndex:= TAB_ERROR_INDEX
+  else if aLog.Warnings.Count > 0 then
+    FTabs.TabIndex:= TAB_WARNING_INDEX
+  else
+    FTabs.TabIndex:= TAB_SUMMARY_INDEX;
 end;
 
 procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TStrings);

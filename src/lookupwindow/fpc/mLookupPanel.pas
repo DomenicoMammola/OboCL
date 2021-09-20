@@ -57,7 +57,8 @@ type
 implementation
 
 uses
-  SysUtils, Math, LCLType;
+  SysUtils, Math, LCLType,
+  mUtility;
 
 type
   TResultValues = class
@@ -129,9 +130,9 @@ begin
     flex := (Self.Width - 30) / eqWidth;
     LValues.BeginUpdate;
     try
-      for i := 0 to LValues.Columns.Count -1 do
+      for i := 1 to LValues.Columns.Count -1 do
       begin
-        fn := FFieldsList.Strings[i];
+        fn := FFieldsList.Strings[i - 1];
         curFieldDef := FFieldDefs.FindByName(fn);
         if Assigned(curFieldDef) then
         begin
@@ -155,17 +156,6 @@ begin
     finally
       LValues.EndUpdate;
     end;
-
-    (*
-    ColWidth := (Self.Width - 30) div FFieldsList.Count;
-    LValues.BeginUpdate;
-    try
-      for i := 0 to LValues.Columns.Count -1 do
-        LValues.Columns[i].Width:= ColWidth;
-    finally
-      LValues.EndUpdate;
-    end;
-    *)
   end;
 end;
 
@@ -227,7 +217,7 @@ end;
 
 procedure TmLookupPanel.Init(const aDataProvider : IVDDataProvider;  const aFieldNames : TStringList; const aKeyFieldName : string; const aDisplayFieldNames : TStringList);
 var
-  k, i : integer;
+  k, i, numOfDigits : integer;
   ptr : UIntPtr;
   col : TListColumn;
   item : TListItem;
@@ -253,6 +243,12 @@ begin
     else
       FDataProvider.GetMinimumFields(FFieldsList);
 
+    numOfDigits := Length(IntToStr(FDataProvider.Count));
+
+    col := LValues.Columns.Add;
+    col.Caption:= '#';
+    col.Width:= 1;
+
     for i := 0 to FFieldsList.Count -1 do
     begin
       col := LValues.Columns.Add;
@@ -267,6 +263,8 @@ begin
       item.Data:= pointer(ptr);
       ptr := ptr + 1;
 
+      item.Caption := AddZerosFront(i + 1, numOfDigits);
+
       for k := 0 to FFieldsList.Count - 1 do
       begin
         curDatum := FDataProvider.GetDatum(i);
@@ -276,10 +274,10 @@ begin
           str := ''
         else
           str := VarToStr(curValue);
-        if k = 0 then
-          item.Caption:= str
-        else
-          item.SubItems.Add(str);
+        //if k = 0 then
+        //  item.Caption:= str
+        //else
+        item.SubItems.Add(str);
       end;
     end;
   finally

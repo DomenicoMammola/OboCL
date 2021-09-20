@@ -24,6 +24,7 @@ type
     function RowCount : integer; override;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
     procedure GetHatches (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aHatches : TmGanttHatchDataList); override;
+    function GetHeadText (const aRowIndex : integer): String; override;
   end;
 
 
@@ -124,6 +125,11 @@ begin
     htc.Color:= clRed;
     monday := monday + 7;
   end;
+end;
+
+function TTestDataProvider.GetHeadText(const aRowIndex: integer): String;
+begin
+  Result:= 'Resource #' + IntToStr(aRowIndex);
 end;
 
 

@@ -127,7 +127,7 @@ begin
         //if RowRect.Top = RowRect.Bottom then
         //  continue;
 
-        DrawHeadBox(ACanvas, RowRect, IntToStr(CurrentRow), taCenter, isFirst);
+        DrawHeadBox(ACanvas, RowRect, FDataProvider.GetHeadText(CurrentRow), taCenter, isFirst);
         isFirst:= false;
 
         RowRect.Top := RowRect.Bottom;

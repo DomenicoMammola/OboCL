@@ -7,7 +7,7 @@ unit SimpleGantt;
 interface
 
 uses
-  contnrs,
+  contnrs, Classes,
   mGanttDataProvider;
 
 type
@@ -16,12 +16,14 @@ type
   TTestDataProvider = class (TmGanttDataProvider)
   private
     FBars : TObjectList;
+    FRows : TStringList;
   public
     constructor Create; override;
     destructor Destroy; override;
 
     function RowCount : integer; override;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
+    function GetHeadText (const aRowIndex : integer): String; override;
   end;
 
 
@@ -43,6 +45,7 @@ uses
   begin
     inherited;
     FBars := TObjectList.Create(true);
+    FRows := TStringList.Create;
     for i := 0 to 1500 do
     begin
       tmpList := TObjectList.Create(true);
@@ -67,12 +70,15 @@ uses
       tmp.EndTime:= tmp.StartTime + (Random(200) / 10);
       tmp.Color:= GenerateRandomColor;
       tmpList.Add(tmp);
+
+      FRows.Add(IntToStr(i));
     end;
   end;
 
   destructor TTestDataProvider.Destroy;
   begin
     FBars.Free;
+    FRows.Free;
     inherited Destroy;
   end;
 
@@ -104,5 +110,10 @@ uses
       end;
     end;
   end;
+
+  function TTestDataProvider.GetHeadText(const aRowIndex: integer): String;
+begin
+  Result:= FRows.Strings[aRowIndex];
+end;
 
 end.

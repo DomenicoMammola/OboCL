@@ -105,6 +105,7 @@ type
     function RowCount : integer; virtual; abstract;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); virtual; abstract;
     procedure GetHatches (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aHatches : TmGanttHatchDataList); virtual;
+    function GetHeadText (const aRowIndex : integer): String; virtual;
     function SubscribeToEvents(SubscriberClass: TmGanttDataProviderEventsSubscriptionClass) : TmGanttDataProviderEventsSubscription;
     procedure UnsubscribeFromEvents(Subscription: TmGanttDataProviderEventsSubscription);
   end;
@@ -217,6 +218,11 @@ end;
 procedure TmGanttDataProvider.GetHatches(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aHatches: TmGanttHatchDataList);
 begin
   // do nothing
+end;
+
+function TmGanttDataProvider.GetHeadText(const aRowIndex: integer): String;
+begin
+  Result := '';
 end;
 
 function TmGanttDataProvider.SubscribeToEvents(SubscriberClass: TmGanttDataProviderEventsSubscriptionClass): TmGanttDataProviderEventsSubscription;

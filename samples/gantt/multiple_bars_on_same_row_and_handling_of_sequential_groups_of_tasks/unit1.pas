@@ -42,12 +42,14 @@ type
     FColorExperiment1 : TColor;
     FColorExperiment2 : TColor;
     FColorExperiment3 : TColor;
+    FRows : TStringList;
   public
     constructor Create; override;
     destructor Destroy; override;
 
     function RowCount : integer; override;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
+    function GetHeadText (const aRowIndex : integer): String; override;
   end;
 
   { TForm1 }
@@ -75,6 +77,9 @@ var
 
 implementation
 
+uses
+  mUtility;
+
 { TTaskExperimentGanttBarDatum }
 
 procedure TTaskExperimentGanttBarDatum.SetMinMaxLength;
@@ -96,6 +101,19 @@ var
   dt : TDateTime;
 begin
   inherited Create;
+  FRows := TStringList.Create;
+
+  {$IFDEF FPC}
+  FRows.Add(CreateHumanReadableUniqueIdentier('en'));
+  FRows.Add(CreateHumanReadableUniqueIdentier('en'));
+  FRows.Add(CreateHumanReadableUniqueIdentier('en'));
+  {$ELSE}
+  FRows.Add('RESOURCE 1');
+  FRows.Add('RESOURCE 2');
+  FRows.Add('RESOURCE 3');
+  {$ENDIF}
+
+
   FExperiment1Bars := TObjectList.Create(true);
   FExperiment2Bars := TObjectList.Create(true);
   FExperiment3Bars := TObjectList.Create(true);
@@ -206,6 +224,7 @@ end;
 
 destructor TTestExperimentsDataProvider.Destroy;
 begin
+  FRows.Free;
   FExperiment1Bars.Free;
   FExperiment2Bars.Free;
   FExperiment3Bars.Free;
@@ -287,6 +306,11 @@ begin
     inc(i);
   end;
 
+end;
+
+function TTestExperimentsDataProvider.GetHeadText(const aRowIndex: integer): String;
+begin
+  Result:= FRows.Strings[aRowIndex];
 end;
 
 

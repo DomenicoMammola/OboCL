@@ -52,19 +52,19 @@ end;
 
 procedure DrawHatch(ACanvas: TCanvas; aHatch: TmGanttHatchDatum);
 const
-  Bits: array[0..5] of Word = (0, 0, 9, 0, 0 , 9);
+  Bits: array[0..7] of Word = ($aa, $55, $aa, $55, $aa, $55, $aa, $55);
 var
   tmpBitmap: HBitmap;
 begin
   if DottedBrush = 0 then
   begin
-    tmpBitmap := CreateBitmap(6, 6, 1, 1, @Bits);
+    tmpBitmap := CreateBitmap(8, 8, 1, 1, @Bits);
     DottedBrush := CreatePatternBrush(tmpBitmap);
     DeleteObject(tmpBitmap);
   end;
 
-  ACanvas.Font.Color := clWhite;
-  ACanvas.Brush.Color := aHatch.Color;
+  ACanvas.Font.Color := aHatch.Color;
+  ACanvas.Brush.Color := clWhite;
   FillRect(ACanvas.Handle, aHatch.HatchRect, DottedBrush);
 end;
 

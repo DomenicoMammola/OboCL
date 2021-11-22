@@ -378,20 +378,49 @@ begin
 end;
 
 procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const aInputUramakiId : string; aLivingPlateIdentifier : TGuid);
+
+  function ExplodeMenuItem (aCategories : TStringList; var aCurIndex : integer; aMenuItem : TMenuItem) : TMenuItem;
+  var
+    i : integer;
+    curCategory : String;
+  begin
+    Result := nil;
+    curCategory := aCategories.Strings[aCurIndex];
+    for i := 0 to aMenuItem.Count - 1 do
+    begin
+      if aMenuItem.Items[i].Caption = curCategory then
+      begin
+        if aCurIndex = aCategories.Count - 1 then
+          Result := aMenuItem.Items[i]
+        else
+        begin
+          inc (aCurIndex);
+          Result := ExplodeMenuItem(aCategories, aCurIndex, aMenuItem.Items[i]);
+        end;
+        break;
+      end;
+    end;
+
+    if not Assigned(Result) then
+    begin
+      Result := TMenuItem.Create(Result);
+      Result.Caption:= curCategory;
+      aMenuItem.Add(Result);
+    end;
+  end;
 var
-  i, j, k : integer;
+  i, j, k, w : integer;
   tempListOfTransformers : TUramakiTransformers;
   tempListOfPublishers : TUramakiPublishers;
   mt, mt2, mtCategory : TMenuItem;
   tmpMenuInfo : TMenuInfo;
-  tmpMenuMap : TmStringDictionary;
+  categories : TStringList;
 begin
   if not Assigned(aMenuItem) then
     exit;
 
   //aMenuItem.Clear;
 
-  tmpMenuMap := TmStringDictionary.Create();
   tempListOfTransformers := TUramakiTransformers.Create;
   tempListOfPublishers := TUramakiPublishers.Create;
   try
@@ -412,31 +441,19 @@ begin
         mt2.Tag:= PtrInt(tmpMenuInfo);
         FMenuGarbageCollector.Add(tmpMenuInfo);
 
-        mtCategory := nil;
         if tempListOfPublishers.Get(j).GetCategory <> '' then
         begin
-          if tmpMenuMap.Contains(tempListOfPublishers.Get(j).GetCategory) then
-            mtCategory := tmpMenuMap.Find(tempListOfPublishers.Get(j).GetCategory) as TMenuItem
-          else
-          begin
-            for k := 0 to aMenuItem.Count - 1 do
-            begin
-              if aMenuItem.Items[k].Caption = tempListOfPublishers.Get(j).GetCategory then
-              begin
-                mtCategory := aMenuItem.Items[k];
-                tmpMenuMap.Add(tempListOfPublishers.Get(j).GetCategory, mtCategory);
-                break;
-              end;
-            end;
+          categories := TStringList.Create;
+          try
+            categories.StrictDelimiter:= true;
+            categories.Delimiter:= TUramakiPublisher.CATEGORY_LEVELS_SEPARATOR;
+            categories.DelimitedText:= tempListOfPublishers.Get(j).GetCategory;
+            w := 0;
+            mtCategory := ExplodeMenuItem(categories, w, aMenuItem);
+            mtCategory.Add(mt2);
+          finally
+            categories.Free;
           end;
-          if not Assigned(mtCategory) then
-          begin
-            mtCategory:= TMenuItem.Create(aMenuItem);
-            mtCategory.Caption:= tempListOfPublishers.Get(j).GetCategory;
-            aMenuItem.Add(mtCategory);
-            tmpMenuMap.Add(tempListOfPublishers.Get(j).GetCategory, mtCategory);
-          end;
-          mtCategory.Add(mt2);
         end
         else
           aMenuItem.Add(mt2);
@@ -471,7 +488,6 @@ begin
   finally
     tempListOfPublishers.Free;
     tempListOfTransformers.Free;
-    tmpMenuMap.Free;
   end;
 end;
 

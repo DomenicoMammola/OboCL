@@ -83,6 +83,8 @@ type
     function GenerateStandardDescription (const aDescriptionOfSourceData, aDescriptionOfPlateData, aDescriptionOfRepresentation : string) : string; overload;
     function GenerateStandardDescription (const aDescriptionOfPlateData, aDescriptionOfRepresentation : string) : string; overload;
   public
+    const CATEGORY_LEVELS_SEPARATOR = ';';
+  public
     function GetMyId : String; virtual; abstract;
     function GetDescription : String; virtual; abstract;
     function GetCategory : String; virtual;

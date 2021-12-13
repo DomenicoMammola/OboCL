@@ -37,6 +37,8 @@ resourcestring
   SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again. Detail:';
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
+  SConfirmDiscordedFileExtCaption = 'Confirm';
+  SConfirmDiscordedFileExtMessage = 'The selected file is not a %s file. Continue anyway?';
   SWantToOpenFileMessage = 'Do you want to open the file?';
   SConfigureCommandHint = 'Configure...';
   SConfigureGridCommandHint = 'Configure grid...';
@@ -69,6 +71,7 @@ type
     FConfigurePopupMenu : TPopupMenu;
 
     function ConfirmFileOverwrite : boolean;
+    function ConfirmDiscordedFileExt (const aFileExt : String): boolean;
     procedure ExportGridToFile(aFileType : String);
 
     procedure InternalCreate(aGrid: TCustomGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
@@ -226,6 +229,11 @@ begin
   Result := MessageDlg(SConfirmFileOverwriteCaption, SConfirmFileOverwriteMessage, mtConfirmation, mbYesNo, 0) = mrYes;
 end;
 
+function TmAbstractGridHelper.ConfirmDiscordedFileExt(const aFileExt: String): boolean;
+begin
+  Result := MessageDlg(SConfirmDiscordedFileExtCaption, Format(SConfirmDiscordedFileExtMessage, [aFileExt]), mtConfirmation, mbYesNo, 0) = mrYes;
+end;
+
 procedure TmAbstractGridHelper.ExportGridToFile(aFileType: String);
 var
   fs : TFileStream;
@@ -256,6 +264,13 @@ begin
 
   if FSaveDialog.Execute then
   begin
+
+    if Uppercase(ExtractFileExt(FSaveDialog.FileName)) <> Uppercase(FSaveDialog.DefaultExt) then
+    begin
+      if not ConfirmDiscordedFileExt (FSaveDialog.DefaultExt) then
+        exit;
+    end;
+
     if FileExists(FSaveDialog.FileName) then
     begin
       if not ConfirmFileOverwrite then

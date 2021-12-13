@@ -59,6 +59,7 @@ begin
   Screen.Cursor:= crHourGlass;
   {$IFDEF LINUX}
   Application.ProcessMessages;
+  Application.ProcessMessages;
   {$ENDIF}
 end;
 

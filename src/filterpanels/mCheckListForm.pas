@@ -39,6 +39,7 @@ type
     function CountCheckedItems : integer;
     function GetSelectedLabels: string;
   public
+    procedure GetSelectedAsStrings (aList : TStringList);
     { public declarations }
     procedure AddValue (const aLabel: string; const aValue: variant);
     procedure SetCurrentValue (const aValue: variant);
@@ -127,6 +128,21 @@ begin
     begin
       Result := Result + separator + CheckListBox.Items[i];
       separator := '+';
+    end;
+  end;
+end;
+
+procedure TmCheckListWindow.GetSelectedAsStrings(aList: TStringList);
+var
+  i : integer;
+begin
+  aList.Clear;
+  if CountCheckedItems > 0 then
+  begin
+    for i := 0 to CheckListBox.Count - 1 do
+    begin
+      if CheckListBox.Checked[i] then
+        aList.Add(VarToStr((FGarbage.Items[i] as TVariantObject).Value));
     end;
   end;
 end;

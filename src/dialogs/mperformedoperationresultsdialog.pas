@@ -76,8 +76,8 @@ type
     procedure Init (const aMessage : string; const aLog : TStrings); overload;
     procedure InitWithSingleList (const aMessage : string; const aLog : TPerformedOperationResultsAsLog);
 
-    class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType); overload;
-    class procedure ShowResults(const aOwnerForm: TForm; const aMessage : string; const aLog: TStrings); overload;
+    class procedure ShowResults(const aOwner: TComponent; const aMessage : string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType); overload;
+    class procedure ShowResults(const aOwner: TComponent; const aMessage : string; const aLog: TStrings); overload;
   end;
 
 
@@ -451,11 +451,11 @@ begin
   mi.Tag:=PtrInt(lb);
 end;
 
-class procedure TPerformedOperationResultsDlg.ShowResults(const aOwnerForm: TForm; const aMessage: string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType);
+class procedure TPerformedOperationResultsDlg.ShowResults(const aOwner: TComponent; const aMessage: string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType);
 var
   Dlg : TPerformedOperationResultsDlg;
 begin
-  Dlg := TPerformedOperationResultsDlg.Create(aOwnerForm);
+  Dlg := TPerformedOperationResultsDlg.Create(aOwner);
   try
     if aDialogType = porTabbed then
       Dlg.Init(aMessage, aLog)
@@ -467,11 +467,11 @@ begin
   end;
 end;
 
-class procedure TPerformedOperationResultsDlg.ShowResults(const aOwnerForm: TForm; const aMessage: string; const aLog: TStrings);
+class procedure TPerformedOperationResultsDlg.ShowResults(const aOwner: TComponent; const aMessage: string; const aLog: TStrings);
 var
   Dlg : TPerformedOperationResultsDlg;
 begin
-  Dlg := TPerformedOperationResultsDlg.Create(aOwnerForm);
+  Dlg := TPerformedOperationResultsDlg.Create(aOwner);
   try
     Dlg.Init(aMessage, aLog);
     Dlg.ShowModal;

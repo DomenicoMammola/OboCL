@@ -48,6 +48,7 @@ begin
   end;
 
   aForm.Position:= poScreenCenter;
+  aForm.DefaultMonitor:= dmActiveForm;
   ScaleFontForMagnification(aForm.Font);
 end;
 

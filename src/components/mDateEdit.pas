@@ -43,11 +43,8 @@ type
 implementation
 
 uses
-  SysUtils, LResources
-  {$IFDEF WINDOWS}
-  ,Dialogs ,mCalendarDialog
-  {$ENDIF}
-  ;
+  SysUtils, LResources,Dialogs
+  ,mCalendarDialog;
 
 { TmDateEdit }
 
@@ -62,13 +59,10 @@ begin
 end;
 
 procedure TmDateEdit.ButtonClick;
-{$IFDEF WINDOWS}
 var
   dt : TDateTime;
   B: Boolean;
-{$ENDIF}
 begin
-  {$IFDEF WINDOWS}
   dt := Self.Date;
   if TmCalendarDialog.ExecuteDialog(rsCalendarFormCaption, dt) then
   begin
@@ -83,9 +77,6 @@ begin
         MessageDlg(E.Message, mtError, [mbOK], 0);
     end;
   end;
-  {$ELSE}
-  inherited;
-  {$ENDIF}
 end;
 
 constructor TmDateEdit.Create(AOwner: TComponent);

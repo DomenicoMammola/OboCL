@@ -306,6 +306,8 @@ begin
       doc.Free;
     end;
 
+    // Weird! This only to avoid strange random lock under Windows. Still don't know why.
+    Self.FParentControl.SetFocus;
   finally
     TWaitCursor.UndoWaitCursor('TUramakiDesktopManager.LoadFromStream');
   end;

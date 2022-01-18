@@ -19,6 +19,9 @@ uses
   Classes, EditBtn, Graphics,
   mUtility;
 
+resourcestring
+  rsCalendarFormCaption = 'Select a date';
+
 type
 
   { TmDateEdit }
@@ -30,6 +33,7 @@ type
     procedure OnInternalCustomDate (Sender : TObject; var ADate : string);
   protected
     property OnCustomDate; // hide the original event
+    procedure ButtonClick; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -39,7 +43,11 @@ type
 implementation
 
 uses
-  SysUtils, LResources;
+  SysUtils, LResources
+  {$IFDEF WINDOWS}
+  ,Dialogs ,mCalendarDialog
+  {$ENDIF}
+  ;
 
 { TmDateEdit }
 
@@ -51,6 +59,33 @@ begin
     ADate:= DateToStr(tmpDate);
   if Assigned(OnExtCustomDate) then
     OnExtCustomDate(Sender, ADate);
+end;
+
+procedure TmDateEdit.ButtonClick;
+{$IFDEF WINDOWS}
+var
+  dt : TDateTime;
+  B: Boolean;
+{$ENDIF}
+begin
+  {$IFDEF WINDOWS}
+  dt := Self.Date;
+  if TmCalendarDialog.ExecuteDialog(rsCalendarFormCaption, dt) then
+  begin
+    try
+      B := True;
+      if Assigned(OnAcceptDate) then
+        OnAcceptDate(Self, dt, B);
+      if B then
+        Self.Date := dt;
+    except
+      on E:Exception do
+        MessageDlg(E.Message, mtError, [mbOK], 0);
+    end;
+  end;
+  {$ELSE}
+  inherited;
+  {$ENDIF}
 end;
 
 constructor TmDateEdit.Create(AOwner: TComponent);

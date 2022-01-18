@@ -4,13 +4,14 @@ object mCalendarForm: TmCalendarForm
   Top = 287
   Width = 237
   AutoSize = True
+  BorderIcons = []
   BorderStyle = bsDialog
   Caption = 'Choose a date'
   ClientHeight = 203
   ClientWidth = 237
   OnShow = FormShow
-  Position = poMainFormCenter
-  LCLVersion = '1.6.4.0'
+  Position = poOwnerFormCenter
+  LCLVersion = '2.2.0.4'
   object Calendar: TCalendar
     AnchorSideLeft.Control = Owner
     AnchorSideTop.Control = Owner
@@ -47,6 +48,7 @@ object mCalendarForm: TmCalendarForm
     CloseButton.DefaultCaption = True
     CancelButton.Name = 'CancelButton'
     CancelButton.DefaultCaption = True
+    ButtonOrder = boCloseOKCancel
     TabOrder = 1
     ShowButtons = [pbOK, pbCancel]
     ShowBevel = False

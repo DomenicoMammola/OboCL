@@ -33,7 +33,6 @@ type
     procedure OnInternalCustomDate (Sender : TObject; var ADate : string);
   protected
     property OnCustomDate; // hide the original event
-    procedure ButtonClick; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -43,8 +42,7 @@ type
 implementation
 
 uses
-  SysUtils, LResources,Dialogs
-  ,mCalendarDialog;
+  SysUtils, LResources;
 
 { TmDateEdit }
 
@@ -56,27 +54,6 @@ begin
     ADate:= DateToStr(tmpDate);
   if Assigned(OnExtCustomDate) then
     OnExtCustomDate(Sender, ADate);
-end;
-
-procedure TmDateEdit.ButtonClick;
-var
-  dt : TDateTime;
-  B: Boolean;
-begin
-  dt := Self.Date;
-  if TmCalendarDialog.ExecuteDialog(rsCalendarFormCaption, dt) then
-  begin
-    try
-      B := True;
-      if Assigned(OnAcceptDate) then
-        OnAcceptDate(Self, dt, B);
-      if B then
-        Self.Date := dt;
-    except
-      on E:Exception do
-        MessageDlg(E.Message, mtError, [mbOK], 0);
-    end;
-  end;
 end;
 
 constructor TmDateEdit.Create(AOwner: TComponent);

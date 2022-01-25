@@ -197,6 +197,7 @@ begin
   inherited Create(AOwner);
   FNotifierForm := TmToastForm.Create(nil);
   FNotifierForm.Visible := False;
+  FNotifierForm.Position:= poOwnerFormCenter;
 
   FTimer := TTimer.Create(Self);
   FTimer.Interval:= 500;
@@ -223,7 +224,7 @@ end;
 
 procedure TmToast.ShowAtPos(x: Integer; y: Integer);
 begin
-  if x + FNotifierForm.Width > Screen.Width then
+  if x + FNotifierForm.Width > FNotifierForm.Monitor.Width then
   begin
     FNotifierForm.left := x - FNotifierForm.Width;
     if FNotifierForm.Left < 0 then FNotifierForm.Left := 0;
@@ -231,7 +232,7 @@ begin
   else
     FNotifierForm.left := x;
 
-  if y + FNotifierForm.Height > Screen.Height then
+  if y + FNotifierForm.Height > FNotifierForm.Monitor.Height then
   begin
     FNotifierForm.top := y - FNotifierForm.Height;
     if FNotifierForm.top < 0 then FNotifierForm.top := 0;
@@ -254,7 +255,7 @@ begin
   applicationToaster.FTimer.Interval:= aDuration;
   applicationToaster.Text:= aText;
   applicationToaster.FTimer.Enabled:= true;
-  applicationToaster.ShowAtPos((Screen.Width - applicationToaster.FNotifierForm.Width) div 2, Screen.Height - 200);
+  applicationToaster.ShowAtPos((applicationToaster.FNotifierForm.Monitor.Width - applicationToaster.FNotifierForm.Width) div 2, applicationToaster.FNotifierForm.Monitor.Height - 200);
 end;
 
 

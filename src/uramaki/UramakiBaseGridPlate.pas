@@ -472,9 +472,9 @@ begin
 
   itm := TMenuItem.Create(FConfigurePopupMenu);
   FConfigurePopupMenu.Items.Add(itm);
-  itm.OnClick:= FGridHelper.OnExportGridAsXls;
-  itm.Hint:= SExportGridAsXlsCommandHint;
-  itm.Caption:= SExportGridAsXlsCommandCaption;
+  itm.OnClick:= FGridHelper.OnExportGridAsXlsx;
+  itm.Hint:= SExportGridAsXlsxCommandHint;
+  itm.Caption:= SExportGridAsXlsxCommandCaption;
 
   itm := TMenuItem.Create(FConfigurePopupMenu);
   FConfigurePopupMenu.Items.Add(itm);

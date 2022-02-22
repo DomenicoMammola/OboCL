@@ -32,7 +32,7 @@ type
     constructor Create; override;
     destructor Destroy; override;
 
-    procedure ExportPivotAsXls(aStream: TStream; const aPivoter : TmPivoter);
+    procedure ExportPivotAsXlsx(aStream: TStream; const aPivoter : TmPivoter);
   end;
 
 implementation
@@ -58,7 +58,7 @@ begin
   inherited Destroy;
 end;
 
-procedure TmSpreadsheetAsPivotHelper.ExportPivotAsXls(aStream: TStream; const aPivoter : TmPivoter);
+procedure TmSpreadsheetAsPivotHelper.ExportPivotAsXlsx(aStream: TStream; const aPivoter : TmPivoter);
 var
   MyWorkbook : TsWorkbook;
   MyWorksheet : TsWorksheet;
@@ -84,7 +84,7 @@ begin
     finally
       sp.Free;
     end;
-    MyWorkbook.WriteToStream(aStream, sfExcel8);
+    MyWorkbook.WriteToStream(aStream, sfOOXML);
   finally
     MyWorkbook.Free;
   end;

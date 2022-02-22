@@ -38,13 +38,13 @@ resourcestring
   SConfigureCommandHint = 'Configure...';
   SConfigurePivotCommandHint = 'Configure pivot...';
   SConfigurePivotCommandCaption = 'Configure pivot';
-  SExportPivotAsXlsCommandHint = 'Export pivot data to Excel file (.xls)';
-  SExportPivotAsXlsCommandCaption = 'Export to Excel file (.xls)...';
+  SExportPivotAsXlsxCommandHint = 'Export pivot data to Excel file (.xlsx)';
+  SExportPivotAsXlsxCommandCaption = 'Export to Excel file (.xlsx)...';
   SConfirmFileOverwriteCaption = 'Confirm';
   SConfirmFileOverwriteMessage = 'The selected file already exists. Overwrite it?';
   SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again. Detail:';
   SWantToOpenFileMessage = 'Do you want to open the file?';
-  SExcelFileDescription = 'Excel 97-2003 files';
+  SExcelFileDescription = 'Excel files';
   SAutoAdjustColumnsMenuCaption = 'Auto-size columns';
   SAutoAdjustColumnsMenuHint = 'Set optimal width to columns';
   SPivotActionsHint = 'Pivot actions...';
@@ -72,7 +72,7 @@ type
     procedure ProcessClearChilds(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF}); message WM_USER_CLEARCHILDS;
     procedure CreateToolbar(aImageList : TImageList; aConfigureImageIndex, aRefreshChildsImageIndex, aPivotCommandsImageIndex : integer);
     procedure OnEditSettings(Sender : TObject);
-    procedure OnExportToXlsFile(Sender : TObject);
+    procedure OnExportToXlsxFile(Sender : TObject);
     procedure OnAutoAdjustColumns(Sender : TObject);
     function ConfirmFileOverwrite : boolean;
   public
@@ -178,9 +178,9 @@ begin
 
   mItm := TMenuItem.Create(FConfigurePopupMenu);
   FConfigurePopupMenu.Items.Add(mItm);
-  mItm.OnClick:= Self.OnExportToXlsFile;
-  mItm.Hint:= SExportPivotAsXlsCommandHint;
-  mItm.Caption:= SExportPivotAsXlsCommandCaption;
+  mItm.OnClick:= Self.OnExportToXlsxFile;
+  mItm.Hint:= SExportPivotAsXlsxCommandHint;
+  mItm.Caption:= SExportPivotAsXlsxCommandCaption;
 
   FToolbar.AddSeparator;
   with FToolbar.AddDropDownButton(FPivotCommandsPopupMenu) do
@@ -229,13 +229,13 @@ begin
   end;
 end;
 
-procedure TUramakiKGridAsPivotPlate.OnExportToXlsFile(Sender: TObject);
+procedure TUramakiKGridAsPivotPlate.OnExportToXlsxFile(Sender: TObject);
 var
   fs : TFileStream;
   hlp : TmSpreadsheetAsPivotHelper;
 begin
-  FSaveDialog.DefaultExt:= 'xls';
-  FSaveDialog.Filter:=SExcelFileDescription + '|*.xls';
+  FSaveDialog.DefaultExt:= 'xlsx';
+  FSaveDialog.Filter:=SExcelFileDescription + '|*.xlsx';
 
   if FSaveDialog.FileName <> '' then
     FSaveDialog.FileName := ChangeFileExt(FSaveDialog.FileName, FSaveDialog.DefaultExt);
@@ -253,12 +253,12 @@ begin
     GetLastUsedFolderForExport.Value:= ExtractFilePath(FSaveDialog.FileName);
     try
       try
-        TWaitCursor.ShowWaitCursor('OnExportToXlsFile');
+        TWaitCursor.ShowWaitCursor('OnExportToXlsxFile');
         fs := TFileStream.Create(FSaveDialog.FileName, fmCreate);
         try
           hlp := TmSpreadsheetAsPivotHelper.Create;
           try
-            hlp.ExportPivotAsXls(fs, FPivoter);
+            hlp.ExportPivotAsXlsx(fs, FPivoter);
           finally
             hlp.Free;
           end;
@@ -266,7 +266,7 @@ begin
           fs.Free;
         end;
       finally
-        TWaitCursor.UndoWaitCursor('OnExportToXlsFile');
+        TWaitCursor.UndoWaitCursor('OnExportToXlsxFile');
       end;
 
       if MessageDlg(SWantToOpenFileMessage, mtConfirmation, mbYesNo, 0) = mrYes then

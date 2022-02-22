@@ -32,7 +32,7 @@ uses
 
 resourcestring
   SCSVFileDescription = 'Comma Separated Values files';
-  SExcelFileDescription = 'Excel 97-2003 files';
+  SExcelFileDescription = 'Excel files';
   SHtmlFileDescription = 'Html files';
   SUnableToWriteFileMessage = 'Unable to write file. Check if the file is open by another application. If so, close it and run this command again. Detail:';
   SConfirmFileOverwriteCaption = 'Confirm';
@@ -49,8 +49,8 @@ resourcestring
   SConfigureCellDecorationsCommandCaption = 'Configure cell decorations';
   SExportGridAsCsvCommandHint = 'Export grid data to csv file';
   SExportGridAsCsvCommandCaption = 'Export to csv file...';
-  SExportGridAsXlsCommandHint = 'Export grid data to Excel file (.xls)';
-  SExportGridAsXlsCommandCaption = 'Export to Excel file (.xls)...';
+  SExportGridAsXlsxCommandHint = 'Export grid data to Excel file (.xlsx)';
+  SExportGridAsXlsxCommandCaption = 'Export to Excel file (.xlsx)...';
   SExportGridAsHtmlCommandHint = 'Export grid data to html file (.html)';
   SExportGridAsHtmlCommandCaption = 'Export to html file (.html)...';
 
@@ -92,8 +92,8 @@ type
 
     procedure ExportGridAsCsv (aStream : TStream);
     procedure OnExportGridAsCsv (Sender : TObject);
-    procedure ExportGridAsXls (aStream : TStream);
-    procedure OnExportGridAsXls (Sender : TObject);
+    procedure ExportGridAsXlsx (aStream : TStream);
+    procedure OnExportGridAsXlsx (Sender : TObject);
     procedure ExportGridAsHtml (aStream: TStream);
     procedure OnExportGridAsHtml (Sender : TObject);
 
@@ -244,10 +244,10 @@ begin
     FSaveDialog.Filter:=SCSVFileDescription + '|*.csv';
   end
   else
-  if aFileType = 'XLS' then
+  if aFileType = 'XLSX' then
   begin
-    FSaveDialog.DefaultExt:= 'xls';
-    FSaveDialog.Filter:=SExcelFileDescription + '|*.xls';
+    FSaveDialog.DefaultExt:= 'xlsx';
+    FSaveDialog.Filter:=SExcelFileDescription + '|*.xlsx';
   end
   else
   if aFileType = 'HTML' then
@@ -284,8 +284,8 @@ begin
         try
           if aFileType = 'CSV' then
             Self.ExportGridAsCsv(fs)
-          else if aFileType = 'XLS' then
-            Self.ExportGridAsXls(fs)
+          else if aFileType = 'XLSX' then
+            Self.ExportGridAsXlsx(fs)
           else if aFileType = 'HTML' then
             Self.ExportGridAsHtml(fs);
         finally
@@ -395,9 +395,9 @@ begin
 
   itm := TMenuItem.Create(FConfigurePopupMenu);
   FConfigurePopupMenu.Items.Add(itm);
-  itm.OnClick:= Self.OnExportGridAsXls;
-  itm.Hint:= SExportGridAsXlsCommandHint;
-  itm.Caption:= SExportGridAsXlsCommandCaption;
+  itm.OnClick:= Self.OnExportGridAsXlsx;
+  itm.Hint:= SExportGridAsXlsxCommandHint;
+  itm.Caption:= SExportGridAsXlsxCommandCaption;
 
   itm := TMenuItem.Create(FConfigurePopupMenu);
   FConfigurePopupMenu.Items.Add(itm);
@@ -717,7 +717,7 @@ end;
 
 {$IFDEF FPC}
 
-procedure TmAbstractGridHelper.ExportGridAsXls(aStream: TStream);
+procedure TmAbstractGridHelper.ExportGridAsXlsx(aStream: TStream);
 var
   MyWorkbook: TsWorkbook;
   MyWorksheet : TsWorksheet;
@@ -826,7 +826,7 @@ begin
     finally
       helper.Free;
     end;
-    MyWorkbook.WriteToStream(aStream, sfExcel8);
+    MyWorkbook.WriteToStream(aStream, sfOOXML);
   finally
     MyWorkbook.Free;
     columns.Free;
@@ -834,9 +834,9 @@ begin
   end;
 end;
 
-procedure TmAbstractGridHelper.OnExportGridAsXls(Sender : TObject);
+procedure TmAbstractGridHelper.OnExportGridAsXlsx(Sender : TObject);
 begin
-  ExportGridToFile('XLS');
+  ExportGridToFile('XLSX');
 end;
 
 procedure TmAbstractGridHelper.ExportGridAsHtml(aStream: TStream);

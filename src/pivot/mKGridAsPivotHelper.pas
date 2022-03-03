@@ -108,7 +108,7 @@ procedure TmKGridAsPivotHelper.OnKeyDown(Sender: TObject; var Key: Word; Shift: 
 begin
   if (Shift = [ssCtrl]) and (Key = VK_C) then
   begin
-    Clipboard.AsText:= FKGrid.Cells[FKGrid.Col, FKGrid.Row];
+    CopyTextToClipboard(FKGrid.Cells[FKGrid.Col, FKGrid.Row]);
   end;
 end;
 

@@ -311,15 +311,15 @@ end;
 procedure TSummaryLabel.OnCopySummaryToClipboard(Sender: TObject);
 begin
   if VarIsNull(FRawValue) then
-    Clipboard.AsText:= ''
+    CopyTextToClipboard('')
   else
   begin
     if FDataType = svtDate then
-      Clipboard.AsText:= DateToStr(FRawValue)
+      CopyTextToClipboard(DateToStr(FRawValue))
     else if FDataType = svtDateTime then
-      Clipboard.AsText:= DateTimeToStr(FRawValue)
+      CopyTextToClipboard(DateTimeToStr(FRawValue))
     else
-      Clipboard.AsText:= VarToStr(FRawValue);
+      CopyTextToClipboard(VarToStr(FRawValue));
   end;
 end;
 

@@ -242,7 +242,7 @@ begin
         sep := sLineBreak;
       end;
 
-      Clipboard.AsText:= str;
+      CopyTextToClipboard(str);
       TmToast.ShowText(rsTextCopiedMsg);
     end;
   end;

@@ -72,11 +72,11 @@ type
     procedure OnSaveToFile (Sender : TObject);
   public
     { public declarations }
-    procedure Init (const aMessage : string; const aLog : TPerformedOperationResultsAsLog); overload;
+    procedure Init (const aMessage : string; const aLog : TPerformedOperationResultsAsLog; const aIfSuccessfulShowAlwaysSummaryFirst : boolean = false); overload;
     procedure Init (const aMessage : string; const aLog : TStrings); overload;
     procedure InitWithSingleList (const aMessage : string; const aLog : TPerformedOperationResultsAsLog);
 
-    class procedure ShowResults(const aOwner: TComponent; const aMessage : string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType); overload;
+    class procedure ShowResults(const aOwner: TComponent; const aMessage : string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType; const aIfSuccessfulShowAlwaysSummaryFirst : boolean = false); overload;
     class procedure ShowResults(const aOwner: TComponent; const aMessage : string; const aLog: TStrings); overload;
   end;
 
@@ -275,7 +275,7 @@ begin
   end;
 end;
 
-procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TPerformedOperationResultsAsLog);
+procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TPerformedOperationResultsAsLog; const aIfSuccessfulShowAlwaysSummaryFirst : boolean = false);
   procedure AddMemo (aIndex : integer; aLines : TStrings);
   var
     memo : TMemo;
@@ -391,14 +391,24 @@ begin
   FNotebook.Pages.Add(rsInfoTabCaption);
   AddListBoxOperations(TAB_INFO_INDEX, aLog.Infos);
 
-  if aLog.Results.Count > 0 then
-    FTabs.TabIndex:= TAB_RESULT_INDEX
-  else if aLog.Errors.Count > 0 then
-    FTabs.TabIndex:= TAB_ERROR_INDEX
-  else if aLog.Warnings.Count > 0 then
-    FTabs.TabIndex:= TAB_WARNING_INDEX
+  if aIfSuccessfulShowAlwaysSummaryFirst then
+  begin
+    if aLog.Errors.Count > 0 then
+      FTabs.TabIndex:= TAB_ERROR_INDEX
+    else
+      FTabs.TabIndex:= TAB_SUMMARY_INDEX;
+  end
   else
-    FTabs.TabIndex:= TAB_SUMMARY_INDEX;
+  begin
+    if aLog.Results.Count > 0 then
+      FTabs.TabIndex:= TAB_RESULT_INDEX
+    else if aLog.Errors.Count > 0 then
+      FTabs.TabIndex:= TAB_ERROR_INDEX
+    else if aLog.Warnings.Count > 0 then
+      FTabs.TabIndex:= TAB_WARNING_INDEX
+    else
+      FTabs.TabIndex:= TAB_SUMMARY_INDEX;
+  end;
 end;
 
 procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog: TStrings);
@@ -451,14 +461,14 @@ begin
   mi.Tag:=PtrInt(lb);
 end;
 
-class procedure TPerformedOperationResultsDlg.ShowResults(const aOwner: TComponent; const aMessage: string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType);
+class procedure TPerformedOperationResultsDlg.ShowResults(const aOwner: TComponent; const aMessage: string; const aLog: TPerformedOperationResultsAsLog; const aDialogType: TPerformedOperationResultsDlgType; const aIfSuccessfulShowAlwaysSummaryFirst : boolean = false);
 var
   Dlg : TPerformedOperationResultsDlg;
 begin
   Dlg := TPerformedOperationResultsDlg.Create(aOwner);
   try
     if aDialogType = porTabbed then
-      Dlg.Init(aMessage, aLog)
+      Dlg.Init(aMessage, aLog, aIfSuccessfulShowAlwaysSummaryFirst)
     else if aDialogType = porSingleList then
       Dlg.InitWithSingleList(aMessage, aLog);
     Dlg.ShowModal;

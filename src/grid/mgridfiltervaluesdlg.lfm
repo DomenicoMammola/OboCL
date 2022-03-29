@@ -82,10 +82,12 @@ object FilterValuesDlg: TFilterValuesDlg
           Height = 26
           Top = 0
           Width = 240
+          OnFilterItemEx = ListFilterEditAdvancedFilterItemEx
           ButtonWidth = 23
           Align = alTop
           NumGlyphs = 1
           MaxLength = 0
+          PopupMenu = PopupMenuAdvancedSearch
           TabOrder = 0
         end
         object ListBoxToBeFiltered: TListBox
@@ -168,6 +170,22 @@ object FilterValuesDlg: TFilterValuesDlg
     object MI_ExportValues: TMenuItem
       Caption = 'Export values..'
       OnClick = MI_ExportValuesClick
+    end
+  end
+  object PopupMenuAdvancedSearch: TPopupMenu
+    Left = 107
+    Top = 108
+    object MI_AdvancedSearchContains: TMenuItem
+      Checked = True
+      GroupIndex = 1
+      OnClick = MI_AdvancedSearchContainsClick
+    end
+    object MI_AdvancedSearchStartsWith: TMenuItem
+      GroupIndex = 1
+      OnClick = MI_AdvancedSearchStartsWithClick
+    end
+    object MI_AdvancesSearhEndsWith: TMenuItem
+      OnClick = MI_AdvancesSearhEndsWithClick
     end
   end
 end

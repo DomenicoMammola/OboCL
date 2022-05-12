@@ -1,7 +1,7 @@
 object FilterValuesDlg: TFilterValuesDlg
-  Left = 459
+  Left = 460
   Height = 240
-  Top = 216
+  Top = 217
   Width = 477
   Caption = 'Filter values'
   ClientHeight = 240
@@ -12,8 +12,8 @@ object FilterValuesDlg: TFilterValuesDlg
   LCLVersion = '2.2.0.4'
   object ButtonPanel1: TButtonPanel
     Left = 6
-    Height = 27
-    Top = 207
+    Height = 26
+    Top = 208
     Width = 465
     OKButton.Name = 'OKButton'
     OKButton.DefaultCaption = True
@@ -29,7 +29,7 @@ object FilterValuesDlg: TFilterValuesDlg
   end
   object PageControlFilter: TPageControl
     Left = 0
-    Height = 201
+    Height = 202
     Top = 0
     Width = 477
     ActivePage = TSSimple
@@ -38,13 +38,13 @@ object FilterValuesDlg: TFilterValuesDlg
     TabOrder = 1
     object TSSimple: TTabSheet
       Caption = 'Simple'
-      ClientHeight = 166
-      ClientWidth = 471
+      ClientHeight = 174
+      ClientWidth = 469
       object ListFilterEdit: TListFilterEdit
         Left = 0
-        Height = 26
+        Height = 23
         Top = 0
-        Width = 471
+        Width = 469
         ButtonWidth = 23
         Align = alTop
         NumGlyphs = 1
@@ -53,33 +53,32 @@ object FilterValuesDlg: TFilterValuesDlg
       end
       object ValuesListBox: TCheckListBox
         Left = 0
-        Height = 140
-        Top = 26
-        Width = 471
+        Height = 151
+        Top = 23
+        Width = 469
         Align = alClient
         ItemHeight = 0
         PopupMenu = PopupMenuValues
         TabOrder = 1
-        TopIndex = -1
       end
     end
     object TSAdvanced: TTabSheet
       Caption = 'Advanced'
-      ClientHeight = 166
-      ClientWidth = 471
+      ClientHeight = 174
+      ClientWidth = 469
       object PanelLeft: TPanel
         Left = 0
-        Height = 166
+        Height = 174
         Top = 0
         Width = 240
         Align = alLeft
         BevelOuter = bvNone
-        ClientHeight = 166
+        ClientHeight = 174
         ClientWidth = 240
         TabOrder = 0
         object ListFilterEditAdvanced: TListFilterEdit
           Left = 0
-          Height = 26
+          Height = 23
           Top = 0
           Width = 240
           OnFilterItemEx = ListFilterEditAdvancedFilterItemEx
@@ -92,42 +91,41 @@ object FilterValuesDlg: TFilterValuesDlg
         end
         object ListBoxToBeFiltered: TListBox
           Left = 0
-          Height = 140
-          Top = 26
+          Height = 151
+          Top = 23
           Width = 240
           Align = alClient
           ItemHeight = 0
           OnClick = ListBoxToBeFilteredClick
           PopupMenu = PopupMenuValues
           TabOrder = 1
-          TopIndex = -1
         end
       end
       object Splitter1: TSplitter
         Left = 240
-        Height = 166
+        Height = 174
         Top = 0
         Width = 5
       end
       object PanelRight: TPanel
         Left = 245
-        Height = 166
+        Height = 174
         Top = 0
-        Width = 226
+        Width = 224
         Align = alClient
         BevelOuter = bvNone
-        ClientHeight = 166
-        ClientWidth = 226
+        ClientHeight = 174
+        ClientWidth = 224
         TabOrder = 2
         object PanelTop: TPanel
           Left = 0
           Height = 23
           Top = 0
-          Width = 226
+          Width = 224
           Align = alTop
           BevelOuter = bvNone
           ClientHeight = 23
-          ClientWidth = 226
+          ClientWidth = 224
           TabOrder = 0
           object BtnAddAll: TButton
             Left = 0
@@ -152,14 +150,13 @@ object FilterValuesDlg: TFilterValuesDlg
         end
         object ListBoxFilter: TListBox
           Left = 0
-          Height = 143
+          Height = 151
           Top = 23
-          Width = 226
+          Width = 224
           Align = alClient
           ItemHeight = 0
           OnClick = ListBoxFilterClick
           TabOrder = 1
-          TopIndex = -1
         end
       end
     end

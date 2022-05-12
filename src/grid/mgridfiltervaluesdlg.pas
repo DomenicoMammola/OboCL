@@ -72,7 +72,7 @@ implementation
 
 uses
   StrUtils,
-  mWaitCursor, mFormSetup;
+  mWaitCursor, mFormSetup, mMaps;
 
 {$R *.lfm}
 
@@ -220,18 +220,30 @@ end;
 procedure TFilterValuesDlg.BtnAddAllClick(Sender: TObject);
 var
   i : integer;
+  index : TmStringDictionary;
 begin
+  TWaitCursor.ShowWaitCursor('TFilterValuesDlg.BtnAddAllClick');
   try
-    TWaitCursor.ShowWaitCursor('TFilterValuesDlg.BtnAddAllClick');
-    ListBoxFilter.Items.BeginUpdate;
+    index := TmStringDictionary.Create(false);
     try
-      for i := 0 to ListBoxToBeFiltered.Count - 1 do
-      begin
-        if ListBoxFilter.Items.IndexOf(ListBoxToBeFiltered.Items[i]) < 0 then
-          ListBoxFilter.Items.Add(ListBoxToBeFiltered.Items[i]);
+      ListBoxFilter.Items.BeginUpdate;
+      try
+        for i := 0 to ListBoxFilter.Count - 1 do
+          index.Add(ListBoxFilter.Items[i], index);
+
+        for i := 0 to ListBoxToBeFiltered.Count - 1 do
+        begin
+          if not index.Contains(ListBoxToBeFiltered.Items[i]) then
+          begin
+            ListBoxFilter.Items.Add(ListBoxToBeFiltered.Items[i]);
+            index.Add(ListBoxToBeFiltered.Items[i], index);
+          end;
+        end;
+      finally
+        ListBoxFilter.Items.EndUpdate;
       end;
     finally
-      ListBoxFilter.Items.EndUpdate;
+      index.Free;
     end;
   finally
     TWaitCursor.UndoWaitCursor('TFilterValuesDlg.BtnAddAllClick');

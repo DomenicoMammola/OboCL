@@ -630,7 +630,7 @@ begin
         for i := 0 to columns.Count - 1 do
         begin
           if columns.Get(i).Visible then
-            CSVBuilder.AppendQuotedCell(columns.Get(i).Title);
+            CSVBuilder.AppendCellRFC4180(columns.Get(i).Title);
         end;
         CSVBuilder.AppendRow;
 

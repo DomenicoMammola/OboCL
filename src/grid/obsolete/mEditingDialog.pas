@@ -22,7 +22,7 @@ interface
 uses
   Classes, Controls, Forms, ValEdit, Graphics, Grids, contnrs, ExtCtrls,
   SysUtils, variants, StdCtrls, Buttons,
-  oMultiPanelSetup, OMultiPanel,
+  OMultiPanelSetup, OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility, mLookupFormForDataset,
   mQuickReadOnlyVirtualDataSet, mVirtualDataSet, mDataProviderFieldDefs, mNullables,
   mISO6346Utility, mDataProviderInterfaces, mBooleanDataProvider;

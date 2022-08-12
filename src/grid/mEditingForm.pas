@@ -460,7 +460,7 @@ begin
   FOkToAllBtn.Left := 0;
   FOkToAllBtn.Top := ScaleForMagnification(8, true);
   FOkToAllBtn.Anchors:= [akTop, akRight];
-  FOkToAllBtn.DefaultCaption:= true;
+  // FOkToAllBtn.DefaultCaption:= true;
   FOkToAllBtn.OnClick:= OkToAllBtnClick;
   FOkToAllBtn.ModalResult:= mrNone;
   FOkToAllBtn.Visible := false;

@@ -43,6 +43,8 @@ type
 
 
 implementation
+uses
+  mFormSetup;
 
 {$R *.lfm}
 
@@ -55,6 +57,7 @@ begin
   FColumnsSettingsFrame := TGridColumnsSettingsFrame.Create(Self);
   FColumnsSettingsFrame.Parent := TSColumns;
   FColumnsSettingsFrame.Align:= alClient;
+  SetupFormAndCenter(Self, 0.8);
 end;
 
 procedure TGridSettingsForm.OkBtnClick(Sender: TObject);

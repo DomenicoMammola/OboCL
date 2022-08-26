@@ -1539,7 +1539,7 @@ begin
     for i := 1 to FLines.Count do
     begin
       el := FLinesByRowIndex.Find(i) as TEditorLine;
-      settings.Add(TEditingFormLineSettings.Create(el.Name, el.Configuration.Caption));
+      settings.Add(TEditingFormLineSettings.Create(el.Name, el.Configuration.Caption, el.Configuration.Mandatory));
     end;
     frm.Init(settings);
     if frm.ShowModal = mrOK then

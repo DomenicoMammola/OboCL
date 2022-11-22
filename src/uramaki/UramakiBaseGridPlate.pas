@@ -199,7 +199,9 @@ implementation
 
 uses
   Clipbrd, variants,
-  mGraphicsUtility, mWaitCursor;
+  mGraphicsUtility, mWaitCursor
+  {$IFDEF DEBUG}, mLog, mUtility{$ENDIF}
+  ;
 
 type
 
@@ -216,6 +218,11 @@ type
     property RawValue: variant read FRawValue write FRawValue;
     property DataType: TmSummaryValueType read FDataType write FDataType;
   end;
+
+{$IFDEF DEBUG}
+var
+  logger : TmLog;
+{$ENDIF}
 
 { TUramakiDrawGridPlate }
 
@@ -569,6 +576,9 @@ begin
         end
         else
         begin
+          {$IFDEF DEBUG}
+          logger.Debug(Self.ClassName + ' FLastSelectedRow:' + TBytesToString(FLastSelectedRow) + 'FGrid.DataSource.DataSet.Bookmark:' + TBytesToString(FGrid.DataSource.DataSet.Bookmark));
+          {$ENDIF}
           if FGrid.DataSource.DataSet.CompareBookmarks(FLastSelectedRow, FGrid.DataSource.DataSet.Bookmark) <> 0 then
           begin
             FLastSelectedRow := FGrid.DataSource.DataSet.Bookmark;
@@ -984,5 +994,8 @@ begin
 end;
 
 
-
+{$IFDEF DEBUG}
+initialization
+  logger := logManager.AddLog('UramakiBaseGridPlate');
+{$ENDIF}
 end.

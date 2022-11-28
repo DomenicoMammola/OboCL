@@ -236,7 +236,7 @@ function TUramakiToolbar.AddButton: TUramakiToolbarItem;
 begin
   Result := TUramakiToolbarItem.Create;
   FGarbage.Add(Result);
-  FToolbar.AddButton(-1, nil, '', '', '', true);
+  FToolbar.AddButton(-1, nil, nil, '', '', '', true);
   Result.ATButton := FToolbar.Buttons[FToolbar.ButtonCount - 1];
   Result.ATButton.Kind:= abuTextOnly;
   Result.ATButton.Images := FToolbar.Images;

@@ -139,7 +139,12 @@ begin
     2 : FAnimation.Shape:= bsCherry;
     3 : FAnimation.Shape:= bsKiwi;
   end;
-  FAnimation.Animation:= tatBouncing;
+  i := Random(2);
+  case i of
+    0 : FAnimation.Animation:= tatBouncing;
+    1 : FAnimation.Animation:= tatScrolling;
+    2 : FAnimation.Animation:= tatSizing;
+  end;
 
   FGames := TExtraGPan.Create(Self);
   FGames.Parent := Self;

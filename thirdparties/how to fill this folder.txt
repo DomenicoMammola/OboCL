@@ -4,13 +4,11 @@ Clone:
 https://github.com/DomenicoMammola/Mommon
 in folder Mommon
 
-Clone
+To use Uramaki panel system and the pdf stuff then clone also this:
 https://github.com/DomenicoMammola/ATFlatControls.git
 in folder ATFlatControls
 
------------------------------------------------------------
-
-IF YOU WANT TO USE THE GRID OR THE PIVOT COMPONENT then checkout also
+To use the grid or the pivot report then clone also this:
 https://svn.code.sf.net/p/lazarus-ccr/svn/components/fpspreadsheet
 in folder fpspreadsheet
 

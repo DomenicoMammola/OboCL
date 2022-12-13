@@ -7,7 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-unit mProgressGUIDesktop;
+unit ProgressGUIDesktop;
 
 {$IFDEF FPC}
   {$MODE DELPHI}
@@ -17,7 +17,8 @@ interface
 
 uses
   Classes, Forms,
-  mProgressClasses, mProgressForm;
+  mProgressClasses,
+  progressform;
 
 type
 

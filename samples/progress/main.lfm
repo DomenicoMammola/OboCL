@@ -1,0 +1,29 @@
+object Form1: TForm1
+  Left = 250
+  Height = 240
+  Top = 139
+  Width = 320
+  Caption = 'Form1'
+  ClientHeight = 240
+  ClientWidth = 320
+  OnCreate = FormCreate
+  LCLVersion = '2.2.0.4'
+  object Button1: TButton
+    Left = 15
+    Height = 25
+    Top = 15
+    Width = 99
+    Caption = 'Run one'
+    OnClick = Button1Click
+    TabOrder = 0
+  end
+  object Button2: TButton
+    Left = 16
+    Height = 25
+    Top = 48
+    Width = 96
+    Caption = 'Run multiple'
+    OnClick = Button2Click
+    TabOrder = 1
+  end
+end

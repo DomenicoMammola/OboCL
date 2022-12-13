@@ -8,8 +8,6 @@ object ProgressForm: TProgressForm
   ClientHeight = 67
   ClientWidth = 500
   FormStyle = fsStayOnTop
-  OnHide = FormHide
-  OnShow = FormShow
   Position = poMainFormCenter
   ShowInTaskBar = stNever
   LCLVersion = '2.2.0.4'

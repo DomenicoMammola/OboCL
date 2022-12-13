@@ -7,7 +7,7 @@
 // This software is distributed without any warranty.
 //
 // @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
-unit mProgressForm;
+unit progressform;
 
 {$mode objfpc}{$H+}
 
@@ -17,15 +17,13 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ComCtrls,
   StdCtrls, LCLIntf, ExtCtrls, contnrs,
   mProgressClasses, mBaseClassesAsObjects, mMaps, mMicroGames,
-  Biru_FreshFruit, Biru;
+  Biru, Biru_FreshFruit;
 
 type
 
   { TProgressForm }
   TProgressForm = class(TForm)
     Shape1: TShape;
-    procedure FormHide(Sender: TObject);
-    procedure FormShow(Sender: TObject);
   strict private
     FListBox : TListBox;
     FAnimation : TBiruFreshFruit;
@@ -52,14 +50,6 @@ uses
 {$R *.lfm}
 
 { TProgressForm }
-
-procedure TProgressForm.FormShow(Sender: TObject);
-begin
-end;
-
-procedure TProgressForm.FormHide(Sender: TObject);
-begin
-end;
 
 procedure TProgressForm.Advance(const aMsg: string; const aIndex : integer);
 begin
@@ -132,14 +122,14 @@ begin
   FAnimation.Parent := Self;
   Self.Height:= FAnimation.Height;
   FAnimation.Align:= alLeft;
-  i := Random(3);
+  i := Random(4);
   case i of
     0 : FAnimation.Shape:= bsApple;
     1 : FAnimation.Shape:= bsBanana;
     2 : FAnimation.Shape:= bsCherry;
     3 : FAnimation.Shape:= bsKiwi;
   end;
-  i := Random(2);
+  i := Random(3);
   case i of
     0 : FAnimation.Animation:= tatBouncing;
     1 : FAnimation.Animation:= tatScrolling;

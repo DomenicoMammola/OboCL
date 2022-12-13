@@ -25,12 +25,13 @@ type
 
   { TBiru }
 
-  TBiru = class abstract(TGraphicControl)
+  TBiru = class (TGraphicControl)
 //  strict private
 //    const SQUARE_LENGTH = 120;
   strict private
     DefImage: TBitmap;
     FAnimateTimer: TTimer;
+    FImageIndex: integer;
     FSpeed: integer;
     XPos: integer;
     YPos: integer;
@@ -44,32 +45,37 @@ type
     StretchingY: integer;
     FPlayingAnimation: boolean;
     FAnimation: TBiruAnimationType;
-    procedure SetAnimation(Value: TBiruAnimationType);
-    procedure FAnimateTimerTimer(Sender: TObject);
-    procedure SetSpeed(AValue: integer);
-  protected
     FFixedBackground: TBitmap;
     FScrollingBackground: TBitmap;
-
     FImages : TObjectList;
     FMasks : TObjectList;
-
-    FBiruShape: TBitmap;
+    FBiruMask: TBitmap;
     FBiruImage: TBitmap;
+    FBiruImageIndex : integer;
+    FInitDone : boolean;
 
+    procedure SetAnimation(Value: TBiruAnimationType);
+    procedure FAnimateTimerTimer(Sender: TObject);
+    procedure SetImageIndex(AValue: integer);
+    procedure SetSpeed(AValue: integer);
+  protected
     FBorder: integer;
     FBorderColor : TColor;
 
     procedure Paint; override;
-    procedure Init;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure PlayAnimation;
     procedure StopAnimation;
+    procedure AddBiruImageAndMask(const aImage, aMask : TBitmap);
+    procedure Init;
   published
     property Animation: TBiruAnimationType read FAnimation write SetAnimation default tatBouncing;
     property Speed: integer read FSpeed write SetSpeed;
+    property FixedBackground : TBitmap read FFixedBackground;
+    property ScrollingBackground : TBitmap read FScrollingBackground;
+    property ImageIndex : integer read FImageIndex write SetImageIndex;
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
@@ -103,7 +109,7 @@ begin
       end;
 
       BitBlt(Temp.Canvas.Handle, FBorder, FBorder, FFixedBackground.Width, FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
-      BitBlt(Temp.Canvas.Handle, BiruDefaultX, BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
+      BitBlt(Temp.Canvas.Handle, BiruDefaultX, BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruMask.Canvas.Handle, 0, 0, SRCAND);
       BitBlt(Temp.Canvas.Handle, BiruDefaultX, BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
       Canvas.Draw(0, 0, Temp);
     end;
@@ -120,7 +126,7 @@ begin
   Self.Width:= FFixedBackground.Width + (FBorder * 2);
 
   FBiruImage := FImages.Items[0] as TBitmap;
-  FBiruShape := FMasks.Items[0] as TBitmap;
+  FBiruMask := FMasks.Items[0] as TBitmap;
   StretchingX := FBiruImage.Width;
   StretchingY := FBiruImage.Height;
   BiruDefaultX := (FFixedBackground.Width - FBiruImage.Width) div 2;
@@ -138,6 +144,7 @@ begin
     DefImage.Canvas.Brush.Color:= clWhite;
     DefImage.Canvas.Rectangle(0, 0, DefImage.Width, DefImage.Height);
   end;
+  FInitDone:= true;
 end;
 
 procedure TBiru.SetAnimation(Value: TBiruAnimationType);
@@ -172,7 +179,7 @@ begin
       XPos := XPos + ShiftX;
       YPos := YPos + ShiftY;
       BitBlt(DefImage.Canvas.Handle, FBorder, FBorder, FFixedBackground.Width, FFixedBackground.Height, FFixedBackground.Canvas.Handle, 0, 0, SRCCOPY);
-      BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
+      BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width, FBiruImage.Height, FBiruMask.Canvas.Handle, 0, 0, SRCAND);
       BitBlt(DefImage.Canvas.Handle, XPos, YPos, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
       Canvas.Draw(0, 0, DefImage);
     end;
@@ -184,7 +191,7 @@ begin
         BitBlt(DefImage.Canvas.Handle, FBorder, FBorder, RollingX,
           FFixedBackground.Height, FScrollingBackground.Canvas.Handle, (FFixedBackground.Width - RollingX), 0, SRCCOPY);
       BitBlt(DefImage.Canvas.Handle, BiruDefaultX,
-        BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruShape.Canvas.Handle, 0, 0, SRCAND);
+        BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruMask.Canvas.Handle, 0, 0, SRCAND);
       BitBlt(DefImage.Canvas.Handle, BiruDefaultX,
         BiruDefaultY, FBiruImage.Width, FBiruImage.Height, FBiruImage.Canvas.Handle, 0, 0, SRCPAINT);
       Canvas.Draw(0, 0, DefImage);
@@ -205,7 +212,7 @@ begin
         StretchShape.Width := StretchingX;
         StretchShape.Height := StretchingY;
         StretchBiru.Canvas.StretchDraw(R, FBiruImage);
-        StretchShape.Canvas.StretchDraw(R, FBiruShape);
+        StretchShape.Canvas.StretchDraw(R, FBiruMask);
         StrX := (FFixedBackground.Width - StretchingX) div 2;
         StrY := (FFixedBackground.Height - StretchingY) div 2;
 
@@ -225,6 +232,14 @@ begin
   end;
 end;
 
+procedure TBiru.SetImageIndex(AValue: integer);
+begin
+  if FImageIndex=AValue then Exit;
+  FImageIndex:=AValue;
+  FBiruImage := FImages.Items[FImageIndex] as TBitmap;
+  FBiruMask := FMasks.Items[FImageIndex] as TBitmap;
+end;
+
 procedure TBiru.SetSpeed(AValue: integer);
 begin
   if FSpeed=AValue then Exit;
@@ -235,6 +250,7 @@ end;
 constructor TBiru.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  FInitDone:= false;
   FImages:= TObjectList.Create(true);
   FMasks := TObjectList.Create(true);
   { default values }
@@ -246,7 +262,7 @@ begin
   FAnimation := tatBouncing;
   FStretchingDirection := -1;
   FPlayingAnimation := False;
-  FBorder := 0;
+  FBorder := 1;
   FBorderColor := clBlack;
   DefImage := TBitmap.Create;
 
@@ -258,6 +274,7 @@ begin
   FSpeed := 5;
   FAnimateTimer.Interval := FSpeed;
   FAnimateTimer.OnTimer := Self.FAnimateTimerTimer;
+  FBiruImageIndex:= 0;
 end;
 
 destructor TBiru.Destroy;
@@ -274,6 +291,8 @@ end;
 
 procedure TBiru.PlayAnimation;
 begin
+  if not FInitDone then
+    Self.Init;
   FPlayingAnimation := True;
   FAnimateTimer.Enabled := True;
 end;
@@ -283,6 +302,12 @@ begin
   FPlayingAnimation := False;
   FAnimateTimer.Enabled := False;
   Refresh;
+end;
+
+procedure TBiru.AddBiruImageAndMask(const aImage, aMask: TBitmap);
+begin
+  FImages.Add(aImage);
+  FMasks.Add(aMask);
 end;
 
 

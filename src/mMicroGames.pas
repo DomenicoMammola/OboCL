@@ -4176,10 +4176,10 @@ procedure TTetris.SetTetrisKeyDown(Value: word);
 begin
   FTetrisKeyDown := Value;
   case FTetrisKeyDown of
-    VK_NumPad2: DropDown;
-    VK_NumPad4: Left;
-    VK_NumPad5: Rotate;
-    VK_NumPad6: Right;
+    VK_DOWN: DropDown;
+    VK_LEFT: Left;
+    VK_UP: Rotate;
+    VK_RIGHT: Right;
   end;
 end;
 
@@ -4215,9 +4215,11 @@ begin
   for i := 1 to FRows do
     for j := 1 to FColumns do
       if Sh[i, j] <> nil then
+      begin
         Sh[i, j].SetBounds(wi * Pred(j) + x, he * Pred(i), wi, he);
-  if Panel1 <> nil then
-    Panel1.SetBounds(0, FRows * he, Width, Height - FRows * he);
+      end;
+//  if Panel1 <> nil then
+//    Panel1.SetBounds(0, FRows * he, Width, Height - FRows * he);
 end;
 
 {$ifdef windows}

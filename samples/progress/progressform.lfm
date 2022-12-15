@@ -1,11 +1,11 @@
 object ProgressForm: TProgressForm
   Left = 554
-  Height = 67
+  Height = 240
   Top = 295
   Width = 500
   BorderIcons = []
   BorderStyle = bsNone
-  ClientHeight = 67
+  ClientHeight = 240
   ClientWidth = 500
   FormStyle = fsStayOnTop
   Position = poMainFormCenter
@@ -13,7 +13,7 @@ object ProgressForm: TProgressForm
   LCLVersion = '2.2.0.4'
   object Shape1: TShape
     Left = 0
-    Height = 67
+    Height = 240
     Top = 0
     Width = 500
     Align = alClient

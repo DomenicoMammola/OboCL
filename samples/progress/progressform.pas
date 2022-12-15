@@ -11,6 +11,9 @@ unit progressform;
 
 {$mode objfpc}{$H+}
 
+{$define nogame}
+// {$define noanimation}
+
 interface
 
 uses
@@ -26,8 +29,12 @@ type
     Shape1: TShape;
   strict private
     FListBox : TListBox;
+    {$ifndef noanimation}
     FAnimation : TBiruFreshFruit;
+    {$endif}
+    {$ifndef nogame}
     FGames: TExtraGPan;
+    {$endif}
     FProgresses : TmStringDictionary;
     FGarbage : TObjectList;
     FStartTime : TDateTime;
@@ -57,7 +64,7 @@ begin
   begin
     FListBox.Items[aIndex] := aMsg;
     FListBox.ItemIndex:= FListBox.Count - 1;
-
+    {$ifndef nogame}
     if (not FGames.Visible) and (SecondsBetween(Now, FStartTime) > 120) then
     begin
       FGames.Visible:= true;
@@ -66,6 +73,7 @@ begin
       FAnimation.StopAnimation;
       FAnimation.Visible:= false;
     end;
+    {$endif}
   end;
 end;
 
@@ -88,9 +96,15 @@ begin
   if not Self.Visible then
   begin
     Self.Show;
+    {$ifndef noanimation}
     FAnimation.Visible:= true;
+    {$endif}
+    {$ifndef nogame}
     FGames.Visible := false;
+    {$endif}
+    {$ifndef noanimation}
     FAnimation.PlayAnimation;
+    {$endif}
     FStartTime:= Now;
   end;
   tmp := FProgresses.Find(aProgress.Id) as TIntegerObject;
@@ -103,10 +117,14 @@ begin
   FProgresses.Remove(aProgress.Id);
   if FProgresses.Count = 0 then
   begin
+    {$ifndef noanimation}
     if FAnimation.Visible then
       FAnimation.StopAnimation;
+    {$endif}
+    {$ifndef nogame}
     if FGames.Visible then
       FGames.Start:= false;
+    {$endif}
     Self.Hide;
     FListBox.Clear;
     FGarbage.Clear;
@@ -118,6 +136,7 @@ var
   i : integer;
 begin
   inherited Create(AOwner);
+  {$ifndef noanimation}
   FAnimation := TBiruFreshFruit.Create(Self);
   FAnimation.Parent := Self;
   Self.Height:= FAnimation.Height;
@@ -135,12 +154,15 @@ begin
     1 : FAnimation.Animation:= tatScrolling;
     2 : FAnimation.Animation:= tatSizing;
   end;
+  {$endif}
 
+  {$ifndef nogame}
   FGames := TExtraGPan.Create(Self);
   FGames.Parent := Self;
   FGames.Align:= alLeft;
   FGames.Width:= FAnimation.Width;
   FGames.Visible := false;
+  {$endif}
 
   FListBox := TListBox.Create(Self);
   FListBox.Parent := Self;

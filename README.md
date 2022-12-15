@@ -1,3 +1,6 @@
+![GitHub](https://img.shields.io/badge/Lazarus-FPC-blue.svg)
+![GitHub](https://img.shields.io/badge/Delphi-red.svg)
+
 # OboCL
 Obo Component Library for Pascal/Lazarus/Delphi.
 

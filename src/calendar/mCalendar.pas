@@ -35,6 +35,7 @@ type
     const MIN_DAY_HEADER_HEIGHT = 20;
     const MIN_APPOINTMENT_HEIGHT = 20;
     const MAX_APPOINTMENT_HEIGHT = 40;
+    const APPOINTMENT_MARGIN = 2;
   strict private
     FCols : integer;
     FRows : integer;
@@ -351,30 +352,48 @@ end;
 
 procedure TmCalendar.Paint_Appointments(aCanvas: TCanvas; const aRect: TRect; const aAppointments : TmCalendarAppointments);
 var
-  curHeight : integer;
-  i, r, cols : integer;
-  x1, y1, x2, y2, delta : integer;
+  curHeight, availableHeight : integer;
+  i, r, c, cols, maxInACol : integer;
+  x1, y1, x2, y2, delta, h, w : integer;
   paintRect, ar : TRect;
   tmpRows : TStringList;
 begin
   if aAppointments.Count = 0 then
     exit;
-  curHeight := (aRect.Height - 4 - (2 * aAppointments.Count)) div aAppointments.Count;
-  curHeight:= min(MAX_APPOINTMENT_HEIGHT, max (MIN_APPOINTMENT_HEIGHT, curHeight));
   paintRect := aRect;
+  InflateRect(paintRect, -1 * APPOINTMENT_MARGIN, -1 * APPOINTMENT_MARGIN);
+  availableHeight := aRect.Height - APPOINTMENT_MARGIN;
+  maxInACol := availableHeight div (MIN_APPOINTMENT_HEIGHT + APPOINTMENT_MARGIN);
+  cols := Ceil(aAppointments.Count / maxInACol);
+  h := (paintRect.Height - (APPOINTMENT_MARGIN * (aAppointments.Count -1))) div aAppointments.Count;
+  h:= min(MAX_APPOINTMENT_HEIGHT, max (MIN_APPOINTMENT_HEIGHT, h));
+  w := (paintRect.Right - paintRect.Left - ((cols-1) * APPOINTMENT_MARGIN)) div cols;
 
-  InflateRect(paintRect, -2, -2);
   x1 := paintRect.Left;
-  x2 := paintRect.Right;
+  x2 := x1 + w;
   y1 := paintRect.Top;
-  for i := 0 to aAppointments.Count - 1 do
+
+  i := 0;
+  r := 0;
+  c := 0;
+
+  while i <= aAppointments.Count - 1 do
   begin
-    y2 := y1 + curHeight;
-    if y2 > paintRect.Bottom then
-      break;
+    if r >= maxInACol then
+    begin
+      r := 0;
+      inc (c);
+      x1 := x2 + APPOINTMENT_MARGIN;
+      x2 := x1 + w;
+      y1 := paintRect.Top;
+    end;
+    y2 := y1 + h;
     ar := Classes.Rect (x1, y1, x2, y2);
     aCanvas.Brush.Color:= aAppointments.Get(i).Color;
-    aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 30);
+    if IsDark(aAppointments.Get(i).Color) then
+      aCanvas.Font.Color:= LighterColor(aAppointments.Get(i).Color, 30)
+    else
+      aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 30);
     aCanvas.Pen.Color := aCanvas.Font.Color;
     if aCanvas.TextWidth(aAppointments.Get(i).Description) > ar.Width then
     begin
@@ -389,6 +408,8 @@ begin
     else
       Paint_BoxWithText(aCanvas, ar, aAppointments.Get(i).Description, taLeftJustify);
     y1 := y2 + 2;
+    inc(r);
+    inc(i);
   end;
 end;
 

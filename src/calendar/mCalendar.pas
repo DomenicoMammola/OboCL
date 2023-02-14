@@ -23,11 +23,12 @@ type
 
   TmCalendarItemType = (itMonth);
   TmCalendarStyle = (csSimple, csAppointmentsList);
-  TmCalendarOption = (coHideSunday, coHideSaturdayAndSunday);
+  TmCalendarOption = (coHideSunday, coHideSaturdayAndSunday, coSundayIsHoliday, coSaturdayIsHoliday);
   TmCalendarOptions = set of TmCalendarOption;
 
   TOnClickOnDay  = procedure (const Button: TMouseButton; const Shift: TShiftState; const aDay : TDateTime) of object;
   TOnGetAppointments = procedure (const aDate : TDate; const aAppointments: tmCalendarAppointments) of object;
+  TOnCheckIsHoliday = function (const aDate : TDate) : boolean of object;
 
 
   { TmCalendar }
@@ -50,6 +51,7 @@ type
     FDayAlignment: TAlignment;
     FWeekdaysColor: TColor;
     FDaysColor : TColor;
+    FHolidaysColor : TColor;
     FSelectedDaysColor : TColor;
     FSelectedColor : TColor;
     FCaptionsColor : TColor;
@@ -72,6 +74,7 @@ type
     // events
     FOnClickOnDay : TOnClickOnDay;
     FOnGetAppointments : TOnGetAppointments;
+    FOnCheckIsHoliday : TOnCheckIsHoliday;
 
     procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment); overload;
     procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment); overload;
@@ -92,6 +95,7 @@ type
     procedure SetCaptionsColor(AValue: TColor);
     procedure SetDayAlignment(AValue: TAlignment);
     procedure SetDaysColor(AValue: TColor);
+    procedure SetHolidaysColor(AValue: TColor);
     procedure SetOptions(AValue: TmCalendarOptions);
     procedure SetRows(AValue: integer);
     procedure SetItemType(AValue: TmCalendarItemType);
@@ -132,6 +136,7 @@ type
     // colors
     property WeekdaysColor : TColor read FWeekdaysColor write SetWeekdaysColor;
     property DaysColor : TColor read FDaysColor write SetDaysColor;
+    property HolidaysColor : TColor read FHolidaysColor write SetHolidaysColor;
     property CaptionsColor : TColor read FCaptionsColor write SetCaptionsColor;
     property LinesColor : TColor read FLinesColor write SetLinesColor;
     property SelectedColor : TColor read FSelectedColor write SetSelectedColor;
@@ -141,6 +146,7 @@ type
 
     property OnClickOnDay : TOnClickOnDay read FOnClickOnDay write FOnClickOnDay;
     property OnGetAppointments : TOnGetAppointments read FOnGetAppointments write FOnGetAppointments;
+    property OnCheckIsHoliday : TOnCheckIsHoliday read FOnCheckIsHoliday write FOnCheckIsHoliday;
   end;
 
 implementation
@@ -322,7 +328,7 @@ begin
     begin
       mr := 4;
       dow := DayOfTheWeek(curDate);
-      while (dow = 6) or (dow = 7) do
+      while (dow = DaySaturday) or (dow = DaySunday) do
       begin
         curDate := curDate + 1;
         inc(tmpDay);
@@ -344,8 +350,8 @@ begin
 
         if dow = i + 1 then
         begin
-          if not(((coHideSaturdayAndSunday in FOptions) and ((dow = 6) or (dow = 7))) or
-            ((coHideSunday in FOptions) and (dow = 7))) then
+          if not(((coHideSaturdayAndSunday in FOptions) and ((dow = DaySaturday) or (dow = DaySunday))) or
+            ((coHideSunday in FOptions) and (dow = DaySunday))) then
           begin
             if FSelectedBucketsDictionary.Contains(round(curDate)) then
             begin
@@ -354,7 +360,17 @@ begin
             end
             else
             begin
-              aCanvas.Font.Color := FDaysColor;
+              if (coSundayIsHoliday in FOptions) and (dow = DaySunday) then
+                aCanvas.Font.Color := FHolidaysColor
+              else if (coSaturdayIsHoliday in FOptions) and (dow = DaySaturday) then
+                aCanvas.Font.Color:= FHolidaysColor
+              else
+              begin
+                if Assigned(FOnCheckIsHoliday) and FOnCheckIsHoliday(curDate) then
+                  aCanvas.Font.Color := FHolidaysColor
+                else
+                  aCanvas.Font.Color := FDaysColor;
+              end;
               aCanvas.Brush.Color:= Self.Color;
             end;
             if (FStyle = csAppointmentsList) and Assigned(FOnGetAppointments) then
@@ -403,7 +419,10 @@ begin
   InflateRect(paintRect, -1 * APPOINTMENT_MARGIN, -1 * APPOINTMENT_MARGIN);
   availableHeight := aRect.Height - APPOINTMENT_MARGIN;
   maxInACol := availableHeight div (MIN_APPOINTMENT_HEIGHT + APPOINTMENT_MARGIN);
-  cols := Ceil(aAppointments.Count / maxInACol);
+  if maxInACol <> 0 then
+    cols := Ceil(aAppointments.Count / maxInACol)
+  else
+    cols := 1;
   h := (paintRect.Height - (APPOINTMENT_MARGIN * (aAppointments.Count -1))) div aAppointments.Count;
   h:= min(MAX_APPOINTMENT_HEIGHT, max (MIN_APPOINTMENT_HEIGHT, h));
   w := (paintRect.Right - paintRect.Left - ((cols-1) * APPOINTMENT_MARGIN)) div cols;
@@ -430,9 +449,9 @@ begin
     ar := Classes.Rect (x1, y1, x2, y2);
     aCanvas.Brush.Color:= aAppointments.Get(i).Color;
     if IsDark(aAppointments.Get(i).Color) then
-      aCanvas.Font.Color:= LighterColor(aAppointments.Get(i).Color, 30)
+      aCanvas.Font.Color:= LighterColor(aAppointments.Get(i).Color, 40)
     else
-      aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 30);
+      aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 40);
     aCanvas.Pen.Color := aCanvas.Font.Color;
     if aCanvas.TextWidth(aAppointments.Get(i).Description) > ar.Width then
     begin
@@ -508,13 +527,13 @@ begin
       dec(we);
     FDayWidth:= (Self.ClientWidth) div (we * FCols);
     FDayHeight:= (Self.ClientHeight - (FCaptionSize + FTitleSize) * FRows) div (mr * FRows);
+
+    tmpX := ((FDayWidth * we)) * FCols;
+    tmpY := ((FDayHeight * mr) + FCaptionSize + FTitleSize) * FRows;
+
+    FItemWidth:= tmpX div FCols;
+    FItemHeight:= tmpY div FRows;
   end;
-
-  tmpX := ((FDayWidth * we)) * FCols;
-  tmpY := ((FDayHeight * mr) + FCaptionSize + FTitleSize) * FRows;
-
-  FItemWidth:= tmpX div FCols;
-  FItemHeight:= tmpY div FRows;
 
   // Self.SetBounds(Self.Left, Self.Top, (Self.Width - Self.ClientWidth) + tmpX, (Self.Height - Self.ClientHeight) + tmpY);
 end;
@@ -550,6 +569,13 @@ procedure TmCalendar.SetDaysColor(AValue: TColor);
 begin
   if FDaysColor=AValue then Exit;
   FDaysColor:=AValue;
+  Invalidate;
+end;
+
+procedure TmCalendar.SetHolidaysColor(AValue: TColor);
+begin
+  if FHolidaysColor=AValue then Exit;
+  FHolidaysColor:=AValue;
   Invalidate;
 end;
 
@@ -605,6 +631,7 @@ procedure TmCalendar.SetStartDate(AValue: TDateTime);
 begin
   if FStartDate=AValue then Exit;
   FStartDate:=AValue;
+  InternalClearSelection;
   Invalidate;
 end;
 
@@ -696,7 +723,7 @@ begin
 
     day := monthCol + 1 + (monthRow * 7);
     dow := DayOfTheWeek(refDate);
-    if (coHideSaturdayAndSunday in FOptions) and ((dow = 7) or (dow = 6)) then
+    if (coHideSaturdayAndSunday in FOptions) and ((dow = DaySunday) or (dow = DaySaturday)) then
       day := day + 8 - dow
     else
       day := day - dow + 1;
@@ -853,6 +880,7 @@ begin
   FDayAlignment:= taCenter;
   FWeekdaysColor:= clBlack;
   FDaysColor:= clBlack;
+  FHolidaysColor:= clRed;
   FSelectedColor := clBlue;
   FSelectedDaysColor:= clWhite;
   FCaptionsColor := clBlack;
@@ -863,6 +891,7 @@ begin
 
   FOnClickOnDay:= nil;
   FOnGetAppointments:= nil;
+  FOnCheckIsHoliday:= nil;
 end;
 
 

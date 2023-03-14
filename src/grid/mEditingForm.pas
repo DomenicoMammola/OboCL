@@ -199,6 +199,7 @@ type
     function GetConfigurationForLine (const aName : string): TmEditorLineConfiguration;
 
     procedure Run(const aCustomizedSortOrder : TStringList = nil);
+    procedure Renew;
 
     property AlternateColor : TColor read GetAlternateColor write SetAlternateColor;
     property MultiEditMode : boolean read FMultiEditMode write SetMultiEditMode;
@@ -539,6 +540,12 @@ begin
         FValueListEditor.Canvas.Font.Color:= clGray
       else
         FValueListEditor.Canvas.Font.Color:= clBlack;
+    end
+    else
+    begin
+      if (aRow > 0) then
+        if (FLinesByRowIndex.Find(aRow) as TEditorLine).Configuration.ReadOnly = roReadOnly then
+          FValueListEditor.Canvas.Font.Color:= clGray;
     end;
   end;
 end;
@@ -988,8 +995,7 @@ begin
   end;
 end;
 
-function TmEditingPanel.ComposeCaption(const aCaption: string;
-  const aMandatory: boolean): string;
+function TmEditingPanel.ComposeCaption(const aCaption: string; const aMandatory: boolean): string;
 begin
   if aMandatory then
     Result := aCaption + ' *'
@@ -1214,6 +1220,23 @@ begin
   finally
     sortedLines.Free;
   end;
+end;
+
+procedure TmEditingPanel.Renew;
+var
+  i : integer;
+  curLine : TEditorLine;
+begin
+  for i := 0 to FLines.Count -1 do
+  begin
+    curLine := FLines.Items[i] as TEditorLine;
+    if Assigned(curLine) then
+    begin
+      FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
+      FValueListEditor.Keys[curLine.RowIndex] := ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory)
+    end;
+  end;
+  FValueListEditor.Invalidate;
 end;
 
 procedure TmEditingPanel.SetValue(const aName: string; const aDisplayValue: String; const aActualValue: variant);

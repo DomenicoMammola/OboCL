@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Menus,
   {$ifdef fpc}{$ifdef debug} LazLogger,{$endif}{$endif}
-  mCalendar;
+  mCalendar, mCalendarClasses;
 
 type
 
@@ -19,6 +19,7 @@ type
     FCalendar : TmCalendar;
     FPopupMenu : TPopupMenu;
     procedure CheckSelected (aSender : TObject);
+    procedure getAppointments (const aDate : TDate; const aAppointments: tmCalendarAppointments);
   public
     { public declarations }
   end;
@@ -41,8 +42,11 @@ begin
   FCalendar := TmCalendar.Create(Self);
   FCalendar.Parent := Self;
   FCalendar.Align := alClient;
-  FCalendar.Rows:= 2;
-  FCalendar.Cols:= 3;
+  FCalendar.CaptionSize:= 24;
+  FCalendar.Rows:= 1;
+  FCalendar.Cols:= 2;
+  FCalendar.Style := csAppointmentsList;
+  FCalendar.OnGetAppointments:= @getAppointments;
   FPopupMenu := TPopupMenu.Create(Self);
   FCalendar.PopupMenu := FPopupMenu;
   mi := TMenuItem.Create(FPopupMenu);
@@ -54,6 +58,19 @@ end;
 procedure TForm1.CheckSelected(aSender: TObject);
 begin
   ShowMessage('Selected ' + IntToStr(FCalendar.SelectedBuckets.Count) + ' days');
+end;
+
+procedure TForm1.getAppointments(const aDate: TDate; const aAppointments: tmCalendarAppointments);
+begin
+  if DayOfWeek(aDate) = 1 then
+  begin
+    with aAppointments.Add do
+    begin
+      Description := 'Appointment of ' + DateToStr(aDate);
+      Color := clRed;
+      UniqueId:= DateToStr(aDate);
+    end;
+  end;
 end;
 
 end.

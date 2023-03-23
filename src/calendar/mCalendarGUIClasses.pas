@@ -15,6 +15,9 @@ unit mCalendarGUIClasses;
 
 interface
 
+uses
+  mCalendarClasses;
+
 type
 
   { TmCalendarMouseMoveData }
@@ -23,27 +26,52 @@ type
   strict private
     FDay : integer;
     FClickOnDays : boolean;
+    FClickOnAppointments : boolean;
+    FAppointment : TmCalendarAppointment;
   public
     constructor Create;
+    destructor Destroy; override;
     procedure Clear;
+
+    function Appointment : TmCalendarAppointment;
 
     property Day : integer read FDay write FDay;
     property ClickOnDays : boolean read FClickOnDays write FClickOnDays;
+    property ClickOnAppointments : boolean read FClickOnAppointments write FClickOnAppointments;
   end;
 
 implementation
+
+uses
+  sysutils;
 
 { TmCalendarMouseMoveData }
 
 constructor TmCalendarMouseMoveData.Create;
 begin
   Self.Clear;
+  FAppointment := nil;
+end;
+
+destructor TmCalendarMouseMoveData.Destroy;
+begin
+  FreeAndNil(FAppointment);
+  inherited Destroy;
 end;
 
 procedure TmCalendarMouseMoveData.Clear;
 begin
   FClickOnDays:= false;
+  FClickOnAppointments:= false;
   FDay := 0;
+  FreeAndNil(FAppointment);
+end;
+
+function TmCalendarMouseMoveData.Appointment: TmCalendarAppointment;
+begin
+  if not Assigned(FAppointment) then
+    FAppointment := TmCalendarAppointment.Create;
+  Result := FAppointment;
 end;
 
 end.

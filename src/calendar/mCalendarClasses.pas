@@ -16,7 +16,7 @@ unit mCalendarClasses;
 interface
 
 uses
-  contnrs, Graphics;
+  Classes, Contnrs, Graphics;
 
 type
 
@@ -24,14 +24,19 @@ type
 
   TmCalendarAppointment = class
   strict private
+    FUniqueId : String;
     FDescription : String;
     FColor : TColor;
+    FDrawnRect : TRect;
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Assign(const aSource : TmCalendarAppointment);
 
+    property UniqueId : String read FUniqueId write FUniqueId;
     property Description : String read FDescription write FDescription;
     property Color : TColor read FColor write FColor;
+    property DrawnRect : TRect read FDrawnRect write FDrawnRect;
   end;
 
   { TmCalendarAppointments }
@@ -97,6 +102,13 @@ end;
 destructor TmCalendarAppointment.Destroy;
 begin
   inherited Destroy;
+end;
+
+procedure TmCalendarAppointment.Assign(const aSource: TmCalendarAppointment);
+begin
+  FUniqueId := aSource.UniqueId;
+  FDescription := aSource.Description;
+  FColor := aSource.Color;
 end;
 
 end.

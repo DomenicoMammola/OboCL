@@ -794,8 +794,6 @@ begin
     {$ifdef debug}
     debugln('Click - day: ' + IntToStr(day));
     {$ifdef linux}
-    writeln('Row: ' + IntToStr(row));
-    writeln('Col: ' + IntToStr(row));
     writeln('Click - day: ' + IntToStr(day));
     {$endif}
     {$endif}
@@ -819,10 +817,10 @@ begin
               FMouseMoveData.ClickOnAppointments:= true;
               break;
             end;
+          end;
         end;
       end;
       {$ifdef debug}
-      end;
       debugln('Click - clicked date: ' + DateToStr(clickedDate));
       {$ifdef linux}
       writeln('Click - clicked date: ' + DateToStr(clickedDate));
@@ -926,20 +924,23 @@ begin
   end;
   if FMouseMoveData.ClickOnAppointments then
   begin
-    InternalClearDaysSelection;
-    if CtrlPressed then
+    if Button = mbLeft then
     begin
-      if FSelectedAppointmentsDictionary.Contains(FMouseMoveData.Appointment.UniqueId) then
-        InternalUnselectAppointment(FMouseMoveData.Appointment.UniqueId)
+      InternalClearDaysSelection;
+      if CtrlPressed then
+      begin
+        if FSelectedAppointmentsDictionary.Contains(FMouseMoveData.Appointment.UniqueId) then
+          InternalUnselectAppointment(FMouseMoveData.Appointment.UniqueId)
+        else
+          InternalSelectAppointment(FMouseMoveData.Appointment.UniqueId);
+        mustPaint := true;
+      end
       else
+      begin
+        InternalClearAppointmentsSelection;
         InternalSelectAppointment(FMouseMoveData.Appointment.UniqueId);
-      mustPaint := true;
-    end
-    else
-    begin
-      InternalClearAppointmentsSelection;
-      InternalSelectAppointment(FMouseMoveData.Appointment.UniqueId);
-      mustPaint := true;
+        mustPaint := true;
+      end;
     end;
   end;
   inherited MouseUp(Button, Shift, X, Y);

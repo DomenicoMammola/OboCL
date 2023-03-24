@@ -77,9 +77,9 @@ type
     FOnGetAppointments : TOnGetAppointments;
     FOnCheckIsHoliday : TOnCheckIsHoliday;
 
-    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment); overload;
-    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment); overload;
-    procedure Paint_Box(ACanvas: TCanvas; const ARect: TRect);
+    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const aSelected : boolean); overload;
+    procedure Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment; const aSelected : boolean); overload;
+    procedure Paint_Box(ACanvas: TCanvas; const ARect: TRect; const aSelected : boolean);
     procedure Paint_Appointments (aCanvas : TCanvas; const aRect : TRect; const aAppointments : TmCalendarAppointments);
 
     procedure GetMonthCaptionRect(out aRect : TRect; const aRow, aCol : integer);
@@ -181,12 +181,12 @@ uses
 
 { TmCalendar }
 
-procedure TmCalendar.Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment);
+procedure TmCalendar.Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const AText: string; const ATextAlignment: TAlignment; const aSelected : boolean);
 var
   BoxRect : TRect;
   inf : integer;
 begin
-  Paint_Box(aCanvas, ARect);
+  Paint_Box(aCanvas, ARect, aSelected);
   if AText <> '' then
   begin
     BoxRect := aRect;
@@ -200,12 +200,12 @@ begin
   end;
 end;
 
-procedure TmCalendar.Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment);
+procedure TmCalendar.Paint_BoxWithText(ACanvas: TCanvas; const ARect: TRect; const ARows: TStringList; const ATextAlignment: TAlignment; const aSelected : boolean);
 var
   delta, r : integer;
   ar : TRect;
 begin
-  Paint_Box(aCanvas, ARect);
+  Paint_Box(aCanvas, ARect, aSelected);
   if ARows.Count > 0 then
   begin
     delta := (ARect.Height div 2) - 1;
@@ -217,11 +217,22 @@ begin
   end;
 end;
 
-procedure TmCalendar.Paint_Box(ACanvas: TCanvas; const ARect: TRect);
+procedure TmCalendar.Paint_Box(ACanvas: TCanvas; const ARect: TRect; const aSelected : boolean);
 begin
   ACanvas.Brush.Style:= bsSolid;
   ACanvas.FillRect(aRect);
-  ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+  if aSelected then
+  begin
+    ACanvas.Pen.Color:= FSelectedColor;
+    ACanvas.Pen.Style:= psDash;
+    ACanvas.Pen.Width:= 4;
+  end
+  else
+  begin
+    ACanvas.Pen.Color:= DarkerColor(ACanvas.Brush.Color, 20);
+    ACanvas.Pen.Style:= psSolid;
+    ACanvas.Pen.Width:= 1;
+  end;
   ACanvas.Line(aRect.Left, aRect.Bottom, aRect.Right, aRect.Bottom);
   ACanvas.Line(aRect.Left, aRect.Bottom, aRect.Left, aRect.Top);
   ACanvas.Line(aRect.Right, aRect.Bottom, aRect.Right, aRect.Top);
@@ -283,7 +294,7 @@ begin
   aCanvas.Brush.Color:= Self.Color;
   aCanvas.Font := Self.Font;
   aCanvas.Font.Color := FCaptionsColor;
-  Paint_BoxWithText(aCanvas, tmpRect, str, taCenter);
+  Paint_BoxWithText(aCanvas, tmpRect, str, taCenter, false);
 end;
 
 procedure TmCalendar.Paint_Month_Weekdays(aCanvas: TCanvas; aRow, aCol: integer);
@@ -389,7 +400,7 @@ begin
             end;
             if (FStyle = csAppointmentsList) and Assigned(FOnGetAppointments) then
             begin
-              Paint_Box(aCanvas, r);
+              Paint_Box(aCanvas, r, false);
               FAppointmentsPerDay.Remove(trunc(curDate));
               curDayAppointments := TmCalendarAppointments.Create;
               FAppointmentsPerDay.Add(trunc(curDate), curDayAppointments);
@@ -397,12 +408,12 @@ begin
               yheader := y1 + max(MIN_DAY_HEADER_HEIGHT, trunc(FDayHeight * 0.2));
               hr := Classes.Rect (x1, y1, x2, yheader);
               ar := Classes.Rect(x1, yheader + 1, x2, y2);
-              Paint_BoxWithText(aCanvas, hr, IntToStr(tmpDay), FDayAlignment); // draw header
+              Paint_BoxWithText(aCanvas, hr, IntToStr(tmpDay), FDayAlignment, false); // draw header
               if curDayAppointments.Count > 0 then
                 Paint_Appointments(aCanvas, ar, curDayAppointments);
             end
             else
-              Paint_BoxWithText(aCanvas, r, IntToStr(tmpDay), FDayAlignment);
+              Paint_BoxWithText(aCanvas, r, IntToStr(tmpDay), FDayAlignment, false);
           end;
 
           curDate := curDate + 1;
@@ -463,32 +474,33 @@ begin
     end;
     y2 := y1 + h;
     aAppointments.Get(i).DrawnRect := Classes.Rect (x1, y1, x2, y2);
-    if FSelectedAppointmentsDictionary.Contains(aAppointments.Get(i).UniqueId) then
-    begin
-      aCanvas.Brush.Color := FSelectedColor;
-      aCanvas.Font.Color:= FSelectedTextColor;
-    end
+    //if FSelectedAppointmentsDictionary.Contains(aAppointments.Get(i).UniqueId) then
+    //begin
+    //  aCanvas.Brush.Color := FSelectedColor;
+    //  aCanvas.Font.Color:= FSelectedTextColor;
+    //end;
+    aCanvas.Brush.Color:= aAppointments.Get(i).Color;
+    if IsDark(aAppointments.Get(i).Color) then
+      aCanvas.Font.Color:= LighterColor(aAppointments.Get(i).Color, 40)
     else
-    begin
-      aCanvas.Brush.Color:= aAppointments.Get(i).Color;
-      if IsDark(aAppointments.Get(i).Color) then
-        aCanvas.Font.Color:= LighterColor(aAppointments.Get(i).Color, 40)
-      else
-        aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 40);
-    end;
+      aCanvas.Font.Color:= DarkerColor(aAppointments.Get(i).Color, 40);
     aCanvas.Pen.Color := aCanvas.Font.Color;
     if aCanvas.TextWidth(aAppointments.Get(i).Description) > aAppointments.Get(i).DrawnRect.Width then
     begin
       tmpRows := TStringList.Create;
       try
         WordwrapStringByRows(aAppointments.Get(i).Description, 2, tmpRows);
-        Paint_BoxWithText(aCanvas, aAppointments.Get(i).DrawnRect, tmpRows, taLeftJustify);
+        Paint_BoxWithText(aCanvas, aAppointments.Get(i).DrawnRect, tmpRows, taLeftJustify, FSelectedAppointmentsDictionary.Contains(aAppointments.Get(i).UniqueId));
       finally
         tmpRows.Free;
       end;
     end
     else
-      Paint_BoxWithText(aCanvas, aAppointments.Get(i).DrawnRect, aAppointments.Get(i).Description, taLeftJustify);
+      Paint_BoxWithText(aCanvas, aAppointments.Get(i).DrawnRect, aAppointments.Get(i).Description, taLeftJustify, FSelectedAppointmentsDictionary.Contains(aAppointments.Get(i).UniqueId));
+    if Assigned(aAppointments.Get(i).Icon) then
+    begin
+      aCanvas.Draw(aCanvas.Width - aAppointments.Get(i).Icon.Width, 0, aAppointments.Get(i).Icon);
+    end;
     y1 := y2 + 2;
     inc(r);
     inc(i);
@@ -983,7 +995,7 @@ begin
   FWeekdaysColor:= clBlack;
   FDaysColor:= clBlack;
   FHolidaysColor:= clRed;
-  FSelectedColor := clBlue;
+  FSelectedColor := clSkyBlue; // TColor($F0CAA6);
   FSelectedTextColor:= clWhite;
   FCaptionsColor := clBlack;
   Self.Color:= clWhite;

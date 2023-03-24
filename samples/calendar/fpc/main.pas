@@ -14,6 +14,7 @@ type
   { TForm1 }
 
   TForm1 = class(TForm)
+    ImageList1: TImageList;
     procedure FormCreate(Sender: TObject);
   private
     FCalendar : TmCalendar;
@@ -69,6 +70,7 @@ begin
       Description := 'Appointment of ' + DateToStr(aDate);
       Color := clRed;
       UniqueId:= DateToStr(aDate);
+      ImageList1.GetBitmap(0, Icon);
     end;
   end;
 end;

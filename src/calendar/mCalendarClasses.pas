@@ -28,6 +28,7 @@ type
     FDescription : String;
     FColor : TColor;
     FDrawnRect : TRect;
+    FIcon : TBitmap;
   public
     constructor Create;
     destructor Destroy; override;
@@ -37,6 +38,7 @@ type
     property Description : String read FDescription write FDescription;
     property Color : TColor read FColor write FColor;
     property DrawnRect : TRect read FDrawnRect write FDrawnRect;
+    property Icon : TBitmap read FIcon write FIcon;
   end;
 
   { TmCalendarAppointments }
@@ -97,6 +99,7 @@ constructor TmCalendarAppointment.Create;
 begin
   FDescription := '';
   FColor := clYellow;
+  FIcon := nil;
 end;
 
 destructor TmCalendarAppointment.Destroy;

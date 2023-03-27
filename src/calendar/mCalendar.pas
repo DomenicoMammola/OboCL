@@ -432,8 +432,9 @@ procedure TmCalendar.Paint_Appointments(aCanvas: TCanvas; const aRect: TRect; co
 var
   availableHeight : integer;
   i, r, c, cols, maxInACol : integer;
-  x1, y1, x2, y2, h, w : integer;
-  paintRect : TRect;
+  x1, y1, x2, y2, h, w, hi, wi : integer;
+  scaleFactor : double;
+  paintRect, iconRect : TRect;
   tmpRows : TStringList;
 begin
   if aAppointments.Count = 0 then
@@ -497,9 +498,26 @@ begin
     end
     else
       Paint_BoxWithText(aCanvas, aAppointments.Get(i).DrawnRect, aAppointments.Get(i).Description, taLeftJustify, FSelectedAppointmentsDictionary.Contains(aAppointments.Get(i).UniqueId));
-    if Assigned(aAppointments.Get(i).Icon) then
+    if aAppointments.Get(i).Icon.Width > 0 then
     begin
-      aCanvas.Draw(aCanvas.Width - aAppointments.Get(i).Icon.Width, 0, aAppointments.Get(i).Icon);
+      iconRect := aRect;
+      InflateRect (iconRect, -2, -2);
+      wi := aAppointments.Get(i).Icon.Width;
+      hi := aAppointments.Get(i).Icon.Height;
+      if (iconRect.Width >= wi) and (iconRect.Height >= hi) then
+        aCanvas.Draw(iconRect.Right - wi, iconRect.Top, aAppointments.Get(i).Icon)
+      else
+      begin
+        scaleFactor := max(wi/iconRect.Width, hi/iconRect.Height);
+        wi := trunc(wi / scaleFactor);
+        hi := trunc(hi / scaleFactor);
+        iconRect.Left:= iconRect.Right - wi + 1;
+        iconRect.Bottom:= iconRect.Top + hi - 1;
+        {$IFDEF FPC}
+        aCanvas.AntialiasingMode := amON;
+        {$ENDIF}
+        aCanvas.StretchDraw(iconRect, aAppointments.Get(i).Icon);
+      end;
     end;
     y1 := y2 + 2;
     inc(r);

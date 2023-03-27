@@ -70,7 +70,7 @@ begin
       Description := 'Appointment of ' + DateToStr(aDate);
       Color := clRed;
       UniqueId:= DateToStr(aDate);
-      ImageList1.GetBitmap(0, Icon);
+      ImageList1.GetBitmap(1, Icon);
     end;
   end;
 end;

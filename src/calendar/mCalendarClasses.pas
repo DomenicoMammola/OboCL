@@ -99,11 +99,14 @@ constructor TmCalendarAppointment.Create;
 begin
   FDescription := '';
   FColor := clYellow;
-  FIcon := nil;
+  FIcon := TBitmap.Create;
+  FIcon.Width:= 0;
+  FIcon.Height:= 0;
 end;
 
 destructor TmCalendarAppointment.Destroy;
 begin
+  FIcon.Free;
   inherited Destroy;
 end;
 
@@ -112,6 +115,7 @@ begin
   FUniqueId := aSource.UniqueId;
   FDescription := aSource.Description;
   FColor := aSource.Color;
+  FIcon.Assign(aSource.Icon);
 end;
 
 end.

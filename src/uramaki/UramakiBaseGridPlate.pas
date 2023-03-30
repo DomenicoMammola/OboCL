@@ -169,6 +169,7 @@ type
     procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); override;
     procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
     procedure OnCellClick(Column: TColumn);
+    procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -805,6 +806,22 @@ end;
 procedure TUramakiDBGridPlate.OnCellClick(Column: TColumn);
 begin
   UpdateChildsIfNeeded(false);
+end;
+
+procedure TUramakiDBGridPlate.SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues: TStringList);
+begin
+  FGrid.OnSelectEditor:= nil;
+  FGrid.OnCellClick:= nil;
+  try
+    FGridHelper.SelectRows(aDataProvider.GetKeyFieldName, aKeyValues);
+  finally
+    if AutomaticChildsUpdateMode = cuOnChangeSelection then
+    begin
+      FGrid.OnSelectEditor:= Self.OnSelectEditor;
+      FGrid.OnCellClick := Self.OnCellClick;
+      UpdateChildsIfNeeded(true);
+    end;
+  end;
 end;
 
 procedure TUramakiBaseGridPlate.InvokeChildsRefresh;

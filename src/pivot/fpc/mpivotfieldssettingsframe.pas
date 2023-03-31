@@ -320,7 +320,10 @@ begin
       if dest < prev then
         FListBoxHorizontalFields.Items.InsertObject(dest, old, oldObj)
       else
-        FListBoxHorizontalFields.Items.InsertObject(dest - 1, old, oldObj);
+        if dest = FListBoxHorizontalFields.Items.Count then
+          FListBoxHorizontalFields.Items.AddObject(old, oldObj)
+        else
+          FListBoxHorizontalFields.Items.InsertObject(dest, old, oldObj);
     end;
   end
   else if Source = FListBoxFields then
@@ -400,7 +403,10 @@ begin
       if dest < prev then
         FListBoxVerticalFields.Items.InsertObject(dest, old, oldObj)
       else
-        FListBoxVerticalFields.Items.InsertObject(dest - 1, old, oldObj);
+        if dest = FListBoxVerticalFields.Items.Count then
+          FListBoxVerticalFields.Items.AddObject(old, oldObj)
+        else
+          FListBoxVerticalFields.Items.InsertObject(dest, old, oldObj);
     end;
   end
   else if Source = FListBoxFields then
@@ -480,7 +486,10 @@ begin
       if dest < prev then
         FListBoxDataFields.Items.InsertObject(dest, old, oldObj)
       else
-        FListBoxDataFields.Items.InsertObject(dest - 1, old, oldObj);
+        if dest = FListBoxDataFields.Items.Count then
+          FListBoxDataFields.Items.AddObject(old, oldObj)
+        else
+          FListBoxDataFields.Items.InsertObject(dest, old, oldObj);
     end;
   end
   else if Source = FListBoxFields then

@@ -177,7 +177,10 @@ begin
     if dest < prev then
       LinesListBox.Items.InsertObject(dest, old, oldObj)
     else
-      LinesListBox.Items.InsertObject(dest - 1, old, oldObj);
+      if dest = LinesListBox.Items.Count then
+        LinesListBox.Items.AddObject(old, oldObj)
+      else
+        LinesListBox.Items.InsertObject(dest, old, oldObj);
   end;
 end;
 

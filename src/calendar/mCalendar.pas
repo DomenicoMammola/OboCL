@@ -67,8 +67,9 @@ type
     FMustCalculate : boolean;
     FDoubleBufferedBitmap: Graphics.TBitmap;
     FSelectedBucketsDictionary : TmIntegerDictionary;
-    FSelectedAppointmentsDictionary : TmStringDictionary;
     FSelectedBuckets: TIntegerList;
+    FSelectedAppointmentsDictionary : TmStringDictionary;
+    FSelectedAppointments: TStringList;
     FMouseMoveData : TmCalendarMouseMoveData;
     FAppointmentsPerDay : TmIntegerDictionary;
 
@@ -155,6 +156,7 @@ type
     property SelectedTextColor : TColor read FSelectedTextColor write SetSelectedTextColor;
 
     property SelectedBuckets : TIntegerList read FSelectedBuckets;
+    property SelectedAppointments : TStringList read FSelectedAppointments;
 
     property OnClickOnDay : TOnClickOnDay read FOnClickOnDay write FOnClickOnDay;
     property OnGetAppointments : TOnGetAppointments read FOnGetAppointments write FOnGetAppointments;
@@ -299,7 +301,7 @@ end;
 
 procedure TmCalendar.Paint_Month_Weekdays(aCanvas: TCanvas; aRow, aCol: integer);
 var
-  x1 , y1 , x2 , y2 , i, we : integer;
+  x1 , y1 , x2 , y2 , i, we, idx : integer;
   r : TRect;
 begin
   aCanvas.Font := Self.Font;
@@ -318,10 +320,19 @@ begin
     x2 := x1 + FDayWidth;
     y2 := y1 + FTitleSize;
     r := Classes.Rect (x1, y1, x2, y2);
-    if r.Width < 30 then
-      WriteText(aCanvas, r, LeftStr(Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]),1), FDayAlignment, true)
+    idx := ((i + 1)mod 7)+1;
+
+    if (coSundayIsHoliday in FOptions) and (idx = 1) then
+      aCanvas.Font.Color := FHolidaysColor
+    else if (coSaturdayIsHoliday in FOptions) and (idx = 7) then
+      aCanvas.Font.Color:= FHolidaysColor
     else
-      WriteText(aCanvas, r, Uppercase(FormatSettings.ShortDayNames [((i + 1)mod 7)+1]), FDayAlignment, true);
+      aCanvas.Font.Color := FWeekdaysColor;
+
+    if r.Width < 30 then
+      WriteText(aCanvas, r, LeftStr(Uppercase(FormatSettings.ShortDayNames [idx]),1), FDayAlignment, true)
+    else
+      WriteText(aCanvas, r, Uppercase(FormatSettings.ShortDayNames [idx]), FDayAlignment, true);
   end;
 
   aCanvas.Pen.Color := FLinesColor;
@@ -498,9 +509,9 @@ begin
     end
     else
       Paint_BoxWithText(aCanvas, aAppointments.Get(i).DrawnRect, aAppointments.Get(i).Description, taLeftJustify, FSelectedAppointmentsDictionary.Contains(aAppointments.Get(i).UniqueId));
-    if aAppointments.Get(i).Icon.Width > 0 then
+    if Assigned(aAppointments.Get(i).Icon) then //.Width > 0 then
     begin
-      iconRect := aRect;
+      iconRect := aAppointments.Get(i).DrawnRect;
       InflateRect (iconRect, -2, -2);
       wi := aAppointments.Get(i).Icon.Width;
       hi := aAppointments.Get(i).Icon.Height;
@@ -548,6 +559,7 @@ begin
   FSelectedBucketsDictionary.Free;
   FSelectedAppointmentsDictionary.Free;
   FSelectedBuckets.Free;
+  FSelectedAppointments.Free;
   FMouseMoveData.Free;
   FAppointmentsPerDay.Free;
   inherited Destroy;
@@ -758,16 +770,19 @@ end;
 procedure TmCalendar.InternalClearAppointmentsSelection;
 begin
   FSelectedAppointmentsDictionary.Clear;
+  FSelectedAppointments.Clear;
 end;
 
 procedure TmCalendar.InternalSelectAppointment(const aAppointmentUniqueId: String);
 begin
   FSelectedAppointmentsDictionary.Add(aAppointmentUniqueId, FSelectedAppointmentsDictionary);
+  FSelectedAppointments.Add(aAppointmentUniqueId);
 end;
 
 procedure TmCalendar.InternalUnselectAppointment(const aAppointmentUniqueId: String);
 begin
   FSelectedAppointmentsDictionary.Remove(aAppointmentUniqueId);
+  FSelectedAppointments.Delete(FSelectedAppointments.IndexOf(aAppointmentUniqueId));
 end;
 
 procedure TmCalendar.DoPaintTo(aCanvas: TCanvas; aRect: TRect);
@@ -999,6 +1014,7 @@ begin
   FSelectedBucketsDictionary := TmIntegerDictionary.Create(false);
   FSelectedAppointmentsDictionary := TmStringDictionary.Create(false);
   FSelectedBuckets:= TIntegerList.Create;
+  FSelectedAppointments := TStringList.Create;
   FMouseMoveData := TmCalendarMouseMoveData.Create;
   FAppointmentsPerDay := TmIntegerDictionary.Create(true);
 

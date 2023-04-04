@@ -1137,7 +1137,10 @@ begin
     index := TmStringDictionary.Create(false);
     try
       for i := 0 to aValues.Count - 1 do
-        index.Add(aValues.Strings[i], index);
+      begin
+        if not index.Contains(aValues.Strings[i]) then
+          index.Add(aValues.Strings[i], index);
+      end;
       FDBGrid.BeginUpdate;
       try
         FDBGrid.ClearSelections;

@@ -128,6 +128,8 @@ type
 
     procedure DoPaintTo(aCanvas: TCanvas; aRect: TRect);
     procedure SaveMouseMoveData(X, Y: integer);
+    procedure HideHint;
+    procedure ShowHintWindow(const aText: string; const aPoint: TPoint);
   protected
     procedure Paint; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
@@ -808,13 +810,19 @@ procedure TmCalendar.SaveMouseMoveData(X, Y: integer);
 var
   singleItemWidth, singleItemHeight, dow: integer;
   row, col, monthRow, monthCol, i: integer;
-  refDate, clickedDate: TDateTime;
+  refDate, targetDate: TDateTime;
   refYear, refMonth, refDay: word;
   day: integer;
   appointments: TmCalendarAppointments;
 begin
   FMouseMoveData.Clear;
   if not PtInRect(ClientRect, Classes.Point(X, Y)) then
+  begin
+    HideHint;
+    exit;
+  end;
+
+  if (FDayWidth = 0) or (FDayHeight = 0) or (FCols = 0) or (FRows = 0) then
     exit;
 
   singleItemWidth := ClientRect.Width div FCols;
@@ -853,9 +861,9 @@ begin
 
     if (day >= 1) and (day <= DaysInAMonth(refYear, refMonth)) then
     begin
-      clickedDate := EncodeDate(refYear, refMonth, day);
-      FMouseMoveData.ClickOnDays := True;
-      FMouseMoveData.Day := round(clickedDate);
+      targetDate := EncodeDate(refYear, refMonth, day);
+      FMouseMoveData.MouseOnDays := True;
+      FMouseMoveData.Day := round(targetDate);
       if FStyle = csAppointmentsList then
       begin
         appointments := FAppointmentsPerDay.Find(round(FMouseMoveData.Day)) as TmCalendarAppointments;
@@ -866,21 +874,51 @@ begin
             if PtInRect(appointments.Get(i).DrawnRect, Classes.Point(X, Y)) then
             begin
               FMouseMoveData.Appointment.Assign(appointments.Get(i));
-              FMouseMoveData.ClickOnDays := False;
-              FMouseMoveData.ClickOnAppointments := True;
+              FMouseMoveData.MouseOnDays := False;
+              FMouseMoveData.MouseOnAppointments := True;
               break;
             end;
           end;
         end;
       end;
       {$ifdef debug}
-      debugln('Click - clicked date: ' + DateToStr(clickedDate));
+      debugln('Click - clicked date: ' + DateToStr(targetDate));
       {$ifdef linux}
-      writeln('Click - clicked date: ' + DateToStr(clickedDate));
+      writeln('Click - clicked date: ' + DateToStr(targetDate));
       {$endif}
       {$endif}
     end;
   end;
+end;
+
+procedure TmCalendar.HideHint;
+begin
+  Self.ShowHint := False;
+  Application.CancelHint;
+end;
+
+procedure TmCalendar.ShowHintWindow(const aText: string; const aPoint: TPoint);
+begin
+  //  if UseApplicationHint then begin
+  Self.Hint := aText;
+  Self.ShowHint := Self.Hint <> '';
+  if not Self.ShowHint then exit;
+  Application.HintPause := 0;
+  Application.ActivateHint(aPoint);
+(*  end
+  else begin
+    if FHintWindow = nil then
+      FHintWindow := THintWindow.Create(nil);
+    if h = '' then exit;
+    r := FHintWindow.CalcHintRect(FChart.Width, h, Nil);
+    if Assigned(OnHintLocation) then begin
+      sz.CX := r.Right - r.Left;
+      sz.CY := r.Bottom - r.Top;
+      OnHintLocation(Self, sz, APoint);
+    end;
+    OffsetRect(r, APoint.X, APoint.Y);
+    FHintWindow.ActivateHint(r, h);
+  end;*)
 end;
 
 procedure TmCalendar.Paint;
@@ -921,7 +959,7 @@ var
   i, curDay: integer;
 begin
   mustPaint := False;
-  if FMouseMoveData.ClickOnDays then
+  if FMouseMoveData.MouseOnDays then
   begin
     if Button = mbLeft then
     begin
@@ -976,7 +1014,7 @@ begin
       end;
     end;
   end;
-  if FMouseMoveData.ClickOnAppointments then
+  if FMouseMoveData.MouseOnAppointments then
   begin
     if Button = mbLeft then
     begin
@@ -1000,12 +1038,29 @@ begin
   inherited MouseUp(Button, Shift, X, Y);
   if mustPaint then
     Self.Paint;
-  if FMouseMoveData.ClickOnDays and Assigned(FOnClickOnDay) then
+  if FMouseMoveData.MouseOnDays and Assigned(FOnClickOnDay) then
     FOnClickOnDay(Button, Shift, FMouseMoveData.Day);
 end;
 
 procedure TmCalendar.MouseMove(Shift: TShiftState; X, Y: integer);
 begin
+  if Assigned(OnGetDateHint) or (Assigned(OnGetAppointmentHint) and (FStyle = csAppointmentsList)) then
+  begin
+    SaveMouseMoveData(X, Y);
+    if Assigned(OnGetDateHint) and FMouseMoveData.MouseOnDays then
+    begin
+      ShowHintWindow(OnGetDateHint(FMouseMoveData.Day), Self.ClientToScreen(TPoint.Create(X, Y)));
+    end
+    else if Assigned(OnGetAppointmentHint) and FMouseMoveData.MouseOnAppointments then
+    begin
+      ShowHintWindow(OnGetAppointmentHint(FMouseMoveData.Appointment), Self.ClientToScreen(TPoint.Create(X, Y)));
+    end
+    else
+      HideHint;
+  end
+  else
+    HideHint;
+
   inherited MouseMove(Shift, X, Y);
 end;
 

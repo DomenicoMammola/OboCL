@@ -25,8 +25,8 @@ type
   TmCalendarMouseMoveData = class
   strict private
     FDay : integer;
-    FClickOnDays : boolean;
-    FClickOnAppointments : boolean;
+    FMouseOnDays : boolean;
+    FMouseOnAppointments : boolean;
     FAppointment : TmCalendarAppointment;
   public
     constructor Create;
@@ -36,8 +36,8 @@ type
     function Appointment : TmCalendarAppointment;
 
     property Day : integer read FDay write FDay;
-    property ClickOnDays : boolean read FClickOnDays write FClickOnDays;
-    property ClickOnAppointments : boolean read FClickOnAppointments write FClickOnAppointments;
+    property MouseOnDays : boolean read FMouseOnDays write FMouseOnDays;
+    property MouseOnAppointments : boolean read FMouseOnAppointments write FMouseOnAppointments;
   end;
 
 implementation
@@ -61,8 +61,8 @@ end;
 
 procedure TmCalendarMouseMoveData.Clear;
 begin
-  FClickOnDays:= false;
-  FClickOnAppointments:= false;
+  FMouseOnDays:= false;
+  FMouseOnAppointments:= false;
   FDay := 0;
   FreeAndNil(FAppointment);
 end;

@@ -20,6 +20,11 @@ uses
   Dialogs, ExtCtrls, Buttons, CheckLst, DB, contnrs,
   mBaseClassesAsObjects, mUtility;
 
+
+resourcestring
+  SMissingValuesWarningTitle = 'Invalid number of checked values';
+  SMissingValuesWarningText = 'You must select at least %d values.';
+
 type
 
   { TmCheckListWindow }
@@ -35,6 +40,7 @@ type
     procedure OkBtnClick(Sender: TObject);
   strict private
     FGarbage : TObjectList;
+    FMinValuesToBeSelected : word;
     function GetSelected: Variant;
     function CountCheckedItems : integer;
     function GetSelectedLabels: string;
@@ -45,6 +51,7 @@ type
     procedure SetCurrentValue (const aValue: variant);
     property Selected : Variant read GetSelected;
     property SelectedLabels: string read GetSelectedLabels;
+    property MinValuesToBeSelected : word read FMinValuesToBeSelected write FMinValuesToBeSelected;
   end;
 
 
@@ -65,6 +72,7 @@ end;
 procedure TmCheckListWindow.FormCreate(Sender: TObject);
 begin
   FGarbage := TObjectList.Create(true);
+  FMinValuesToBeSelected := 1;
 end;
 
 procedure TmCheckListWindow.FormDestroy(Sender: TObject);
@@ -74,10 +82,10 @@ end;
 
 procedure TmCheckListWindow.OkBtnClick(Sender: TObject);
 begin
-  if CountCheckedItems > 0 then
+  if CountCheckedItems >= FMinValuesToBeSelected then
     ModalResult := mrOk
   else
-    MessageDlg('Warning', 'No value selected.', mtInformation, [mbOk], 0);
+    MessageDlg(SMissingValuesWarningTitle, Format(SMissingValuesWarningText, [FMinValuesToBeSelected]), mtInformation, [mbOk], 0);
 end;
 
 function TmCheckListWindow.GetSelected: Variant;

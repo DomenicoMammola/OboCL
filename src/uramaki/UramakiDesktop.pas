@@ -386,6 +386,7 @@ procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const a
   var
     i : integer;
     curCategory : String;
+    newMenu : TMenuItem;
   begin
     Result := nil;
     curCategory := aCategories.Strings[aCurIndex];
@@ -406,9 +407,16 @@ procedure TUramakiDesktopManager.FillAddWidgetMenu(aMenuItem: TMenuItem; const a
 
     if not Assigned(Result) then
     begin
-      Result := TMenuItem.Create(Result);
-      Result.Caption:= curCategory;
-      aMenuItem.Add(Result);
+      newMenu := TMenuItem.Create(aMenuItem);
+      newMenu.Caption := curCategory;
+      aMenuItem.Add(newMenu);
+      if aCurIndex = aCategories.Count - 1 then
+        Result := newMenu
+      else
+      begin
+        inc(aCurIndex);
+        Result := ExplodeMenuItem(aCategories, aCurIndex, newMenu);
+      end;
     end;
   end;
 var

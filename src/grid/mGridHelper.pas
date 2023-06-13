@@ -18,7 +18,7 @@ interface
 
 uses
   Classes, DB, Dialogs, Forms, Graphics, ComCtrls,
-  DBGrids, Grids, Controls, Menus, LCLIntf,
+  DBGrids, Controls, Menus, LCLIntf, Grids,
   ATButtons,
   {$IFDEF FPC}
   fpstypes, fpspreadsheet,
@@ -62,7 +62,7 @@ type
   strict private
     const DEFAULT_XLS_HEADER_COLOR : DWord = $00EED7BD;
   protected
-    FGrid: TCustomGrid;
+    FGrid: TControl;
 
     FSettings : TmGridColumnsSettings;
     FFormulaFields : TmFormulaFields;
@@ -74,7 +74,7 @@ type
     function ConfirmDiscordedFileExt (const aFileExt : String): boolean;
     procedure ExportGridToFile(aFileType : String);
 
-    procedure InternalCreate(aGrid: TCustomGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
+    procedure InternalCreate(aGrid: TControl; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
   public
     destructor Destroy; override;
 
@@ -315,7 +315,7 @@ begin
 
 end;
 
-procedure TmAbstractGridHelper.InternalCreate(aGrid: TCustomGrid; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
+procedure TmAbstractGridHelper.InternalCreate(aGrid: TControl; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
   FGrid := aGrid;
   FSettings := TmGridColumnsSettings.Create;

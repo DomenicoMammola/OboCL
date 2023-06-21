@@ -161,6 +161,8 @@ type
     procedure OnValueListEditorPrepareCanvas(sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnValueListEditorSelectEditor(Sender: TObject; aCol,  aRow: Integer; var Editor: TWinControl);
     procedure OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
+    procedure OnPaintMemoCaptionPanel(Sender: TObject);
+    procedure OnChangeMemo(Sender: TObject);
     function OnGetValueFromMainSource(const aCol, aRow : integer; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
     function OnGetValue (const aCol, aRow : integer; const aSource: TOnGetValueSource; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
     function OnGetValueFromWizard (const aCol, aRow : integer; out aNewDisplayValue : string; out aNewActualValue: variant): boolean;
@@ -276,7 +278,13 @@ type
   TEditorMemo = class
   private
     Name : String;
+    Caption : String;
+    PanelCaption : TPanel;
+    DefaultValue : String;
     Memo : TMemo;
+    ForceClear : boolean;
+    DefaultReadOnly : boolean;
+    Changed : boolean;
     ChangedValueDestination: TAbstractNullable;
     MemoHeightPercent : double;
   end;
@@ -561,7 +569,11 @@ begin
 
   curLine := FLinesByRowIndex.Find(aRow) as TEditorLine;
   if (not Assigned(curLine)) or (curLine.Configuration.ReadOnly in [roAllowOnlySetValue, roReadOnly]) or (curLine.ForceClear) then
+  begin
+    if curLine.ForceClear then
+      Editor := nil;
     exit;
+  end;
 
   if (curLine.Configuration.EditorKind = ekCalendar) then
   begin
@@ -726,6 +738,62 @@ begin
       FOnEditValueEvent(Self, curLine.Name, NewValue, curLine.ActualValue);
 
     FValueListEditor.Invalidate;
+  end;
+end;
+
+procedure TmEditingPanel.OnPaintMemoCaptionPanel(Sender: TObject);
+var
+  tmpIndex : integer;
+  curEditorMemo : TEditorMemo;
+begin
+  if FMultiEditMode and (Sender is TPanel) then
+  begin
+    if MultiEditMode then
+    begin
+      tmpIndex := (Sender as TPanel).Tag;
+
+      if (tmpIndex >= 0) and (tmpIndex < FMemos.Count) then
+      begin
+        curEditorMemo := FMemos.Items[tmpIndex] as TEditorMemo;
+        if curEditorMemo.ForceClear then
+          (Sender as TPanel).Font.Color := clLtGray
+        else if not curEditorMemo.Changed then
+          (Sender as TPanel).Font.Color := clGray
+        else
+          (Sender as TPanel).Font.Color := clBlack;
+      end;
+    end;
+  end;
+end;
+
+procedure TmEditingPanel.OnChangeMemo(Sender: TObject);
+var
+  tmpIndex : integer;
+  curEditorMemo : TEditorMemo;
+begin
+  if FMultiEditMode and (Sender is TMemo) then
+  begin
+    tmpIndex := (Sender as TMemo).Tag;
+    if (tmpIndex >= 0) and (tmpIndex < FMemos.Count) then
+    begin
+      curEditorMemo := FMemos.Items[tmpIndex] as TEditorMemo;
+      if (Sender as TMemo).Text <> curEditorMemo.DefaultValue then
+      begin
+        if not curEditorMemo.Changed then
+        begin
+          curEditorMemo.Changed := true;
+          curEditorMemo.PanelCaption.Invalidate;
+        end;
+      end
+      else
+      begin
+        if curEditorMemo.Changed then
+        begin
+          curEditorMemo.Changed := false;
+          curEditorMemo.PanelCaption.Invalidate;
+        end;
+      end;
+    end;
   end;
 end;
 
@@ -987,11 +1055,23 @@ begin
 end;
 
 procedure TmEditingPanel.OnClickClearValue(Sender: TObject);
+var
+  obj : TObject;
 begin
   if Sender is TCheckListBox then
   begin
-    ((Sender as TCheckListBox).Items.Objects[(Sender as TCheckListBox).ItemIndex] as TEditorLine).ForceClear:= (Sender as TCheckListBox).Checked[(Sender as TCheckListBox).ItemIndex];
-    FValueListEditor.Invalidate;
+    obj := (Sender as TCheckListBox).Items.Objects[(Sender as TCheckListBox).ItemIndex];
+    if obj is TEditorLine then
+    begin
+      (obj as TEditorLine).ForceClear:= (Sender as TCheckListBox).Checked[(Sender as TCheckListBox).ItemIndex];
+      FValueListEditor.Invalidate;
+    end
+    else if obj is TEditorMemo then
+    begin
+      (obj as TEditorMemo).ForceClear:= (Sender as TCheckListBox).Checked[(Sender as TCheckListBox).ItemIndex];
+      (obj as TEditorMemo).Memo.ReadOnly := (obj as TEditorMemo).ForceClear or (obj as TEditorMemo).DefaultReadOnly;
+      (obj as TEditorMemo).PanelCaption.Invalidate;
+    end;
   end;
 end;
 
@@ -1028,22 +1108,32 @@ begin
   tmpPanel2.Font.Style:=[fsBold];
   tmpPanel2.BorderWidth:= 1;
   tmpPanel2.BorderStyle:=bsSingle;
+  tmpPanel2.OnPaint:= OnPaintMemoCaptionPanel;
   tmpMemo:= TMemo.Create(tmpPanel1);
   tmpMemo.Parent := tmpPanel1;
   tmpMemo.Align:= alClient;
   tmpMemo.ScrollBars:= ssVertical;
   tmpMemo.WantReturns:= true;
   tmpMemo.Text:= aDefaultValue;
+  tmpMemo.OnChange:= OnChangeMemo;
 
   tmpEditorMemo := TEditorMemo.Create;
+  tmpEditorMemo.ForceClear:= false;
   tmpEditorMemo.Name:= aName;
+  tmpEditorMemo.Caption := aCaption;
+  tmpEditorMemo.PanelCaption := tmpPanel2;
   tmpEditorMemo.Memo := tmpMemo;
   tmpEditorMemo.ChangedValueDestination := aChangedValueDestination;
   tmpEditorMemo.Memo.ReadOnly := (aReadOnly <> roAllowEditing);
+  tmpEditorMemo.DefaultReadOnly := tmpEditorMemo.Memo.ReadOnly;
   tmpEditorMemo.MemoHeightPercent:= aMemoHeightPercent;
+  tmpEditorMemo.DefaultValue:= aDefaultValue;
+  tmpEditorMemo.Changed:= false;
 
   FMemos.Add(tmpEditorMemo);
   FMemosByName.Add(aName, tmpEditorMemo);
+  tmpPanel2.Tag:= FMemos.Count - 1;
+  tmpMemo.Tag:= FMemos.Count -1;
 
   mainPanelPosition := 1;
   for i := 0 to FMemos.Count - 1 do
@@ -1219,6 +1309,12 @@ begin
     end;
   finally
     sortedLines.Free;
+  end;
+
+  if MultiEditMode and Assigned(FClearValuesList) then
+  begin
+    for k := 0 to FMemos.Count - 1 do
+      FClearValuesList.AddItem((FMemos.Items[k] as TEditorMemo).Caption, FMemos.Items[k]);
   end;
 end;
 
@@ -1820,7 +1916,10 @@ begin
     tmpMemo := FMemos.Items[i] as TEditorMemo;
     if Assigned(tmpMemo.ChangedValueDestination) and (not tmpMemo.Memo.ReadOnly) then
     begin
-      tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(Self.GetValue(tmpMemo.Name));
+      if tmpMemo.ForceClear then
+        tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(null)
+      else
+        tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(Self.GetValue(tmpMemo.Name));
       FSomethingChanged := FSomethingChanged or tmpMemo.ChangedValueDestination.TagChanged;
     end;
   end;

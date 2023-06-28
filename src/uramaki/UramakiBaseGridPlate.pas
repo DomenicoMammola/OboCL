@@ -568,7 +568,7 @@ begin
         end;
       end
       else begin
-        if (FGrid.SelectedRows.Count = 0) and ((FGrid.DataSource.DataSet.BookmarkValid(FLastSelectedRow)) or (FLastSelectedRowsCount > 0)) then
+        if (FGrid.SelectedRows.Count = 0) then // and ((FGrid.DataSource.DataSet.BookmarkValid(FLastSelectedRow)) or (FLastSelectedRowsCount > 0)) then
         begin
           FLastSelectedRow:= nil;
           FLastSelectedRowsCount:= 0;

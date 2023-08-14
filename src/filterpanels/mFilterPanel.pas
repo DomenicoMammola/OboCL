@@ -279,9 +279,9 @@ uses
 const
   DEFAULT_FLEX_WIDTH = 50;
   {$IFDEF LINUX}
-  DEFAULT_HEIGHT = 45;
+  DEFAULT_HEIGHT = 50;
   {$ELSE}
-  DEFAULT_HEIGHT = 40;
+  DEFAULT_HEIGHT = 45;
   {$ENDIF}
 
 { TmInstantQueryLookupFilterConditionPanel }
@@ -1138,7 +1138,7 @@ begin
   FDateEditMax.Align:= alRight;
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
-  FDateEditMax.Flat:= false;
+  FDateEditMax.Flat:= true;
   FDateEditMax.Height:= ScaleForMagnification(FDateEditMax.Height, true);
   FLabel := Self.CreateStandardLabel;
   CreateStandardFilterMenu(FLabel, true);
@@ -1251,7 +1251,7 @@ procedure TmFilterConditionPanel.SetFlex(AValue: integer);
 begin
   if FFlex=AValue then Exit;
   FFlex:=AValue;
-  Self.Width := FFlex * DEFAULT_FLEX_WIDTH;
+  Self.Width := ScaleForMagnification(FFlex * DEFAULT_FLEX_WIDTH, true);
 end;
 
 function TmFilterConditionPanel.CreateStandardLabel: TLabel;
@@ -1408,7 +1408,7 @@ begin
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
   Self.FFlex := 2;
-  Self.Width := Self.FFlex * ScaleForMagnification(DEFAULT_FLEX_WIDTH, true);
+  Self.Width := ScaleForMagnification(Self.FFlex * DEFAULT_FLEX_WIDTH, true);
   Self.Caption := '';
   Self.Height := ScaleForMagnification(DEFAULT_HEIGHT, true);
   Self.FFilterOperator:= foUnknown;

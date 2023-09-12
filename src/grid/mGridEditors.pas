@@ -17,7 +17,7 @@ unit mGridEditors;
 interface
 
 uses
-  Classes, Grids, contnrs,
+  Classes, Grids, contnrs, StdCtrls,
   LCLType,
   ATButtons,
   mMaps;
@@ -100,7 +100,7 @@ type
   end;
 
 
-  TmCellEditorButtonStyle = (cebsDots, cebsCalendar, cebsMagicWand);
+  TmCellEditorButtonStyle = (cebsDots, cebsCalendar, cebsMagicWand, cebsSwitchBetweenValues);
 
   { TmExtButtonTextCellEditor }
 
@@ -303,6 +303,8 @@ begin
       (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_CALENDAR
     else if aStyle = cebsMagicWand then
       (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_MAGICWAND
+    else if aStyle = cebsSwitchBetweenValues then
+      (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_SWITCH_BETWEEN_VALUES
     else
       (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.ImageIndex:= GRID_EDITORS_ICON_DOTS;
     (FButtonEditors.Items[aIndex] as TSingleButtonEditorData).Editor.Invalidate;
@@ -402,6 +404,8 @@ begin
     FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_CALENDAR
   else if aValue = cebsMagicWand then
     FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_MAGICWAND
+  else if aValue = cebsSwitchBetweenValues then
+    FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_SWITCH_BETWEEN_VALUES
   else
     FLookupButtonEditor.ImageIndex:= GRID_EDITORS_ICON_DOTS;
   FLookupButtonEditor.Invalidate;

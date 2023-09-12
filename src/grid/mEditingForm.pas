@@ -50,7 +50,7 @@ resourcestring
 
 type
 
-  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog, ekLookupInstantQuery, ekLookupInstantQueryPlusWizard);
+  TmEditorLineKind = (ekSimple, ekLookup, ekDialog, ekCalendar, ekWizard, ekLookupPlusWizard, ekColorDialog, ekLookupInstantQuery, ekLookupInstantQueryPlusWizard, ekSwitchBeetwenValues);
   TmEditorLineDataType = (dtInteger, dtFloat, dtDate, dtTime, dtText, dtUppercaseText, dtContainerNumber, dtMRNNumber, dtCurrentYearOrInThePast, dtCurrentYearOrInTheFuture, dtYear, dtMonth, dtColor, dtDateTime);
   TmEditorLineReadOnlyMode = (roAllowEditing, roReadOnly, roAllowOnlySetValue);
 
@@ -137,6 +137,7 @@ type
     FButtonCellEditor : TmExtButtonTextCellEditor;
     FWizardCellEditor : TmExtButtonTextCellEditor;
     FButtonWizardCellEditor : TmExtButtonsTextCellEditor;
+    FSwitchCellEditor : TmExtButtonTextCellEditor;
     FLinesByName : TmStringDictionary;
     FLinesByRowIndex : TmIntegerDictionary;
     FMemosByName : TmStringDictionary;
@@ -304,7 +305,7 @@ begin
       FBooleanProvider:= TBooleanDatasetDataProvider.Create;
     FDataProvider := FBooleanProvider;
     FDisplayLabelFieldNames.Add(TBooleanDatum.FLD_VALUE);
-    EditorKind:= ekLookup;
+    EditorKind:= ekSwitchBeetwenValues;
     AllowFreeTypedText:= false;
   end
   else
@@ -586,6 +587,12 @@ begin
     Editor := FButtonCellEditor;
     FButtonCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
   end
+  else if curLine.Configuration.EditorKind = ekSwitchBeetwenValues then
+  begin
+    FSwitchCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
+    Editor := FSwitchCellEditor;
+    FSwitchCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
+  end
   else if (curLine.Configuration.EditorKind = ekLookup) or (curLine.Configuration.EditorKind = ekLookupInstantQuery) then
   begin
     FButtonCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
@@ -808,12 +815,15 @@ var
   colorDialog : TColorDialog;
   keyFieldName, errorMessage : String;
   curLine : TEditorLine;
+  curDatum : IVDDatum;
   lookupFrm : TmLookupFrm;
   lookupFrmInstantQuery : TmLookupInstantQueryFrm;
   tmpVirtualFieldDefs : TmVirtualFieldDefs;
   OldStringValue : string;
   OldActualValue : Variant;
   tmpColor : TColor;
+  minFields : TStringList;
+  i, k : integer;
 begin
   Result := false;
 
@@ -928,12 +938,48 @@ begin
       lookupFrmInstantQuery.Free;
     end;
   end
+  else if curLine.Configuration.EditorKind = ekSwitchBeetwenValues then
+  begin
+    assert (Assigned(curLine.Configuration.DataProvider));
+    if curLine.Configuration.DataProvider.Count > 0 then
+    begin
+      minFields := TStringList.Create;
+      try
+        curLine.Configuration.DataProvider.GetMinimumFields(minFields);
+        if not VarIsNull(OldActualValue) then
+        begin
+          for i := 0 to curLine.Configuration.DataProvider.Count - 1 do
+          begin
+            if VarToStr(curLine.Configuration.DataProvider.GetDatum(i).GetPropertyByFieldName(curLine.Configuration.DataProvider.GetKeyFieldName)) = VarToStr(OldActualValue) then
+            begin
+              k := i + 1;
+              if k >= curLine.Configuration.DataProvider.Count then
+                k := 0;
+              aNewDisplayValue:= ConcatenateFieldValues(curLine.Configuration.DataProvider.GetDatum(k), minFields);
+              curLine.ActualValue:=curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.DataProvider.GetKeyFieldName);
+              Result := true;
+              exit;
+            end
+          end;
+        end
+        else
+        begin
+          aNewDisplayValue:= ConcatenateFieldValues(curLine.Configuration.DataProvider.GetDatum(0), minFields);
+          curLine.ActualValue:=curLine.Configuration.DataProvider.GetDatum(0).GetPropertyByFieldName(curLine.Configuration.DataProvider.GetKeyFieldName);
+          Result := true;
+          exit;
+        end;
+      finally
+        minFields.Free;
+      end;
+    end;
+  end
   else if (curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard) and (aSource = sMainButton)) then
   begin
+    assert (Assigned(curLine.Configuration.DataProvider));
+
     lookupFrm := TmLookupFrm.Create(Self);
     try
-      assert (Assigned(curLine.Configuration.DataProvider));
-
       if curLine.Configuration.LookupFieldNames.Count = 0 then
         curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.LookupFieldNames);
       if curLine.Configuration.LookupFieldNames.Count = 0 then
@@ -1740,6 +1786,14 @@ begin
   FWizardCellEditor.ParentGrid := FValueListEditor;
   FWizardCellEditor.AllowFreeTypedText:= false;
   FWizardCellEditor.ButtonStyle:= cebsMagicWand;
+
+  FSwitchCellEditor := TmExtButtonTextCellEditor.Create(Self);
+  FSwitchCellEditor.Visible:= false;
+  FSwitchCellEditor.OnGetValueEvent:= Self.OnGetValueFromMainSource;
+  FSwitchCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
+  FSwitchCellEditor.ParentGrid := FValueListEditor;
+  FSwitchCellEditor.AllowFreeTypedText:= false;
+  FSwitchCellEditor.ButtonStyle:= cebsSwitchBetweenValues;
 
   FButtonWizardCellEditor := TmExtButtonsTextCellEditor.Create(Self);
   FButtonWizardCellEditor.Visible:= false;

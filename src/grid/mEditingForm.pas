@@ -957,8 +957,9 @@ begin
                 k := 0;
               aNewDisplayValue:= ConcatenateFieldValues(curLine.Configuration.DataProvider.GetDatum(k), minFields);
               curLine.ActualValue:=curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.DataProvider.GetKeyFieldName);
+              FLastEditorUsed:= curLine.Name;
               Result := true;
-              exit;
+              break;
             end
           end;
         end
@@ -966,8 +967,8 @@ begin
         begin
           aNewDisplayValue:= ConcatenateFieldValues(curLine.Configuration.DataProvider.GetDatum(0), minFields);
           curLine.ActualValue:=curLine.Configuration.DataProvider.GetDatum(0).GetPropertyByFieldName(curLine.Configuration.DataProvider.GetKeyFieldName);
+          FLastEditorUsed:= curLine.Name;
           Result := true;
-          exit;
         end;
       finally
         minFields.Free;
@@ -1306,6 +1307,33 @@ begin
       else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
         str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
       else if ((curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard))) and (curLine.Configuration.ChangedValueDestination.NotNull) then
+      begin
+        assert (Assigned(curLine.Configuration.DataProvider));
+
+        if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
+          curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+
+        if curLine.Configuration.AlternativeKeyFieldName = '' then
+          curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
+        else
+        begin
+          curDatum := nil;
+          for k := 0 to curLine.Configuration.DataProvider.Count - 1 do
+          begin
+            curValue := curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.AlternativeKeyFieldName);
+            if CompareVariants(curValue, curLine.Configuration.ChangedValueDestination.AsVariant) = 0 then
+            begin
+              curDatum := curLine.Configuration.DataProvider.GetDatum(k);
+              break;
+            end;
+          end;
+        end;
+        if Assigned(curDatum) then
+          str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
+        else
+          str := curLine.Configuration.ChangedValueDestination.AsString;
+      end
+      else if (curLine.Configuration.EditorKind = ekSwitchBeetwenValues) then
       begin
         assert (Assigned(curLine.Configuration.DataProvider));
 

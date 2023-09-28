@@ -20,7 +20,7 @@ uses
   Classes, Graphics,
   kgrids,
 
-  mPivoter, mIntList, mMaps,
+  mPivoter,
   mPivoterToVirtualGrid, mVirtualGridKGrid;
 
 type
@@ -44,13 +44,9 @@ type
 implementation
 
 uses
-  sysutils, LCLType, Clipbrd, math,
+  sysutils, LCLType, math,
   kfunctions, kgraphics,
-  {$IFDEF FPC}
-  fpstypes, fpspreadsheet,
-  fpsallformats, // necessary to register all the input/output formats that fpspreadsheet can handle
-  {$ENDIF}
-  mVirtualGridSpreadsheet, mGraphicsUtility, mKGridUtils;
+  mGraphicsUtility, mKGridUtils;
 
 
 procedure TmKGridAsPivotHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);

@@ -424,7 +424,7 @@ var
   Intf : ImGrid;
 begin
   Result := false;
-  if FGrid.GetInterface(SImGridInterface, Intf) then
+  if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
   begin
     Intf.ReadSettings(FSettings);
     frm := TGridSettingsForm.Create(nil);
@@ -463,7 +463,7 @@ begin
   fields := TmFields.Create;
   frm := TFormulaFieldsConfigurationForm.Create(nil);
   try
-    if FGrid.GetInterface(SImGridInterface, Intf) then
+    if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
     begin
       Intf.GetFields(fields);
       frm.Init(FFormulaFields, fields);
@@ -492,7 +492,7 @@ begin
   fields := TmFields.Create;
   frm := TCellDecorationsConfigurationForm.Create(nil);
   try
-    if FGrid.GetInterface(SImGridInterface, Intf) then
+    if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
     begin
       Intf.GetFields(fields);
       frm.Init(FCellDecorations, fields);
@@ -543,7 +543,7 @@ var
   cursor : TmXmlElementCursor;
   Intf : ImGrid;
 begin
-  if FGrid.GetInterface(SImGridInterface, Intf) then
+  if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
   begin
     cursor := TmXmlElementCursor.Create(aXMLElement, 'columns');
     try
@@ -595,7 +595,7 @@ procedure TmAbstractGridHelper.SaveSettingsToXML(aXMLElement: TmXMLElement);
 var
   Intf : ImGrid;
 begin
-  if FGrid.GetInterface(SImGridInterface, Intf) then
+  if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
   begin
     Intf.ReadSettings(FSettings);
     aXMLElement.SetAttribute('version', '1');
@@ -619,7 +619,7 @@ var
   curField : TmField;
   curValue : Variant;
 begin
-  if FGrid.GetInterface(SImGridInterface, Intf) then
+  if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
   begin
     fields := TmFields.Create;
     columns := TmGridColumns.Create;
@@ -753,7 +753,7 @@ begin
       helper.DefaultFont.FontSize:= 10;
       helper.DefaultRowHeight:= 14;
 
-      if FGrid.GetInterface(SImGridInterface, Intf) then
+      if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
       begin
         Intf.GetFields(fields);
         Intf.GetColumns(columns);
@@ -983,7 +983,7 @@ begin
 
     htmlDoc.Add('<table>');
 
-    if FGrid.GetInterface(SImGridInterface, Intf) then
+    if FGrid.GetInterface(SImGridInterface, Intf) or Self.GetInterface(SImGridInterface, Intf) then
     begin
       Intf.GetColumns(columns);
       Intf.GetFields(fields);

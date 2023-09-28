@@ -32,16 +32,19 @@ var
   total, w : integer;
   ratio : double;
 begin
-  aGrid.AutoSizeGrid(mpColWidth);
-  total := 0;
-  for i := 0 to aGrid.FixedCols - 1 do
-    total := total + aGrid.ColWidths[i];
-  w := trunc (aGrid.Width * 0.95);
-  if total >= w then
+  if (not (goVirtualGrid in aGrid.Options)) or Assigned(aGrid.OnMeasureCell) then
   begin
-    ratio := total / w;
+    aGrid.AutoSizeGrid(mpColWidth);
+    total := 0;
     for i := 0 to aGrid.FixedCols - 1 do
-      aGrid.ColWidths[i] := max(5, trunc(aGrid.ColWidths[i] / ratio));
+      total := total + aGrid.ColWidths[i];
+    w := trunc (aGrid.Width * 0.95);
+    if total >= w then
+    begin
+      ratio := total / w;
+      for i := 0 to aGrid.FixedCols - 1 do
+        aGrid.ColWidths[i] := max(5, trunc(aGrid.ColWidths[i] / ratio));
+    end;
   end;
 end;
 

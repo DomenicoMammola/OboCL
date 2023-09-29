@@ -21,13 +21,12 @@ uses
   kgrids, Classes, Controls, Menus, Dialogs,
   {$IFDEF FPC}
   LCLIntf,
-  LclType,
   LclProc,
   LResources,
   LMessages,
   {$ENDIF}
-  mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML, mIntList, mMaps,
-  mKGridAsPivotHelper, mSpreadsheetAsPivotHelper, mQuickReadOnlyVirtualDataSet,
+  mPivoter, mDataProviderInterfaces, mFilterPanel, mFilter, mXML,
+  mKGridAsPivotHelper, mSpreadsheetAsPivotHelper,
   UramakiBase, UramakiToolbar;
 
 const

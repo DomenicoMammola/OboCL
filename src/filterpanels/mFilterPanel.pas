@@ -22,7 +22,7 @@ uses
   ATButtons,
   mFilter, mFilterOperators, mBaseClassesAsObjects, mMathUtility,
   mUtility, mDateEdit, mDataProviderFieldDefs, mDataProviderInterfaces,
-  mFilterPanelDataModule, mDataProvider;
+  mFilterPanelDataModule;
 
 resourcestring
   SClearFilterCommand = 'Clear';
@@ -273,7 +273,7 @@ implementation
 
 uses
   SysUtils, LResources, Forms,
-  mQuickReadOnlyVirtualDataSet, mLookupForm, mCheckListForm, mlookupformInstantQuery,
+  mLookupForm, mCheckListForm, mlookupformInstantQuery,
   mDoubleList, mGraphicsUtility, mMagnificationFactor;
 
 const

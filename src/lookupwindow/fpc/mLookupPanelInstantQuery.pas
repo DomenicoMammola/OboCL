@@ -17,9 +17,9 @@ unit mLookupPanelInstantQuery;
 interface
 
 uses
-  Classes, Controls, ExtCtrls, DB, Buttons,
+  Classes, Controls, ExtCtrls, DB,
   StdCtrls,
-  mDataProviderInterfaces, mQuickReadOnlyVirtualDataSet,
+  mDataProviderInterfaces, mQuickReadOnlyVirtualDataSetProvider,
   mVirtualDataSet, mLookupWindowEvents,
   DBGrids;
 

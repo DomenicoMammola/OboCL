@@ -4,7 +4,7 @@ interface
 uses
   Classes, Controls, Grids,
   kgrids,
-  mQuickReadOnlyVirtualDataSet, mKGridHelper,
+  mQuickReadOnlyVirtualDataSetProvider, mKGridHelper,
   mGridHelper, mDataProviderInterfaces, UramakiBase,
   UramakiBaseGridPlate;
 

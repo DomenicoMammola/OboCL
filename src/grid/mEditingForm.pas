@@ -22,10 +22,10 @@ interface
 uses
   Classes, Controls, Forms, ValEdit, Graphics, Grids, contnrs, ExtCtrls,
   SysUtils, variants, StdCtrls, Buttons, CheckLst, Menus,
-  OMultiPanelSetup, OMultiPanel,
+  OMultiPanel,
   mGridEditors, mMaps, mCalendarDialog, mUtility, mMathUtility,
   mLookupForm, mlookupformInstantQuery,
-  mQuickReadOnlyVirtualDataSet, mDataProviderFieldDefs, mNullables,
+  mDataProviderFieldDefs, mNullables,
   mISO6346Utility, mDataProviderInterfaces, mBooleanDataProvider;
 
 resourcestring

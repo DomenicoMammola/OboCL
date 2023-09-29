@@ -17,8 +17,8 @@ unit UramakiBaseGridPlate;
 interface
 
 uses
-  Classes, Controls, ExtCtrls, DB, ComCtrls, DBGrids, Grids,
-  Forms, Menus, SysUtils, StdCtrls, contnrs,
+  Classes, Controls, ExtCtrls, DB, DBGrids,
+  Forms, Menus, SysUtils, StdCtrls,
   UramakiToolbar,
   {$IFDEF FPC}
   LCLIntf,
@@ -30,7 +30,7 @@ uses
 
   UramakiBase,
   mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid, mDrawGrid,
-  mQuickReadOnlyVirtualDataSet, mXML, mDataProviderInterfaces, mSummary;
+  mXML, mDataProviderInterfaces, mSummary, mQuickReadOnlyVirtualDataSetProvider;
 
 resourcestring
   SConfigureChildsUpdateModeCaption = 'Update of child widgets';
@@ -199,7 +199,7 @@ type
 implementation
 
 uses
-  Clipbrd, variants,
+  variants,
   mGraphicsUtility, mWaitCursor
   {$IFDEF DEBUG}, mLog, mUtility{$ENDIF}
   ;

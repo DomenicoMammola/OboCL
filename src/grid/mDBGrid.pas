@@ -59,7 +59,6 @@ type
     // bridges for overrided events
     FOnExtTitleClick: TDBGridClickEvent;
     FOnExtMouseDown: TMouseEvent;
-//    FVirtualDatasetDataProvider: TmVirtualDatasetDataProvider;
     //
     FAllowSort : boolean;
     FColumnsHeaderMenuVisible : boolean;

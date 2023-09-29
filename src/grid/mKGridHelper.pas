@@ -238,7 +238,7 @@ end;
 procedure TmKGridHelper.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   if (Shift = [ssCtrl]) and (Key = VK_C) then
-    CopyTextToClipboard(VarToStr(GetValue((FGrid as TKGrid).Col, (FGrid as TKGrid).Row)));
+    CopyTextToClipboard(VarToStr(GetValue((FGrid as TKGrid).Col, (FGrid as TKGrid).Row - (FGrid as TKGrid).FixedRows)));
 end;
 
 procedure TmKGridHelper.OnMoveColumns(Sender: TObject; Index1, Index2: Integer);
@@ -276,8 +276,9 @@ begin
   FDataProvider := nil;
   FFields := TmFields.Create;
   FSortedCols := TList.Create;
-  (FGrid as TKGrid).Options:= [goVirtualGrid, goColSizing, goColMoving, goColSorting, goDrawFocusSelected, goRowSelect, goVertLine, goHeader, goHorzLine];
+  (FGrid as TKGrid).Options:= [goVirtualGrid, goColSizing, goColMoving, goRowSorting, goDrawFocusSelected, goRowSelect, goVertLine, goHeader, goHorzLine, goRangeSelect];
   (FGrid as TKGrid).OptionsEx:= [gxMouseWheelScroll];
+  (FGrid as TKGrid).RangeSelectStyle := rsMultiSelect;
   (FGrid as TKGrid).OnDrawCell:= Self.OnDrawGridCell;
   (FGrid as TKGrid).OnMeasureCell:= Self.OnMeasureCell;
   (FGrid as TKGrid).OnKeyDown:= Self.OnKeyDown;

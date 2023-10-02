@@ -1,3 +1,13 @@
+// This is part of the Obo Component Library
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//
+// This software is distributed without any warranty.
+//
+// @author Domenico Mammola (mimmo71@gmail.com - www.mammola.net)
+
 unit mGridFiltersEditDlg;
 
 {$mode objfpc}{$H+}
@@ -7,7 +17,7 @@ interface
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel,
   DB, StdCtrls, ExtCtrls, contnrs,
-  mFilter;
+  mFilter, mFields;
 
 type
 
@@ -25,8 +35,10 @@ type
   private
     FGarbage: TObjectList;
     FRemovedFields: TStringList;
+    procedure InternalInit (const aFilters: TmFilters; const aDisplayNames : TStringList);
   public
-    procedure Init (const aFilters: TmFilters; const aDataset: TDataset);
+    procedure Init (const aFilters: TmFilters; const aDataset: TDataset); overload;
+    procedure Init (const aFilters: TmFilters; const aFields: TmFields); overload;
     procedure GetRemovedFilterConditions (aFieldNames : TStringList);
   end;
 
@@ -70,24 +82,53 @@ begin
   end;
 end;
 
-procedure TFiltersEditDlg.Init(const aFilters: TmFilters; const aDataset: TDataset);
+procedure TFiltersEditDlg.InternalInit(const aFilters: TmFilters; const aDisplayNames: TStringList);
 var
-  OldCursor : TCursor;
   i : integer;
   tmp: String;
   tmpShell: TStringObject;
 begin
   try
-    TWaitCursor.ShowWaitCursor('TFiltersEditDlg.Init');
+    TWaitCursor.ShowWaitCursor('TFiltersEditDlg.InternalInit');
     for i := 0 to aFilters.Count - 1 do
     begin
-      tmp := aDataset.FieldByName(aFilters.Get(i).FieldName).DisplayLabel + ' [' + aFilters.Get(i).FieldName + ']';
+      tmp := aDisplayNames[i] + ' [' + aFilters.Get(i).FieldName + ']';
       tmpShell:= TStringObject.Create(aFilters.Get(i).FieldName);
       FGarbage.Add(tmpShell);
       LBFilterConditions.AddItem(tmp, tmpShell);
     end;
   finally
-    TWaitCursor.UndoWaitCursor('TFiltersEditDlg.Init');
+    TWaitCursor.UndoWaitCursor('TFiltersEditDlg.InternalInit');
+  end;
+end;
+
+procedure TFiltersEditDlg.Init(const aFilters: TmFilters; const aDataset: TDataset);
+var
+  displayNames : TStringList;
+  i : integer;
+begin
+  displayNames := TStringList.Create;
+  try
+    for i := 0 to aFilters.Count - 1 do
+      displayNames.Add(aDataset.FieldByName(aFilters.Get(i).FieldName).DisplayLabel);
+    InternalInit(aFilters, displayNames);
+  finally
+    displayNames.Free;
+  end;
+end;
+
+procedure TFiltersEditDlg.Init(const aFilters: TmFilters; const aFields: TmFields);
+var
+  displayNames : TStringList;
+  i : integer;
+begin
+  displayNames := TStringList.Create;
+  try
+    for i := 0 to aFilters.Count - 1 do
+      displayNames.Add(aFields.FieldByName(aFilters.Get(i).FieldName).DisplayLabel);
+    InternalInit(aFilters, displayNames);
+  finally
+    displayNames.Free;
   end;
 end;
 

@@ -59,7 +59,7 @@ implementation
 
 uses
   sysutils, LCLType,
-  {$IFDEF DEBUG}mLog, {$ENDIF}mUtility, mDatasetStandardSetup;
+  {$IFDEF DEBUG}mLog, {$ENDIF}mUtility, mDatasetStandardSetup, mDataFieldsUtility;
 
 {$IFDEF DEBUG}
 var

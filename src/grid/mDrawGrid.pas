@@ -95,7 +95,7 @@ implementation
 
 uses
   LResources, sysutils,
-  mDatasetStandardSetup, mBaseClassesAsObjects, mDataProviderUtility;
+  mDataFieldsStandardSetup, mBaseClassesAsObjects, mDataProviderUtility;
 
 { TmDrawGridCursor }
 

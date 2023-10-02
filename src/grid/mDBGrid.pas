@@ -460,7 +460,6 @@ procedure TmDBGrid.SetFilterManager(AValue: IFilterDatasetManager);
 begin
   if FFilterManager=AValue then Exit;
   FFilterManager:=AValue;
-//  FAllowFilter:= Assigned(FFilterManager);
 end;
 
 procedure TmDBGrid.SetSortManager(AValue: ISortableDatasetManager);

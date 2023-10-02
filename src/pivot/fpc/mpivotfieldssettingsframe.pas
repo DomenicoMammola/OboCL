@@ -143,7 +143,7 @@ implementation
 
 uses
   Graphics, LCLType, Dialogs,
-  mUtility, mDatasetStandardSetup;
+  mUtility, mDatasetStandardSetup, mDataFieldsUtility;
 
 {$R *.lfm}
 

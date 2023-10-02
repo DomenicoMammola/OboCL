@@ -133,6 +133,8 @@ begin
   //Self.FDataset.OnFilter:= Self.OnFilterDataset;
 
   FGridHelper:= TmKGridHelper.Create(FGrid, FProvider.FormulaFields);
+  FGridHelper.Provider := FProvider;
+  FGridHelper.SummaryPanel := FSummaryPanel;
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
   //FGrid.SortManager := Self.FDataset.SortManager;
@@ -155,12 +157,12 @@ end;
 
 procedure TUramakiKGridPlate.DisableControls;
 begin
-
+  FGrid.LockUpdate;
 end;
 
 procedure TUramakiKGridPlate.EnableControls;
 begin
-
+  FGrid.UnlockUpdate;
 end;
 
 procedure TUramakiKGridPlate.RefreshDataset;

@@ -74,7 +74,7 @@ type
     function ConfirmDiscordedFileExt (const aFileExt : String): boolean;
     procedure ExportGridToFile(aFileType : String);
 
-    procedure InternalCreate(aGrid: TControl; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
+    procedure InternalSetup(aGrid: TControl; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
   public
     destructor Destroy; override;
 
@@ -164,7 +164,7 @@ end;
 
 constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
-  InternalCreate(aGrid, aFormulaFields, aCellDecorations);
+  InternalSetup(aGrid, aFormulaFields, aCellDecorations);
   FDrawGrid:= aGrid;
 end;
 
@@ -315,12 +315,15 @@ begin
 
 end;
 
-procedure TmAbstractGridHelper.InternalCreate(aGrid: TControl; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
+procedure TmAbstractGridHelper.InternalSetup(aGrid: TControl; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
   FGrid := aGrid;
-  FSettings := TmGridColumnsSettings.Create;
+  if not Assigned(FSettings) then
+    FSettings := TmGridColumnsSettings.Create;
+  FSettings.Clear;
   FFormulaFields:= aFormulaFields;
-  FSaveDialog := TSaveDialog.Create(nil);
+  if not Assigned(FSaveDialog) then
+    FSaveDialog := TSaveDialog.Create(nil);
   FCellDecorations := aCellDecorations;
 end;
 
@@ -334,7 +337,7 @@ end;
 
 constructor TmDBGridHelper.Create(aGrid : TmDBGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations);
 begin
-  InternalCreate(aGrid, aFormulaFields, aCellDecorations);
+  InternalSetup(aGrid, aFormulaFields, aCellDecorations);
   FDBGrid := aGrid;
 end;
 

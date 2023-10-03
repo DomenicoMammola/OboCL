@@ -75,6 +75,7 @@ type
     FOwnedCellDecorations: TmCellDecorations;
     FDataAreFiltered: boolean;
     FDataAreSorted: boolean;
+    FOnGridFiltered: TNotifyEvent;
     // menu
     FColumnsHeaderPopupMenu: TPopupMenu;
     FOriginalPopupMenu: TPopupMenu;
@@ -122,15 +123,17 @@ type
     procedure GetFields(aFields: TmFields);
     function GetDataCursor: ImGridCursor;
     procedure GetColumns(aColumns: TmGridColumns);
+    function CalculateHashCodeOfSelectedRows : string;
 
     property Provider: TmVirtualDatasetDataProvider read FProvider write SetProvider;
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
+    property OnGridFiltered: TNotifyEvent read FOnGridFiltered write FOnGridFiltered;
   end;
 
 implementation
 
 uses
-  SysUtils, Graphics, Variants, LCLType,
+  SysUtils, Graphics, Variants, LCLType, md5,
   kgraphics,
   mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
   mGridFilterValuesDlg, mFilter, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg;
@@ -505,6 +508,8 @@ begin
                 (FGrid as TKGrid).UnlockUpdate;
               end;
               FSummaryManager.RefreshSummaries;
+              if Assigned(FOnGridFiltered) then
+                FOnGridFiltered(Self);
             finally
               TWaitCursor.UndoWaitCursor('TmKGridHelper.OnFilterValues');
             end;
@@ -571,6 +576,8 @@ begin
       (FGrid as TKGrid).UnlockUpdate;
     end;
     FSummaryManager.RefreshSummaries;
+    if Assigned(FOnGridFiltered) then
+      FOnGridFiltered(Self);
   end;
 end;
 
@@ -608,6 +615,8 @@ begin
             (FGrid as TKGrid).UnlockUpdate;
           end;
           FSummaryManager.RefreshSummaries;
+          if Assigned(FOnGridFiltered) then
+            FOnGridFiltered(Self);
         end;
       finally
         removedFilters.Free;
@@ -786,6 +795,34 @@ end;
 procedure TmKGridHelper.GetColumns(aColumns: TmGridColumns);
 begin
 
+end;
+
+function TmKGridHelper.CalculateHashCodeOfSelectedRows: string;
+var
+  i, k : integer;
+  tmp : String;
+begin
+  Result := '';
+  for i := 0 to (FGrid as TKGrid).SelectionCount - 1 do
+  begin
+    tmp := '';
+    for k := (FGrid as TKGrid).Selections[i].Row1 to (FGrid as TKGrid).Selections[i].Row2 do
+    begin
+      tmp := tmp + '*' + IntToStr(k);
+      if Length(tmp) > 1024 then
+      begin
+        Result := MD5Print( MD5String(Result + MD5Print(MD5String(tmp))));
+        tmp := '';
+      end;
+    end;
+    if Result = '' then
+      Result := tmp
+    else
+    begin
+      if tmp <> '' then
+        Result := MD5Print( MD5String(Result + MD5Print(MD5String(tmp))));
+    end;
+  end;
 end;
 
 end.

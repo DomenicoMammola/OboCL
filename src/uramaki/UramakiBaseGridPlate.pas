@@ -53,7 +53,8 @@ type
     procedure CreateConfigureMenu(aToolbar : TUramakiToolbar; const aConfigureImageIndex : integer);
   end;
 
-  TDoFillRollFromDatasetRow = procedure (aUrakamiRoll : TUramakiRoll; const aDataset : TDataset) of object;
+  TGetFieldValueFromDatasetRow = function (const aFieldName : String) : variant of object;
+  TDoFillRollFromDatasetRow = procedure (aUrakamiRoll : TUramakiRoll; const aOnGetValue : TGetFieldValueFromDatasetRow) of object;
 
   TUramakiGridChildsAutomaticUpdateMode = (cuOnChangeSelection, cuDisabled);
 
@@ -86,9 +87,6 @@ type
     FSummaryPanel : TUramakiGridSummaryPanel;
     //FToolbar : TToolBar;
     FToolbar : TUramakiToolbar;
-    FLastSelectedRow : TBookmark;
-    FLastSelectedRowsCount : integer;
-    FLastSelectedRowsHash : string;
     FFilterPanel : TmFilterPanel;
     FGridCommandsPopupMenu : TPopupMenu;
     FAutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode;
@@ -105,7 +103,6 @@ type
     procedure InvokeChildsClear;
 
     procedure OnClearFilter (Sender : TObject);
-    procedure OnExecuteFilter (Sender : TObject);
     procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode); virtual; abstract;
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); virtual; abstract;
     procedure DoSelectAll (Sender : TObject); virtual; abstract;
@@ -124,7 +121,6 @@ type
 
     procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); override;
     procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); override;
-    procedure Clear; override;
 
     property AutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode read FAutomaticChildsUpdateMode write SetAutomaticChildsUpdateMode;
   end;
@@ -149,6 +145,10 @@ type
   { TUramakiDBGridPlate }
 
   TUramakiDBGridPlate = class(TUramakiBaseGridPlate)
+  strict private
+    FLastSelectedRow : TBookmark;
+    FLastSelectedRowsCount : integer;
+    FLastSelectedRowsHash : string;
   protected
     FGrid: TmDBGrid;
     FDataset: TmVirtualDataset;
@@ -164,12 +164,14 @@ type
     procedure DoAutoAdjustColumns(Sender : TObject); override;
     function GetUramakiGridHelper : IUramakiGridHelper; override;
     function GetGridHelper : TmAbstractGridHelper; override;
+    function GetValueFromDatasetRow (const aFieldName : String) : variant;
     procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow); override;
     procedure DoProcessRefreshChilds; override;
     procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); override;
     procedure OnSelectEditor(Sender: TObject; Column: TColumn; var Editor: TWinControl);
     procedure OnCellClick(Column: TColumn);
     procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
+    procedure OnExecuteFilter (Sender : TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -177,6 +179,7 @@ type
     procedure DisableControls; override;
     procedure EnableControls; override;
     procedure RefreshDataset; override;
+    procedure Clear; override;
   end;
 
   { TUramakiDrawGridPlate }
@@ -278,6 +281,10 @@ end;
 constructor TUramakiDBGridPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
+
+  FLastSelectedRow:= nil;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
 
   FGrid := TmDBGrid.Create(Self);
   FGrid.Parent := Self;
@@ -635,6 +642,11 @@ begin
   Result := FGridHelper;
 end;
 
+function TUramakiDBGridPlate.GetValueFromDatasetRow(const aFieldName: String): variant;
+begin
+  Result := FDataset.FieldByName(aFieldName).AsVariant;
+end;
+
 procedure TUramakiBaseGridPlate.DoUpdateChilds(Sender: TObject);
 begin
   UpdateChildsIfNeeded(true);
@@ -755,7 +767,7 @@ begin
           if FDataset.BookmarkValid(FGrid.SelectedRows[i]) then
           begin
             FDataset.GotoBookmark(FGrid.SelectedRows[i]);
-            aDoFillRollFromDatasetRow(aUramakiRoll, FDataset);
+            aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
           end;
         end;
       finally
@@ -767,7 +779,7 @@ begin
   end
   else //if FGrid.SelectedRows.Count =  1 then
   begin
-    aDoFillRollFromDatasetRow(aUramakiRoll, FDataset);
+    aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
   end;
 end;
 
@@ -889,14 +901,14 @@ begin
   end;
 end;
 
-procedure TUramakiBaseGridPlate.OnExecuteFilter(Sender: TObject);
+procedure TUramakiDBGridPlate.OnExecuteFilter(Sender: TObject);
 var
   tmpFilters : TmFilters;
 begin
   Self.DisableControls;
   try
     try
-      TWaitCursor.ShowWaitCursor('TUramakiBaseGridPlate.OnExecuteFilter');
+      TWaitCursor.ShowWaitCursor('TUramakiDBGridPlate.OnExecuteFilter');
 
       tmpFilters := TmFilters.Create;
       try
@@ -907,7 +919,7 @@ begin
         tmpFilters.Free;
       end;
     finally
-      TWaitCursor.UndoWaitCursor('TUramakiBaseGridPlate.OnExecuteFilter');
+      TWaitCursor.UndoWaitCursor('TUramakiDBGridPlate.OnExecuteFilter');
     end;
   finally
     Self.EnableControls;
@@ -941,16 +953,27 @@ begin
   FDataset.Refresh;
 end;
 
+procedure TUramakiDBGridPlate.Clear;
+begin
+  Self.DisableControls;
+  try
+    GetDataProvider.Clear();
+    RefreshDataset;
+  finally
+    Self.EnableControls;
+  end;
+  FLastSelectedRow := nil;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
+  InvokeChildsClear;
+end;
+
 constructor TUramakiBaseGridPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
 
   FSummaryPanel := TUramakiGridSummaryPanel.Create;
   FSummaryPanel.LinkToPlate(Self);
-
-  FLastSelectedRow:= nil;
-  FLastSelectedRowsCount:= 0;
-  FLastSelectedRowsHash := '';
 end;
 
 destructor TUramakiBaseGridPlate.Destroy;
@@ -993,21 +1016,6 @@ begin
   GetGridHelper.SaveSettingsToXML(aXMLElement.AddElement('gridConfiguration'));
   tmpElement := aXMLElement.AddElement('refreshChildsConfiguration');
   tmpElement.SetBooleanAttribute('automatic', (Self.AutomaticChildsUpdateMode = cuOnChangeSelection));
-end;
-
-procedure TUramakiBaseGridPlate.Clear;
-begin
-  Self.DisableControls;
-  try
-    GetDataProvider.Clear();
-    RefreshDataset;
-  finally
-    Self.EnableControls;
-  end;
-  FLastSelectedRow := nil;
-  FLastSelectedRowsCount:= 0;
-  FLastSelectedRowsHash := '';
-  InvokeChildsClear;
 end;
 
 

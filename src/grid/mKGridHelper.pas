@@ -21,7 +21,7 @@ uses
   kgrids,
   mGrids, mGridHelper, KAParser, mVirtualDatasetFormulas, mCellDecorations,
   mDataProviderInterfaces, mVirtualDataSet, mFields, mGridColumnSettings,
-  mVirtualDataSetProvider, mSummary;
+  mVirtualDataSetProvider, mSummary, mIntList;
 
 type
 
@@ -69,7 +69,7 @@ type
     FProvider: TmVirtualDatasetDataProvider;
     FCursor: TmKGridCursor;
     FFields: TmFields;
-    FSortedCols: TList;
+    FSortedVisibleCols: TList;
     FSummaryManager: TmKGridSummaryManager;
     FSummaryPanel: ISummaryPanel;
     FOwnedCellDecorations: TmCellDecorations;
@@ -92,7 +92,7 @@ type
     procedure OnKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
     procedure OnMoveColumns(Sender: TObject; Index1, Index2: integer);
     procedure OnCustomSort(Sender: TObject; ByIndex: integer; SortMode: TKGridSortMode; var Sorted: boolean);
-    function GetField(const aCol: integer): TmField;
+    function ColToField(const aCol: integer): TmField;
     function GetValue(const aCol, aRow: integer): variant;
     procedure RefreshSummaryPanel(Sender: TObject);
     procedure BuildHeaderPopupMenu;
@@ -124,6 +124,7 @@ type
     function GetDataCursor: ImGridCursor;
     procedure GetColumns(aColumns: TmGridColumns);
     function CalculateHashCodeOfSelectedRows : string;
+    procedure GetSelectedRows (aRows : TIntegerList);
 
     property Provider: TmVirtualDatasetDataProvider read FProvider write SetProvider;
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
@@ -133,10 +134,10 @@ type
 implementation
 
 uses
-  SysUtils, Graphics, Variants, LCLType, md5,
+  SysUtils, Graphics, Variants, LCLType, md5, Math,
   kgraphics,
   mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
-  mGridFilterValuesDlg, mFilter, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg;
+  mGridFilterValuesDlg, mFilter, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg, mMaps;
 
 type
 
@@ -244,12 +245,13 @@ var
   i: integer;
 begin
   FFields.Clear;
-  FSortedCols.Clear;
+  FSortedVisibleCols.Clear;
   FProvider.FillFields(FFields);
   ApplyStandardSettingsToFields(FFields, '#,##0.00');
 
   for i := 0 to FFields.Count - 1 do
-    FSortedCols.Add(FFields.Get(i));
+    if FFields.Get(i).Visible and (not IsSystemField(FFields.Get(i).FieldName)) then
+      FSortedVisibleCols.Add(FFields.Get(i));
 end;
 
 procedure TmKGridHelper.SetProvider(AValue: TmVirtualDatasetDataProvider);
@@ -268,7 +270,7 @@ var
   curField: TmField;
 begin
   grid := (FGrid as TKGrid);
-  curField := Self.GetField(ACol);
+  curField := Self.ColToField(ACol);
 
   // https://forum.lazarus.freepascal.org/index.php/topic,44833.msg315562.html#msg315562
 
@@ -309,7 +311,7 @@ var
   sz: TPoint;
 begin
   if ARow = 0 then
-    GetTextExtend(GetField(ACol).DisplayLabel, FGrid.Font, Extent)
+    GetTextExtend(ColToField(ACol).DisplayLabel, FGrid.Font, Extent)
   else
     GetTextExtend(VarToStr(GetValue(ACol, ARow - (FGrid as TKGrid).FixedRows)), FGrid.Font, Extent);
   Extent.X := Extent.X + ((FGrid as TKGrid).CellPainter.HPadding * 2);
@@ -326,9 +328,9 @@ procedure TmKGridHelper.OnMoveColumns(Sender: TObject; Index1, Index2: integer);
 var
   tmpField: TmField;
 begin
-  tmpField := TmField(FSortedCols.Items[Index1]);
-  FSortedCols.Items[Index1] := FSortedCols.Items[Index2];
-  FSortedCols.Items[Index2] := tmpField;
+  tmpField := TmField(FSortedVisibleCols.Items[Index1]);
+  FSortedVisibleCols.Items[Index1] := FSortedVisibleCols.Items[Index2];
+  FSortedVisibleCols.Items[Index2] := tmpField;
 end;
 
 procedure TmKGridHelper.OnCustomSort(Sender: TObject; ByIndex: integer; SortMode: TKGridSortMode; var Sorted: boolean);
@@ -345,7 +347,7 @@ begin
     if FProvider.SortConditions.Count = 0 then
       FProvider.SortConditions.Add;
 
-    FProvider.SortConditions.Items[0].FieldName := GetField(ByIndex).FieldName;
+    FProvider.SortConditions.Items[0].FieldName := ColToField(ByIndex).FieldName;
 
     if SortMode = smDown then
       FProvider.SortConditions.Items[0].SortType := stDescending
@@ -357,18 +359,18 @@ begin
   end;
 end;
 
-function TmKGridHelper.GetField(const aCol: integer): TmField;
+function TmKGridHelper.ColToField(const aCol: integer): TmField;
 begin
-  Result := TmField(FSortedCols.Items[aCol]);
+  Result := TmField(FSortedVisibleCols.Items[aCol]);
 end;
 
 function TmKGridHelper.GetValue(const aCol, aRow: integer): variant;
 var
   curField: TmField;
 begin
-  if (aRow < FProvider.GetRecordCount) and (aCol < FSortedCols.Count) then
+  if (aRow < FProvider.GetRecordCount) and (aCol < FSortedVisibleCols.Count) then
   begin
-    curField := GetField(aCol);
+    curField := ColToField(aCol);
     FProvider.GetFieldValue(curField.FieldName, aRow, Result);
   end
   else
@@ -446,7 +448,7 @@ begin
   begin
     if (FCurrentCol >= 0) then
     begin
-      currentField := GetField(FCurrentCol);
+      currentField := ColToField(FCurrentCol);
 
       for i := 0 to FMI_Summaries.Count - 1 do
       begin
@@ -470,7 +472,7 @@ var
 begin
   if FCurrentCol >= 0 then
   begin
-    currentField := GetField(FCurrentCol);
+    currentField := ColToField(FCurrentCol);
     values := TStringList.Create;
     dlg := TFilterValuesDlg.Create(FGrid);
     try
@@ -535,7 +537,7 @@ begin
   begin
     if FCurrentCol >= 0 then
     begin
-      CurrentField := GetField(FCurrentCol);
+      CurrentField := ColToField(FCurrentCol);
       currentOperator := TmSummaryOperator((Sender as TMenuItem).Tag);
 
       tmpDef := FSummaryManager.GetSummaryDefinitions.FindByFieldNameAndOperator(CurrentField.FieldName, currentOperator);
@@ -679,7 +681,7 @@ begin
   FGrid := aGrid;
   FProvider := nil;
   FFields := TmFields.Create;
-  FSortedCols := TList.Create;
+  FSortedVisibleCols := TList.Create;
   (FGrid as TKGrid).Options := [goVirtualGrid, goColSizing, goColMoving, goRowSorting, goDrawFocusSelected, goRowSelect, goVertLine, goHeader, goHorzLine, goRangeSelect, goFixedVertLine, goMouseOverCells];
   (FGrid as TKGrid).OptionsEx := [gxMouseWheelScroll];
   (FGrid as TKGrid).RangeSelectStyle := rsMultiSelect;
@@ -704,7 +706,7 @@ destructor TmKGridHelper.Destroy;
 begin
   FreeAndNil(FCursor);
   FFields.Free;
-  FSortedCols.Free;
+  FSortedVisibleCols.Free;
   FOwnedCellDecorations.Free;
   FSummaryManager.Free;
   inherited Destroy;
@@ -749,12 +751,123 @@ begin
 end;
 
 procedure TmKGridHelper.ReadSettings(aSettings: TmGridColumnsSettings);
+  procedure AssignField(colSettings : TmGridColumnSettings; aField : TmField);
+  begin
+    colSettings.Visible.Value:= aField.Visible;
+    colSettings.DisplayFormat.Value:= aField.DisplayFormat;
+    colSettings.DisplayLabel.Value:= aField.DisplayLabel;
+  end;
+var
+  op : TmGridColumnSettings;
+  curField : TmField;
+  i : integer;
+  processed : TmStringDictionary;
 begin
+  TWaitCursor.ShowWaitCursor('TmKGridHelper.ReadSettings');
+  try
+    processed := TmStringDictionary.Create(false);
+    try
+      for i := 0 to Self.FSortedVisibleCols.Count - 1 do
+      begin
+        curField := TmField(FSortedVisibleCols.Items[i]);
+        if not IsSystemField(curField.FieldName) then
+        begin
+          op := aSettings.AddSettingsForField(curField.FieldName);
+          AssignField(op, curField);
+          op.SortOrder.Value:= i;
+          op.Width.Value:= max(MINIMUM_GRID_COLUMN_WIDTH, (FGrid as TKGrid).Cols[i].Extent);
+          processed.Add(curField.FieldName, processed);
+        end;
+      end;
+      for i := 0 to FFields.Count - 1 do
+      begin
+        curField := FFields.Get(i);
+        if (not processed.Contains(curField.FieldName)) and (not IsSystemField(curField.FieldName)) then
+        begin
+          op := aSettings.AddSettingsForField(curField.FieldName);
+          AssignField(op, curField);
+          op.SortOrder.Value:= aSettings.Count - 1;
+          op.Width.Value:= MINIMUM_GRID_COLUMN_WIDTH * 4;
+          processed.Add(curField.FieldName, processed);
+        end;
+      end;
+    finally
+      processed.Free;
+    end;
+  finally
+    TWaitCursor.UndoWaitCursor('TmKGridHelper.ReadSettings');
+  end;
+end;
 
+function CompareVisibleColumns(Item1, Item2: Pointer): Integer;
+var
+  c1, c2 : TmGridColumnSettings;
+begin
+  c1 := TmGridColumnSettings(Item1);
+  c2 := TmGridColumnSettings(Item2);
+  if c1.SortOrder.AsInteger < c2.SortOrder.AsInteger then
+    Result := -1
+  else if c1.SortOrder.AsInteger > c2.SortOrder.AsInteger then
+    Result := 1
+  else
+    Result := 0;
 end;
 
 procedure TmKGridHelper.ApplySettings(aSettings: TmGridColumnsSettings);
+var
+  i : integer;
+  curField : TmField;
+  visibleCols : TFPList;
+  widths : TIntegerList;
 begin
+  try
+    TWaitCursor.ShowWaitCursor('TmKGridHelper.ApplySettings');
+
+    (FGrid as TKGrid).LockUpdate;
+    try
+      widths := TIntegerList.Create;
+      try
+        FSortedVisibleCols.Clear;
+
+        visibleCols := TFPList.Create;
+        try
+          for i := 0 to aSettings.Count - 1 do
+            if aSettings.Get(i).Visible.AsBoolean then
+              visibleCols.Add(aSettings.Get(i));
+          visibleCols.Sort(CompareVisibleColumns);
+
+          for i := 0 to visibleCols.Count - 1 do
+          begin
+            FSortedVisibleCols.Add(FFields.FieldByName(TmGridColumnSettings(visibleCols.Items[i]).FieldName));
+            widths.Add(TmGridColumnSettings(visibleCols.Items[i]).Width.AsInteger);
+          end;
+        finally
+          visibleCols.Free;
+        end;
+
+        for i := 0 to aSettings.Count - 1 do
+        begin
+          curField := FFields.FieldByName(aSettings.Get(i).FieldName);
+          curField.Visible := aSettings.Get(i).Visible.AsBoolean;
+          curField.DisplayFormat:= aSettings.Get(i).DisplayFormat.AsString;
+          curField.DisplayLabel:= aSettings.Get(i).DisplayLabel.AsString;
+        end;
+
+        RefreshDataProvider;
+
+        for i := 0 to widths.Count - 1 do
+          (FGrid as TKGrid).Cols[i].Extent:= widths.Items[i];
+      finally
+        widths.Free;
+      end;
+    finally
+      (FGrid as TKGrid).UnlockUpdate;
+    end;
+
+    (FGrid as TKGrid).Invalidate;
+  finally
+    TWaitCursor.UndoWaitCursor('TmKGridHelper.ApplySettings');
+  end;
 
 end;
 
@@ -768,10 +881,13 @@ begin
     (FGrid as TKGrid).FixedRows := 1;
     (FGrid as TKGrid).FixedCols := 0;
 
-    (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
-    (FGrid as TKGrid).ColCount := FFields.Count;
+    (FGrid as TKGrid).ColCount := FSortedVisibleCols.Count;
     FDataAreSorted := False;
     FProvider.Refresh(False, FDataAreFiltered);
+    (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
+
+    FSummaryManager.RefreshSummaries;
+    (FGrid as TKGrid).ClearSelections;
   finally
     (FGrid as TKGrid).UnlockUpdate;
   end;
@@ -793,20 +909,25 @@ begin
 end;
 
 procedure TmKGridHelper.GetColumns(aColumns: TmGridColumns);
+var
+  i : integer;
 begin
-
+  aColumns.Clear;
+  for i := 0 to FSortedVisibleCols.Count - 1 do
+    aColumns.Add.Assign(TmField(FSortedVisibleCols.Items[i]));
 end;
 
 function TmKGridHelper.CalculateHashCodeOfSelectedRows: string;
 var
-  i, k : integer;
+  list : TIntegerList;
+  k : integer;
   tmp : String;
 begin
   Result := '';
-  for i := 0 to (FGrid as TKGrid).SelectionCount - 1 do
-  begin
+  list := TIntegerList.Create;
+  try
     tmp := '';
-    for k := (FGrid as TKGrid).Selections[i].Row1 to (FGrid as TKGrid).Selections[i].Row2 do
+    for k := 0 to list.Count - 1 do
     begin
       tmp := tmp + '*' + IntToStr(k);
       if Length(tmp) > 1024 then
@@ -821,6 +942,35 @@ begin
     begin
       if tmp <> '' then
         Result := MD5Print( MD5String(Result + MD5Print(MD5String(tmp))));
+    end;
+  finally
+    list.Free;
+  end;
+end;
+
+procedure TmKGridHelper.GetSelectedRows(aRows: TIntegerList);
+var
+  i, k : integer;
+begin
+  aRows.Clear;
+
+  if (FGrid as TKGrid).SelectionCount > 0 then
+  begin
+    for i := 0 to (FGrid as TKGrid).SelectionCount - 1 do
+    begin
+      for k := (FGrid as TKGrid).Selections[i].Row1 to (FGrid as TKGrid).Selections[i].Row2 do
+      begin
+        if k >= (FGrid as TKGrid).FixedRows then
+          aRows.Add(k - (FGrid as TKGrid).FixedRows);
+      end;
+    end;
+  end
+  else
+  begin
+    if (FProvider.GetRecordCount > 0) then
+    begin
+      if (FGrid as TKGrid).Row >= (FGrid as TKGrid).FixedRows then
+        aRows.Add((FGrid as TKGrid).Row - (FGrid as TKGrid).FixedRows);
     end;
   end;
 end;

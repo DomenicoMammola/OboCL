@@ -47,6 +47,7 @@ type
     destructor Destroy; override;
     procedure Assign(aSource : TColumn); overload;
     procedure Assign(aSource : TGridColumn); overload;
+    procedure Assign(aSource : TmField); overload;
 
     property Title : String read FTitle write FTitle;
     property Visible : boolean read FVisible write FVisible;
@@ -121,6 +122,13 @@ begin
   FTitle := aSource.Title.Caption;
   if (aSource.Tag > 0) and (TObject(aSource.Tag) is TStringObject) then
     FFieldName := TStringObject(aSource.Tag).Value;
+end;
+
+procedure TmGridColumn.Assign(aSource: TmField);
+begin
+  FVisible:= aSource.Visible;
+  FTitle := aSource.DisplayLabel;
+  FFieldName := aSource.FieldName;
 end;
 
 { TmGridColumns }

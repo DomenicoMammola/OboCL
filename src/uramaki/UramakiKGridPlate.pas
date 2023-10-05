@@ -50,6 +50,7 @@ type
     procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
     procedure OnExecuteFilter (Sender : TObject);
     procedure SetupDataStructures; override;
+    procedure SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String); override;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -65,7 +66,7 @@ implementation
 
 uses
   Variants,
-  mKGridUtils, mWaitCursor, mFilter, mIntList;
+  mKGridUtils, mWaitCursor, mFilter, mIntList, mFields;
 
 {$IFDEF DEBUG}
 var
@@ -302,6 +303,15 @@ end;
 procedure TUramakiKGridPlate.SetupDataStructures;
 begin
   FGridHelper.InitGrid;
+end;
+
+procedure TUramakiKGridPlate.SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String);
+var
+  curField : TmField;
+begin
+  curField := FGridHelper.GetField(aFieldName);
+  if Assigned(curField) then
+    curField.DisplayLabel:= aDisplayLabel;
 end;
 
 constructor TUramakiKGridPlate.Create(TheOwner: TComponent);

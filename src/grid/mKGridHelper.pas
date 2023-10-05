@@ -123,6 +123,7 @@ type
     procedure RefreshDataProvider;
     function GetSummaryManager: ISummaryDatasetManager;
     procedure GetFields(aFields: TmFields);
+    function GetField(const aFieldName : String): TmField;
     function GetDataCursor: ImGridCursor;
     procedure GetColumns(aColumns: TmGridColumns);
     function CalculateHashCodeOfSelectedRows: string;
@@ -940,6 +941,11 @@ end;
 procedure TmKGridHelper.GetFields(aFields: TmFields);
 begin
   aFields.Assign(FFields);
+end;
+
+function TmKGridHelper.GetField(const aFieldName: String): TmField;
+begin
+  Result := FFields.FieldByName(aFieldName);
 end;
 
 function TmKGridHelper.GetDataCursor: ImGridCursor;

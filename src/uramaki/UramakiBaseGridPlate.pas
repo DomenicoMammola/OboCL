@@ -111,6 +111,7 @@ type
     procedure DoProcessRefreshChilds; virtual; abstract;
     procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); virtual; abstract;
     procedure SetupDataStructures; virtual; abstract;
+    procedure SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String); virtual; abstract;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -150,8 +151,8 @@ type
     FLastSelectedRowsCount : integer;
     FLastSelectedRowsHash : string;
     FTriggerSelectionChanges : boolean;
-  protected
     FDataset: TmVirtualDataset;
+  protected
     FGrid: TmDBGrid;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TmDBGridHelper;
@@ -173,6 +174,7 @@ type
     procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
     procedure OnExecuteFilter (Sender : TObject);
     procedure SetupDataStructures; override;
+    procedure SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String); override;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -921,6 +923,11 @@ end;
 procedure TUramakiDBGridPlate.SetupDataStructures;
 begin
   FDataset.Active := true;
+end;
+
+procedure TUramakiDBGridPlate.SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String);
+begin
+  FDataset.FieldByName(aFieldName).DisplayLabel:= aDisplayLabel;
 end;
 
 procedure TUramakiDBGridPlate.DisableControls;

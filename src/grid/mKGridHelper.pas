@@ -17,7 +17,7 @@ unit mKGridHelper;
 interface
 
 uses
-  Classes, Contnrs, Menus, Controls,
+  Classes, Contnrs, Menus, Controls, Graphics,
   kgrids,
   mGrids, mGridHelper, KAParser, mVirtualDatasetFormulas, mCellDecorations,
   mDataProviderInterfaces, mVirtualDataSet, mFields, mGridColumnSettings,
@@ -84,6 +84,7 @@ type
     FMI_Summaries: TMenuItem;
     FCurrentCol: integer;
     FCurrentRow: integer;
+    FAlternateGridRowColor : TColor;
 
     procedure CreateFields;
     procedure SetProvider(AValue: TmVirtualDatasetDataProvider);
@@ -130,12 +131,13 @@ type
     property Provider: TmVirtualDatasetDataProvider read FProvider write SetProvider;
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
     property OnGridFiltered: TNotifyEvent read FOnGridFiltered write FOnGridFiltered;
+    property AlternateGridRowColor : TColor read FAlternateGridRowColor write FAlternateGridRowColor;
   end;
 
 implementation
 
 uses
-  SysUtils, Graphics, Variants, LCLType, md5, Math,
+  SysUtils, Variants, LCLType, md5, Math,
   kgraphics, kcontrols,
   mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
   mGridFilterValuesDlg, mFilter, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg, mMaps,
@@ -286,8 +288,6 @@ begin
   begin
     grid.CellPainter.HAlign := halCenter;
     grid.CellPainter.VAlign := valCenter;
-    //grid.CellPainter.BackColor := grid.Colors.FixedCellBkGnd;
-    //grid.CellPainter.Canvas.Brush.Color := grid.Colors.FixedCellBkGnd;
   end
   else
   begin
@@ -296,12 +296,12 @@ begin
 
     if isFloat or isInt then
       grid.CellPainter.HAlign := halRight;
-    (*
-    if State * [gdFixed, gdSelected] = [] then
-    begin
-      grid.CellPainter.BackColor := LighterColor(grid.Colors.FixedCellBkGnd, 15);
-      grid.CellPainter.Canvas.Brush.Color := grid.CellPainter.BackColor;
-    end;*)
+  end;
+
+  if (FAlternateGridRowColor <> clNone) and (State * [gdFixed, gdSelected] = []) and Odd(ARow) then
+  begin
+    grid.CellPainter.BackColor:= FAlternateGridRowColor;
+    grid.CellPainter.Canvas.Brush.Color:= FAlternateGridRowColor;
   end;
 
   grid.CellPainter.DrawDefaultCellBackground;
@@ -730,6 +730,7 @@ begin
   (FGrid as TKGrid).OnMouseEnterCell := Self.OnMouseEnterCell;
   (FGrid as TKGrid).Flat := True;
   ScaleFontForMagnification((FGrid as TKGrid).Font);
+  FAlternateGridRowColor:= clNone;
 
   FCurrentCol := -1;
   FCurrentRow := -1;

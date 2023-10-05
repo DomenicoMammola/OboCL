@@ -26,6 +26,7 @@ type
     FLastSelectedRow : longint;
     FLastSelectedRowsCount : integer;
     FLastSelectedRowsHash : string;
+    FTriggerSelectionChanges : boolean;
     function GetValueFromDatasetRow (const aFieldName : String) : variant;
   protected
     FGrid: TKGrid;
@@ -36,7 +37,6 @@ type
     FRunningDoUpdateChilds : boolean;
     procedure OnGridFiltered(Sender : TObject);
     procedure OnSelectionChanged(Sender : TObject);
-    procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode); override;
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
@@ -49,6 +49,7 @@ type
 //    procedure OnCellClick(Column: TColumn);
     procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
     procedure OnExecuteFilter (Sender : TObject);
+    procedure SetupDataStructures; override;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -93,21 +94,12 @@ procedure TUramakiKGridPlate.OnSelectionChanged(Sender: TObject);
 begin
   if FRunningDoUpdateChilds then
     exit;
-  UpdateChildsIfNeeded(false);
+  if not FTriggerSelectionChanges then
+    exit;
+  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+    UpdateChildsIfNeeded(false);
 end;
 
-procedure TUramakiKGridPlate.SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
-begin
-  FAutomaticChildsUpdateMode:=AValue;
-  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
-  begin
-    FGrid.OnSelectionChanged:= Self.OnSelectionChanged();
-  end
-  else
-  begin
-    FGrid.OnSelectionChanged:= nil;
-  end;
-end;
 
 procedure TUramakiKGridPlate.UpdateChildsIfNeeded(const aUpdateThemAnyWay: boolean);
 var
@@ -164,16 +156,14 @@ end;
 
 procedure TUramakiKGridPlate.DoSelectAll(Sender: TObject);
 begin
-  FGrid.OnSelectionChanged:= nil;
+  FTriggerSelectionChanges := false;
   try
     FGrid.SelectAll;
     FGrid.Invalidate;
   finally
+    FTriggerSelectionChanges:= true;
     if AutomaticChildsUpdateMode = cuOnChangeSelection then
-    begin
-      FGrid.OnSelectionChanged:= Self.OnSelectionChanged();
       UpdateChildsIfNeeded(true);
-    end;
   end;
 end;
 
@@ -200,43 +190,33 @@ end;
 procedure TUramakiKGridPlate.ConvertSelectionToUramakiRoll(aUramakiRoll: TUramakiRoll; aDoFillRollFromDatasetRow: TDoFillRollFromDatasetRow);
 var
   i, k : integer;
+  rows : TIntegerList;
 begin
-  if FGrid.UpdateUnlocked then
-    exit;
-
-  if (FGrid.EntireSelectedRowCount > 1) then
-  begin
+  rows := TIntegerList.Create;
+  try
     FGrid.LockUpdate;
     try
-      for i := 0 to FGrid.SelectionCount -1 do
+      FGridHelper.GetSelectedRows(rows);
+      for i := 0 to rows.Count -1 do
       begin
-        for k := FGrid.Selections[i].Row1 to FGrid.Selections[i].Row2 do
-        begin
-          FCurrentRow:= k - FGrid.FixedRows;
-          aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
-        end;
+        FCurrentRow:= rows.Items[i];
+        aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
       end;
     finally
       FGrid.UnlockUpdate;
     end;
-  end
-  else
-  begin
-    FCurrentRow := FGrid.Row - FGrid.FixedRows;
-    aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
+  finally
+    rows.Free;
   end;
 end;
 
 procedure TUramakiKGridPlate.DoProcessRefreshChilds;
 begin
-  FGrid.OnSelectionChanged:= nil;
+  FTriggerSelectionChanges := false;
   try
     EngineMediator.PleaseRefreshMyChilds(Self);
   finally
-    if AutomaticChildsUpdateMode = cuOnChangeSelection then
-    begin
-      FGrid.OnSelectionChanged:= Self.OnSelectionChanged();
-    end;
+    FTriggerSelectionChanges:= true;
   end;
 end;
 
@@ -319,6 +299,11 @@ begin
     InvokeChildsClear;
 end;
 
+procedure TUramakiKGridPlate.SetupDataStructures;
+begin
+  FGridHelper.InitGrid;
+end;
+
 constructor TUramakiKGridPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -342,10 +327,11 @@ begin
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
   FGridHelper.OnGridFiltered := OnGridFiltered;
-  //FGrid.OnSelectionChanged:= OnSelectionChanged;
+  FGrid.OnSelectionChanged:= OnSelectionChanged;
 
   FRunningDoUpdateChilds := false;
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
+  FTriggerSelectionChanges:= true;
 end;
 
 destructor TUramakiKGridPlate.Destroy;

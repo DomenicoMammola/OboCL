@@ -103,7 +103,6 @@ type
     procedure InvokeChildsClear;
 
     procedure OnClearFilter (Sender : TObject);
-    procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode); virtual; abstract;
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); virtual; abstract;
     procedure DoSelectAll (Sender : TObject); virtual; abstract;
     procedure DoAutoAdjustColumns(Sender : TObject); virtual; abstract;
@@ -111,6 +110,7 @@ type
     function GetGridHelper : TmAbstractGridHelper; virtual; abstract;
     procedure DoProcessRefreshChilds; virtual; abstract;
     procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); virtual; abstract;
+    procedure SetupDataStructures; virtual; abstract;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -122,7 +122,7 @@ type
     procedure LoadConfigurationFromXML (aXMLElement : TmXmlElement); override;
     procedure SaveConfigurationToXML (aXMLElement : TmXmlElement); override;
 
-    property AutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode read FAutomaticChildsUpdateMode write SetAutomaticChildsUpdateMode;
+    property AutomaticChildsUpdateMode : TUramakiGridChildsAutomaticUpdateMode read FAutomaticChildsUpdateMode write FAutomaticChildsUpdateMode;
   end;
 
   { TUramakiGridHelper }
@@ -149,16 +149,16 @@ type
     FLastSelectedRow : TBookmark;
     FLastSelectedRowsCount : integer;
     FLastSelectedRowsHash : string;
+    FTriggerSelectionChanges : boolean;
   protected
-    FGrid: TmDBGrid;
     FDataset: TmVirtualDataset;
+    FGrid: TmDBGrid;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TmDBGridHelper;
     FUramakiGridHelper : TUramakiGridHelper;
     FDatasource : TDatasource;
     FRunningDoUpdateChilds : boolean;
     procedure OnFilterDataset(Sender : TObject);
-    procedure SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode); override;
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
@@ -172,6 +172,7 @@ type
     procedure OnCellClick(Column: TColumn);
     procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
     procedure OnExecuteFilter (Sender : TObject);
+    procedure SetupDataStructures; override;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -309,6 +310,9 @@ begin
 
   FRunningDoUpdateChilds := false;
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
+  FGrid.OnCellClick:= Self.OnCellClick;
+  FGrid.OnSelectEditor:= Self.OnSelectEditor;
+  FTriggerSelectionChanges:= true;
 end;
 
 destructor TUramakiDBGridPlate.Destroy;
@@ -539,20 +543,6 @@ end;
 
 { TUramakiBaseGridPlate }
 
-procedure TUramakiDBGridPlate.SetAutomaticChildsUpdateMode(AValue: TUramakiGridChildsAutomaticUpdateMode);
-begin
-  FAutomaticChildsUpdateMode:=AValue;
-  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
-  begin
-    FGrid.OnCellClick:= Self.OnCellClick;
-    FGrid.OnSelectEditor:= Self.OnSelectEditor;
-  end
-  else
-  begin
-    FGrid.OnSelectEditor:= nil;
-    FGrid.OnCellClick := nil;
-  end;
-end;
 
 procedure TUramakiDBGridPlate.UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean);
 var
@@ -611,16 +601,15 @@ end;
 
 procedure TUramakiDBGridPlate.DoSelectAll(Sender: TObject);
 begin
-  FGrid.OnSelectEditor:= nil;
-  FGrid.OnCellClick:= nil;
+  FTriggerSelectionChanges:= false;
   try
     FGridHelper.SelectAllRows;
   finally
     if AutomaticChildsUpdateMode = cuOnChangeSelection then
     begin
-      FGrid.OnSelectEditor:= Self.OnSelectEditor;
-      FGrid.OnCellClick := Self.OnCellClick;
-      UpdateChildsIfNeeded(true);
+      FTriggerSelectionChanges := true;
+      if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+        UpdateChildsIfNeeded(true);
     end;
   end;
 end;
@@ -785,16 +774,11 @@ end;
 
 procedure TUramakiDBGridPlate.DoProcessRefreshChilds;
 begin
-  FGrid.OnSelectEditor:= nil;
-  FGrid.OnCellClick:= nil;
+  FTriggerSelectionChanges:= false;
   try
     EngineMediator.PleaseRefreshMyChilds(Self);
   finally
-    if AutomaticChildsUpdateMode = cuOnChangeSelection then
-    begin
-      FGrid.OnSelectEditor:= Self.OnSelectEditor;
-      FGrid.OnCellClick := Self.OnCellClick;
-    end;
+    FTriggerSelectionChanges:= true;
   end;
 end;
 
@@ -812,25 +796,29 @@ procedure TUramakiDBGridPlate.OnSelectEditor(Sender: TObject; Column: TColumn; v
 begin
   if FRunningDoUpdateChilds then
     exit;
-  UpdateChildsIfNeeded(false);
+  if not FTriggerSelectionChanges then
+    exit;
+  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+    UpdateChildsIfNeeded(false);
 end;
 
 procedure TUramakiDBGridPlate.OnCellClick(Column: TColumn);
 begin
-  UpdateChildsIfNeeded(false);
+  if not FTriggerSelectionChanges then
+    exit;
+  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+    UpdateChildsIfNeeded(false);
 end;
 
 procedure TUramakiDBGridPlate.SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues: TStringList);
 begin
-  FGrid.OnSelectEditor:= nil;
-  FGrid.OnCellClick:= nil;
+  FTriggerSelectionChanges := false;
   try
     FGridHelper.SelectRows(aDataProvider.GetKeyFieldName, aKeyValues);
   finally
     if AutomaticChildsUpdateMode = cuOnChangeSelection then
     begin
-      FGrid.OnSelectEditor:= Self.OnSelectEditor;
-      FGrid.OnCellClick := Self.OnCellClick;
+      FTriggerSelectionChanges:= true;
       UpdateChildsIfNeeded(true);
     end;
   end;
@@ -864,8 +852,7 @@ begin
     end
     else
     begin
-      FGrid.OnSelectEditor:= nil;
-      FGrid.OnCellClick:= nil;
+      FTriggerSelectionChanges :=false;
       try
         tmpBookmark := FDataset.Bookmark;
         try
@@ -880,11 +867,7 @@ begin
           FDataset.GotoBookmark(tmpBookmark);
         end;
       finally
-        if FAutomaticChildsUpdateMode = cuOnChangeSelection then
-        begin
-          FGrid.OnSelectEditor:= Self.OnSelectEditor;
-          FGrid.OnCellClick:= Self.OnCellClick;
-        end;
+        FTriggerSelectionChanges:= true;
       end;
     end;
   finally
@@ -924,6 +907,7 @@ begin
   finally
     Self.EnableControls;
   end;
+  (*
   FLastSelectedRow := nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
@@ -931,6 +915,12 @@ begin
     InvokeChildsRefresh
   else
     InvokeChildsClear;
+  *)
+end;
+
+procedure TUramakiDBGridPlate.SetupDataStructures;
+begin
+  FDataset.Active := true;
 end;
 
 procedure TUramakiDBGridPlate.DisableControls;
@@ -965,7 +955,9 @@ begin
   FLastSelectedRow := nil;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
-  InvokeChildsClear;
+
+  if AutomaticChildsUpdateMode <> cuDisabled then
+    InvokeChildsClear;
 end;
 
 constructor TUramakiBaseGridPlate.Create(TheOwner: TComponent);

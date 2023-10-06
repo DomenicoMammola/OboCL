@@ -406,7 +406,6 @@ begin
 
 end;
 
-{$ENDIF}
 
 { TUramakiDrawGridPlate }
 

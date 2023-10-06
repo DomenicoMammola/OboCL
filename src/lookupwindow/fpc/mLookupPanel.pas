@@ -20,7 +20,7 @@ uses
   Variants,
   ListViewFilterEdit,
   mLookupWindowEvents, mMaps,
-  mDatasetStandardSetup, mDataProviderInterfaces, mDataProviderFieldDefs;
+  mDataFieldsStandardSetup, mDataProviderInterfaces, mDataProviderFieldDefs;
 
 type
 

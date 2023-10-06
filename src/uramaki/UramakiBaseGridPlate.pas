@@ -277,6 +277,7 @@ type
 {$IFDEF DEBUG}
 var
   logger : TmLog;
+{$ENDIF}
 
 { TFilterLabel }
 

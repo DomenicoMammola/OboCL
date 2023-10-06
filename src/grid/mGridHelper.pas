@@ -473,7 +473,7 @@ begin
       if frm.ShowModal = mrOk then
       begin
         Intf.ReadSettings(FSettings);
-        Intf.RefreshDataProvider;
+        Intf.RefreshDataProvider(true);
         Intf.ApplySettings(FSettings);
       end;
     end;
@@ -562,7 +562,7 @@ begin
         begin
           LoadFormulaFieldsFromXmlElement(FFormulaFields, cursor.Elements[0]);
           if FFormulaFields.Count > 0 then
-            Intf.RefreshDataProvider;
+            Intf.RefreshDataProvider(true);
         end;
       finally
         cursor.Free;

@@ -83,7 +83,7 @@ type
     [SImGridInterface]
     procedure ReadSettings(aSettings : TmGridColumnsSettings);
     procedure ApplySettings(aSettings : TmGridColumnsSettings);
-    procedure RefreshDataProvider;
+    procedure RefreshDataProvider(const aReloadFields: boolean);
     function GetSummaryManager : ISummaryDatasetManager;
     procedure GetFields(aFields : TmFields);
     function GetDataCursor : ImGridCursor;

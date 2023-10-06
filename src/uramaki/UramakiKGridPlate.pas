@@ -375,7 +375,7 @@ begin
   FLastSelectedRow:= -1;
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
-  FGridHelper.RefreshDataProvider;
+  FGridHelper.RefreshDataProvider(false);
 end;
 
 procedure TUramakiKGridPlate.Clear;

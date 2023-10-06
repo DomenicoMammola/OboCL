@@ -115,7 +115,7 @@ type
     // interface ImGrid:
     procedure ReadSettings(aSettings : TmGridColumnsSettings);
     procedure ApplySettings(aSettings : TmGridColumnsSettings);
-    procedure RefreshDataProvider;
+    procedure RefreshDataProvider(const aReloadFields: boolean);
     function GetSummaryManager : ISummaryDatasetManager;
     procedure GetFields(aFields : TmFields);
     function GetDataCursor : ImGridCursor;
@@ -863,7 +863,7 @@ begin
   end;
 end;
 
-procedure TmDBGrid.RefreshDataProvider;
+procedure TmDBGrid.RefreshDataProvider(const aReloadFields: boolean);
 begin
   Self.DataSource.DataSet.Close;
   Self.DataSource.DataSet.Open;

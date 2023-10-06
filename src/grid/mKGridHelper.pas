@@ -77,6 +77,7 @@ type
     FDataAreFiltered: boolean;
     FDataAreSorted: boolean;
     FOnGridFiltered: TNotifyEvent;
+    FParser : TKAParser;
     // menu
     FColumnsHeaderPopupMenu: TPopupMenu;
     FOriginalPopupMenu: TPopupMenu;
@@ -86,9 +87,12 @@ type
     FCurrentCol: integer;
     FCurrentRow: integer;
     FAlternateGridRowColor : TColor;
+    FCurrentDrawingRow : integer;
 
     procedure CreateFields;
+    procedure UpdateFields;
     procedure SetProvider(AValue: TmVirtualDatasetDataProvider);
+    procedure ApplyDecorations(aCellPainter: TKGridCellPainter; const aField : TmField; const aRow : integer; const aState: TKGridDrawState);
     procedure OnDrawGridCell(Sender: TObject; ACol, ARow: integer; R: TRect; State: TKGridDrawState);
     procedure OnMeasureCell(Sender: TObject; ACol, ARow: integer; R: TRect; State: TKGridDrawState; Priority: TKGridMeasureCellPriority; var Extent: TPoint);
     procedure OnKeyDown(Sender: TObject; var Key: word; Shift: TShiftState);
@@ -110,6 +114,8 @@ type
     procedure OnMouseEnterCell(Sender: TObject; ACol, ARow: integer);
     procedure OnMouseLeaveCell(Sender: TObject; ACol, ARow: integer);
     procedure RefreshFiltersPanel;
+    procedure OnParserGetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
+    procedure OnParserGetStrValue (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
   public
     constructor Create(aGrid: TKGrid; aFormulaFields: TmFormulaFields); virtual;
     destructor Destroy; override;
@@ -122,7 +128,7 @@ type
 
     procedure ReadSettings(aSettings: TmGridColumnsSettings);
     procedure ApplySettings(aSettings: TmGridColumnsSettings);
-    procedure RefreshDataProvider;
+    procedure RefreshDataProvider(const aReloadFields: boolean);
     function GetSummaryManager: ISummaryDatasetManager;
     procedure GetFields(aFields: TmFields);
     function GetField(const aFieldName : String): TmField;
@@ -262,6 +268,41 @@ begin
       FSortedVisibleCols.Add(FFields.Get(i));
 end;
 
+procedure TmKGridHelper.UpdateFields;
+var
+  i : integer;
+  tmpFields : TmFields;
+  newField : TmField;
+begin
+  tmpFields := TmFields.Create;
+  try
+    FProvider.FillFields(tmpFields);
+    ApplyStandardSettingsToFields(tmpFields, '#,##0.00');
+
+    for i := 0 to tmpFields.Count - 1 do
+    begin
+      if not Assigned(FFields.FieldByName(tmpFields.Get(i).FieldName)) then
+      begin
+        newField := FFields.Add;
+        newField.Assign(tmpFields.Get(i));
+        if newField.Visible and (not IsSystemField(newField.FieldName)) then
+          FSortedVisibleCols.Add(newField);
+      end;
+    end;
+
+    for FFields.Count - 1 downto 0 do
+    begin
+      if not Assigned(tmpFields.FieldByName(FFields.Get(i).FieldName) then
+      begin
+        FSortedVisibleCols.Remove(FFields.Get(i));
+        FFields.Remove(i);
+      end;
+    end;
+  finally
+    tmpFields.Free;
+  end;
+end;
+
 procedure TmKGridHelper.SetProvider(AValue: TmVirtualDatasetDataProvider);
 begin
   if FProvider = AValue then Exit;
@@ -270,6 +311,72 @@ begin
     FCursor.Free;
   FCursor := TmKGridCursor.Create(FProvider);
   FSummaryManager.Provider := FProvider;
+end;
+
+procedure TmKGridHelper.ApplyDecorations(aCellPainter: TKGridCellPainter; const aField : TmField; const aRow : integer; const aState: TKGridDrawState);
+var
+  tmpCellDecoration : TmCellDecoration;
+  tmpListOfDecorations : TmListOfDecorations;
+  PerformCustomizedDraw : boolean;
+  tmpValue : double;
+  i : integer;
+  bkColor : TColor;
+begin
+  FCurrentDrawingRow := aRow;
+
+  FOwnedCellDecorations.FindByFieldName(aField.FieldName, tmpListOfDecorations);
+  if not Assigned(tmpListOfDecorations) then
+    FOwnedCellDecorations.FindByFieldName(DECORATE_ALL_FIELDS_FIELDNAME, tmpListOfDecorations);
+  if Assigned(tmpListOfDecorations) then
+  begin
+    for i := 0 to tmpListOfDecorations.Count - 1 do
+    begin
+     tmpCellDecoration := tmpListOfDecorations.Get(i);
+
+     PerformCustomizedDraw := true;
+     if tmpCellDecoration.Condition.NotNull then
+     begin
+       if not Assigned(FParser) then
+       begin
+         FParser := TKAParser.Create;
+         FParser.OnGetValue:= Self.OnParserGetValue;
+         FParser.OnGetStrValue:= OnParserGetStrValue;
+       end;
+       try
+         if FParser.Calculate(tmpCellDecoration.Condition.Value, tmpValue) then
+           PerformCustomizedDraw:= round(tmpValue) = 1;
+       except
+         on e:Exception do
+         begin
+           PerformCustomizedDraw:= false;
+         end;
+       end;
+     end;
+     if PerformCustomizedDraw then
+     begin
+       if tmpCellDecoration.BackgroundColor.NotNull then
+       begin
+         bkColor := tmpCellDecoration.BackgroundColor.Value;
+         if (aState * [gdFixed, gdSelected] <> []) then
+         begin
+           if IsDark(tmpCellDecoration.BackgroundColor.Value) then
+             bkColor := LighterColor(tmpCellDecoration.BackgroundColor.Value, 70)
+           else
+             bkColor := DarkerColor(tmpCellDecoration.BackgroundColor.Value, 20);
+         end;
+         aCellPainter.BackColor:= bkColor;
+         aCellPainter.Canvas.Brush.Color:= bkColor;
+       end;
+       if tmpCellDecoration.TextColor.NotNull then
+         aCellPainter.Canvas.Font.Color:= tmpCellDecoration.TextColor.Value;
+       if tmpCellDecoration.TextBold.NotNull and tmpCellDecoration.TextBold.Value then
+         aCellPainter.Canvas.Font.Style:= aCellPainter.Canvas.Font.Style + [fsBold];
+       if tmpCellDecoration.TextItalic.NotNull and tmpCellDecoration.TextItalic.Value then
+         aCellPainter.Canvas.Font.Style:= aCellPainter.Canvas.Font.Style + [fsItalic];
+       break;
+     end;
+    end;
+  end;
 end;
 
 procedure TmKGridHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: integer; R: TRect; State: TKGridDrawState);
@@ -307,6 +414,9 @@ begin
     grid.CellPainter.BackColor:= FAlternateGridRowColor;
     grid.CellPainter.Canvas.Brush.Color:= FAlternateGridRowColor;
   end;
+
+  if ARow >= grid.FixedRows then
+    ApplyDecorations(grid.CellPainter, curField, ARow - (FGrid as TKGrid).FixedRows, State);
 
   grid.CellPainter.DrawDefaultCellBackground;
   if ARow = 0 then
@@ -398,7 +508,7 @@ begin
     curField := ColToField(aCol);
     isInt := FieldTypeIsInteger(curField.DataType);
     isFloat := FieldTypeIsFloat(curField.DataType);
-    isDate := FieldTypeIsDate(curField.DataType) or FieldTypeIsDateTime(curField.DataType);
+    isDate := FieldTypeIsDate(curField.DataType) or FieldTypeIsDateTime(curField.DataType) or FieldTypeIsTime(curField.DataType);
 
     FProvider.GetFieldValue(curField.FieldName, aRow, Value);
     if (isInt or isFloat or isDate) and (curField.DisplayFormat <> '') and (not VarIsNull(Value)) then
@@ -722,6 +832,79 @@ begin
     FFiltersPanel.SetFilters(FProvider.FilterConditions, FFields);
 end;
 
+procedure TmKGridHelper.OnParserGetValue(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
+var
+  tmpField : TmField;
+  varValue : variant;
+begin
+  Successfull:= false;
+
+  if FCurrentDrawingRow < 0 then
+    exit;
+
+  if FFields.Count > 0 then
+  begin
+    Value := 0;
+    if FProvider.GetRecordCount = 0 then
+      Successfull:= true
+    else
+    begin
+      tmpField := Self.GetField(valueName);
+      if Assigned(tmpField) then
+      begin
+        if FieldTypeIsInteger(tmpField.DataType) or FieldTypeIsFloat(tmpField.DataType) or
+          FieldTypeIsDate(tmpField.DataType) or FieldTypeIsTime(tmpField.DataType) or FieldTypeIsDateTime(tmpField.DataType) or
+          FieldTypeIsBoolean(tmpField.DataType) then
+        begin
+          FProvider.GetFieldValue(valueName, FCurrentDrawingRow, varValue);
+          if not VarIsNull(varValue) then
+          begin
+            if FieldTypeIsBoolean(tmpField.DataType) then
+            begin
+              if varValue then
+                Value := 1
+              else
+                Value := 0;
+            end
+            else
+              Value := varValue;
+          end;
+          Successfull:= true;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TmKGridHelper.OnParserGetStrValue(Sender: TObject; const valueName: string; var StrValue: string; out Successfull: boolean);
+var
+  tmpField: TmField;
+  varValue : variant;
+begin
+  Successfull:= false;
+
+  if FCurrentDrawingRow < 0 then
+    exit;
+
+  if FFields.Count > 0 then
+  begin
+    StrValue := '';
+    if FProvider.GetRecordCount = 0 then
+      Successfull:= true
+    else
+    begin
+      tmpField := GetField(valueName);
+      if Assigned(tmpField) then
+      begin
+        FProvider.GetFieldValue(valueName, FCurrentDrawingRow, varValue);
+        if not VarIsNull(varValue) then
+          StrValue := VarToStr(varValue);
+        Successfull:= true;
+      end;
+    end;
+  end;
+end;
+
 constructor TmKGridHelper.Create(aGrid: TKGrid; aFormulaFields: TmFormulaFields);
 begin
   FDataAreFiltered := False;
@@ -761,6 +944,7 @@ begin
   FSortedVisibleCols.Free;
   FOwnedCellDecorations.Free;
   FSummaryManager.Free;
+  FreeAndNil(FParser);
   inherited Destroy;
 end;
 
@@ -907,7 +1091,7 @@ begin
           curField.DisplayLabel := aSettings.Get(i).DisplayLabel.AsString;
         end;
 
-        RefreshDataProvider;
+        RefreshDataProvider(false);
 
         for i := 0 to widths.Count - 1 do
           (FGrid as TKGrid).Cols[i].Extent := widths.Items[i];
@@ -925,13 +1109,15 @@ begin
 
 end;
 
-procedure TmKGridHelper.RefreshDataProvider;
+procedure TmKGridHelper.RefreshDataProvider(const aReloadFields: boolean);
 begin
   (FGrid as TKGrid).LockUpdate;
   try
     (FGrid as TKGrid).ClearSortMode;
     if FFields.Count = 0 then
-      CreateFields;
+      CreateFields
+    else if aReloadFields then
+      UpdateFields;
     (FGrid as TKGrid).FixedRows := 1;
     (FGrid as TKGrid).FixedCols := 0;
 

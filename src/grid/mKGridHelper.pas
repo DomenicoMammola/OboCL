@@ -151,7 +151,7 @@ uses
   kgraphics, kcontrols,
   mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
   mGridFilterValuesDlg, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg, mMaps,
-  mDateTimeUtility, mMagnificationFactor;
+  mDateTimeUtility, mMagnificationFactor {$IFDEF DEBUG}, mLog{$ENDIF};
 
 type
 
@@ -162,6 +162,11 @@ type
     event: TNotifyEvent;
     constructor Create(aEvent: TNotifyEvent);
   end;
+
+{$IFDEF DEBUG}
+var
+  logger : TmLog;
+{$ENDIF}
 
 { TNotifyEventShell }
 
@@ -290,9 +295,9 @@ begin
       end;
     end;
 
-    for FFields.Count - 1 downto 0 do
+    for i := FFields.Count - 1 downto 0 do
     begin
-      if not Assigned(tmpFields.FieldByName(FFields.Get(i).FieldName) then
+      if not Assigned(tmpFields.FieldByName(FFields.Get(i).FieldName)) then
       begin
         FSortedVisibleCols.Remove(FFields.Get(i));
         FFields.Remove(i);
@@ -1121,7 +1126,12 @@ begin
     (FGrid as TKGrid).FixedRows := 1;
     (FGrid as TKGrid).FixedCols := 0;
 
+    {$IFDEF DEBUG}
+    logger.Debug('Actual ColCount=' + IntToStr((FGrid as TKGrid).ColCount));
+    logger.Debug('New ColCount=' + IntToStr(FSortedVisibleCols.Count));
+    {$ENDIF}
     (FGrid as TKGrid).ColCount := FSortedVisibleCols.Count;
+
     FDataAreSorted := False;
     FProvider.Refresh(False, FDataAreFiltered);
     (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
@@ -1220,4 +1230,8 @@ begin
   end;
 end;
 
+{$IFDEF DEBUG}
+initialization
+  logger := logManager.AddLog('mKGridHelper');
+{$ENDIF}
 end.

@@ -17,7 +17,7 @@ unit UramakiBaseGridPlate;
 interface
 
 uses
-  Classes, Controls, ExtCtrls, DB, DBGrids,
+  Classes, Controls, ExtCtrls, DB, DBGrids, Graphics,
   Forms, Menus, SysUtils, StdCtrls,
   UramakiToolbar,
   {$IFDEF FPC}
@@ -30,7 +30,8 @@ uses
 
   UramakiBase,
   mVirtualDataSet, mFilterPanel, mFilter, mGridHelper, mDBGrid, mDrawGrid,
-  mXML, mDataProviderInterfaces, mSummary, mQuickReadOnlyVirtualDataSetProvider;
+  mXML, mDataProviderInterfaces, mSummary, mQuickReadOnlyVirtualDataSetProvider,
+  mFields;
 
 resourcestring
   SConfigureChildsUpdateModeCaption = 'Update of child widgets';
@@ -42,6 +43,7 @@ resourcestring
   SAutoAdjustColumnsMenuHint = 'Set optimal width to columns';
   SGridActionsHint = 'Grid actions...';
   SCopySummaryToClipboard = 'Copy to clipboard';
+  SGridFilterPanelHeader = 'Filtered by:';
 
 const
   WM_USER_REFRESHCHILDS = WM_USER + 1;
@@ -67,6 +69,11 @@ type
   strict private
     FPanel : TFlowPanel;
     FSubPanels : TList;
+    FColor : TColor;
+    FTextColor : TColor;
+    FBkColor : TColor;
+    FHeaderTextColor : TColor;
+    procedure SetBkColor(AValue: TColor);
   public
     constructor Create;
     destructor Destroy; override;
@@ -76,7 +83,40 @@ type
     procedure Hide;
     procedure Show;
     procedure SetSummaryValues (aScreenValues: TmSummaryScreenValues);
+
+    property Color : TColor read FColor write FColor;
+    property TextColor : TColor read FTextColor write FTextColor;
+    property BkColor : TColor read FBkColor write SetBkColor;
+    property HeaderTextColor : TColor read FHeaderTextColor write FHeaderTextColor;
   end;
+
+  { TUramakiGridFiltersPanel }
+
+  TUramakiGridFiltersPanel = class (IFilterPanel)
+  strict private
+    const DEFAULT_HEIGHT = 25;
+  strict private
+    FPanel : TFlowPanel;
+    FSubPanels : TList;
+    FColor : TColor;
+    FTextColor : TColor;
+    FBkColor : TColor;
+    FHeaderTextColor : TColor;
+    procedure SetBkColor(AValue: TColor);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure LinkToPlate (aPlate : TUramakiPlate);
+
+    procedure SetFilters (const aFilters: TmFilters; const aFields : TmFields);
+
+    property Color : TColor read FColor write FColor;
+    property TextColor : TColor read FTextColor write FTextColor;
+    property BkColor : TColor read FBkColor write SetBkColor;
+    property HeaderTextColor : TColor read FHeaderTextColor write FHeaderTextColor;
+  end;
+
 
   { TUramakiBaseGridPlate }
 
@@ -206,7 +246,7 @@ implementation
 
 uses
   variants,
-  mGraphicsUtility, mWaitCursor
+  mGraphicsUtility, mWaitCursor, mMagnificationFactor
   {$IFDEF DEBUG}, mLog, mUtility{$ENDIF}
   ;
 
@@ -226,9 +266,145 @@ type
     property DataType: TmSummaryValueType read FDataType write FDataType;
   end;
 
+  { TFilterLabel }
+
+  TFilterLabel = class(TLabel)
+  strict private
+  public
+    constructor Create(TheOwner: TComponent); override;
+  end;
+
 {$IFDEF DEBUG}
 var
   logger : TmLog;
+
+{ TFilterLabel }
+
+constructor TFilterLabel.Create(TheOwner: TComponent);
+begin
+  inherited Create(TheOwner);
+end;
+
+{ TUramakiGridFiltersPanel }
+
+procedure TUramakiGridFiltersPanel.SetBkColor(AValue: TColor);
+begin
+  if FBkColor=AValue then Exit;
+  FBkColor:=AValue;
+  if Assigned(FPanel) then
+    FPanel.Color:= FBkColor;
+end;
+
+constructor TUramakiGridFiltersPanel.Create;
+begin
+  FSubPanels := TList.Create;
+  FColor := $1A81F6;
+  FTextColor := $E6E6E6;
+  FBkColor:= clDefault;
+  FHeaderTextColor:= clDefault;
+end;
+
+destructor TUramakiGridFiltersPanel.Destroy;
+begin
+  FSubPanels.Free;
+end;
+
+procedure TUramakiGridFiltersPanel.LinkToPlate(aPlate: TUramakiPlate);
+begin
+  if not Assigned(FPanel) then
+  begin
+    FPanel := TFlowPanel.Create(aPlate);
+    FPanel.Parent := aPlate;
+    FPanel.AutoWrap:= true;
+    FPanel.AutoSize:= true;
+    FPanel.Align:= alTop;
+    FPanel.Color:= FBkColor;
+  end;
+end;
+
+procedure TUramakiGridFiltersPanel.SetFilters(const aFilters: TmFilters; const aFields : TmFields);
+var
+  i : integer;
+  tmpPanel : TPanel;
+  tmpLabel : TFilterLabel;
+  headLabel : TLabel;
+  tmp : String;
+  tmpField : TmField;
+begin
+  assert(Assigned(FPanel));
+
+  for i := 0 to FSubPanels.Count - 1 do
+  begin
+    FPanel.RemoveControl(FSubPanels.Items[i]);
+    TPanel(FSubPanels.Items[i]).Free;
+  end;
+  FSubPanels.Clear;
+  if aFilters.Count = 0 then
+    FPanel.Visible:= false
+  else
+  begin
+    tmpPanel := TPanel.Create(FPanel);
+    tmpPanel.Parent := FPanel;
+    tmpPanel.Align:= alLeft;
+    tmpPanel.Height:= ScaleForMagnification(DEFAULT_HEIGHT, true);
+    tmpPanel.BorderSpacing.Left:= 2;
+    tmpPanel.BorderSpacing.Right:= 2;
+    tmpPanel.BorderSpacing.Top:= 2;
+    tmpPanel.BorderSpacing.Bottom:= 2;
+    tmpPanel.BevelInner:= bvNone;
+    tmpPanel.BevelOuter:= bvNone;
+    tmpPanel.BorderStyle:= bsNone;
+    headLabel := TLabel.Create(tmpPanel);
+    headLabel.Parent := tmpPanel;
+    headLabel.Align:= alClient;
+    headLabel.Caption:= SGridFilterPanelHeader;
+    headLabel.AutoSize:= true;
+    headLabel.Font.Size:= 13;
+    headLabel.Font.Color:= FHeaderTextColor;
+    ScaleFontForMagnification(headLabel.Font);
+    tmpPanel.AutoSize:= true;
+    FSubPanels.Add(tmpPanel);
+
+    for i := 0 to aFilters.Count - 1 do
+    begin
+      tmpPanel := TPanel.Create(FPanel);
+      tmpPanel.Parent := FPanel;
+      tmpPanel.Align:= alLeft;
+      tmpPanel.Height:= ScaleForMagnification(DEFAULT_HEIGHT, true);
+      tmpPanel.BorderSpacing.Left:= 2;
+      tmpPanel.BorderSpacing.Right:= 2;
+      tmpPanel.BorderSpacing.Top:= 2;
+      tmpPanel.BorderSpacing.Bottom:= 2;
+      tmpPanel.BevelInner:= bvNone;
+      tmpPanel.BevelOuter:= bvNone;
+      tmpPanel.BorderStyle:= bsNone;
+      tmpLabel := TFilterLabel.Create(tmpPanel);
+      tmpLabel.Parent := tmpPanel;
+      tmpLabel.Align:= alClient;
+
+      tmp := aFilters.Get(i).FieldName;
+      if Assigned(aFields) then
+      begin
+        tmpField := aFields.FieldByName(aFilters.Get(i).FieldName);
+        if Assigned(tmpField) then
+          tmp := tmpField.DisplayLabel;
+      end;
+
+      tmpLabel.Caption:= ' ' + tmp + ' ';
+      tmpLabel.AutoSize:= true;
+      tmpLabel.Font.Size:= 13;
+      ScaleFontForMagnification(tmpLabel.Font);
+      tmpPanel.AutoSize:= true;
+      tmpPanel.Color := FColor;
+      tmpLabel.Font.Color:= FTextColor;
+
+      FSubPanels.Add(tmpPanel);
+    end;
+    FPanel.Visible:= true;
+  end;
+
+end;
+
 {$ENDIF}
 
 { TUramakiDrawGridPlate }
@@ -359,9 +535,21 @@ end;
 
 { TUramakiGridSummaryPanel }
 
+procedure TUramakiGridSummaryPanel.SetBkColor(AValue: TColor);
+begin
+  if FBkColor=AValue then Exit;
+  FBkColor:=AValue;
+  if Assigned(FPanel) then
+    FPanel.Color:= FBkColor;
+end;
+
 constructor TUramakiGridSummaryPanel.Create;
 begin
   FSubPanels := TList.Create;
+  FColor := $A64FA4;
+  FTextColor := $E6E6E6;
+  FBkColor:= clDefault;
+  FHeaderTextColor:= clDefault;
 end;
 
 destructor TUramakiGridSummaryPanel.Destroy;
@@ -378,6 +566,7 @@ begin
     FPanel.AutoWrap:= true;
     FPanel.AutoSize:= true;
     FPanel.Align:= alBottom;
+    FPanel.Color:= FBkColor;
   end;
 end;
 
@@ -405,9 +594,8 @@ begin
     TPanel(FSubPanels.Items[i]).Parent := nil;
   end;
   for i := 0 to FSubPanels.Count - 1 do
-  begin
     TPanel(FSubPanels.Items[i]).Free;
-  end;
+
   FSubPanels.Clear;
   FPanel.ControlList.Clear;
   for i := 0 to aScreenValues.Count - 1 do
@@ -415,23 +603,26 @@ begin
     tmpPanel := TPanel.Create(FPanel);
     tmpPanel.Parent := FPanel;
     tmpPanel.Align:= alLeft;
-    tmpPanel.Height:= ScaleForDPI(DEFAULT_HEIGHT);
+    tmpPanel.Height:= ScaleForMagnification(DEFAULT_HEIGHT, true);
     tmpPanel.BorderSpacing.Left:= 2;
     tmpPanel.BorderSpacing.Right:= 2;
     tmpPanel.BorderSpacing.Top:= 2;
     tmpPanel.BorderSpacing.Bottom:= 2;
     tmpPanel.BevelInner:= bvNone;
     tmpPanel.BevelOuter:= bvNone;
-    tmpPanel.BorderStyle:= bsSingle;
+    tmpPanel.BorderStyle:= bsNone;
     tmpLabel := TSummaryLabel.Create(tmpPanel);
     tmpLabel.Parent := tmpPanel;
     tmpLabel.Align:= alClient;
-    tmpLabel.Caption:= aScreenValues.Get(i).FormattedValue;
+    tmpLabel.Caption:= ' ' + aScreenValues.Get(i).FormattedValue + ' ';
     tmpLabel.RawValue:= aScreenValues.Get(i).RawValue;
     tmpLabel.DataType:= aScreenValues.Get(i).DataType;
     tmpLabel.AutoSize:= true;
     tmpLabel.Font.Size:= 13;
+    ScaleFontForMagnification(tmpLabel.Font);
     tmpPanel.AutoSize:= true;
+    tmpPanel.Color := FColor;
+    tmpLabel.Font.Color:= FTextColor;
 
     FSubPanels.Add(tmpPanel);
   end;

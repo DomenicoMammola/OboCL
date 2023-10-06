@@ -21,7 +21,7 @@ uses
   kgrids,
   mGrids, mGridHelper, KAParser, mVirtualDatasetFormulas, mCellDecorations,
   mDataProviderInterfaces, mVirtualDataSet, mFields, mGridColumnSettings,
-  mVirtualDataSetProvider, mSummary, mIntList;
+  mVirtualDataSetProvider, mSummary, mIntList, mFilter;
 
 type
 
@@ -72,6 +72,7 @@ type
     FSortedVisibleCols: TList;
     FSummaryManager: TmKGridSummaryManager;
     FSummaryPanel: ISummaryPanel;
+    FFiltersPanel : IFilterPanel;
     FOwnedCellDecorations: TmCellDecorations;
     FDataAreFiltered: boolean;
     FDataAreSorted: boolean;
@@ -108,6 +109,7 @@ type
     procedure OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: integer);
     procedure OnMouseEnterCell(Sender: TObject; ACol, ARow: integer);
     procedure OnMouseLeaveCell(Sender: TObject; ACol, ARow: integer);
+    procedure RefreshFiltersPanel;
   public
     constructor Create(aGrid: TKGrid; aFormulaFields: TmFormulaFields); virtual;
     destructor Destroy; override;
@@ -131,6 +133,7 @@ type
 
     property Provider: TmVirtualDatasetDataProvider read FProvider write SetProvider;
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
+    property FiltersPanel : IFilterPanel read FFiltersPanel write FFiltersPanel;
     property OnGridFiltered: TNotifyEvent read FOnGridFiltered write FOnGridFiltered;
     property AlternateGridRowColor : TColor read FAlternateGridRowColor write FAlternateGridRowColor;
   end;
@@ -141,7 +144,7 @@ uses
   SysUtils, Variants, LCLType, md5, Math,
   kgraphics, kcontrols,
   mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
-  mGridFilterValuesDlg, mFilter, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg, mMaps,
+  mGridFilterValuesDlg, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg, mMaps,
   mDateTimeUtility, mMagnificationFactor;
 
 type
@@ -552,6 +555,7 @@ begin
               TWaitCursor.UndoWaitCursor('TmKGridHelper.OnFilterValues');
             end;
           end;
+          RefreshFiltersPanel;
         finally
           checkedValues.Free;
         end;
@@ -614,6 +618,7 @@ begin
       (FGrid as TKGrid).UnlockUpdate;
     end;
     FSummaryManager.RefreshSummaries;
+    RefreshFiltersPanel;
     if Assigned(FOnGridFiltered) then
       FOnGridFiltered(Self);
   end;
@@ -653,6 +658,7 @@ begin
             (FGrid as TKGrid).UnlockUpdate;
           end;
           FSummaryManager.RefreshSummaries;
+          RefreshFiltersPanel;
           if Assigned(FOnGridFiltered) then
             FOnGridFiltered(Self);
         end;
@@ -706,6 +712,14 @@ procedure TmKGridHelper.OnMouseLeaveCell(Sender: TObject; ACol, ARow: integer);
 begin
   FCurrentRow := -1;
   FCurrentCol := -1;
+end;
+
+procedure TmKGridHelper.RefreshFiltersPanel;
+var
+  tmpFields : TmFields;
+begin
+  if Assigned(FFiltersPanel) then
+    FFiltersPanel.SetFilters(FProvider.FilterConditions, FFields);
 end;
 
 constructor TmKGridHelper.Create(aGrid: TKGrid; aFormulaFields: TmFormulaFields);

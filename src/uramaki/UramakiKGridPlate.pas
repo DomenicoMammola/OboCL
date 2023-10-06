@@ -30,6 +30,7 @@ type
     function GetValueFromDatasetRow (const aFieldName : String) : variant;
   protected
     FGrid: TKGrid;
+    FGridFiltersPanel: TUramakiGridFiltersPanel;
     FCurrentRow : integer;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TmKGridHelper;
@@ -322,6 +323,9 @@ begin
   FLastSelectedRowsCount:= 0;
   FLastSelectedRowsHash := '';
 
+  FGridFiltersPanel := TUramakiGridFiltersPanel.Create;
+  FGridFiltersPanel.LinkToPlate(Self);
+
   FGrid := TKGrid.Create(Self);
   FGrid.Parent := Self;
   FGrid.Align:= alClient;
@@ -334,6 +338,7 @@ begin
   FGridHelper:= TmKGridHelper.Create(FGrid, FProvider.FormulaFields);
   FGridHelper.Provider := FProvider;
   FGridHelper.SummaryPanel := FSummaryPanel;
+  FGridHelper.FiltersPanel := FGridFiltersPanel;;
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
   FGridHelper.OnGridFiltered := OnGridFiltered;
@@ -349,6 +354,7 @@ begin
   FGridHelper.Free;
   FUramakiGridHelper.Free;
   FProvider.Free;
+  FreeAndNil(FGridFiltersPanel);
 
   inherited Destroy;
 end;

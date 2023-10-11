@@ -1088,6 +1088,9 @@ begin
           visibleCols.Free;
         end;
 
+        for i := 0 to FFields.Count -1 do
+          FFields.Get(i).Visible := false;
+
         for i := 0 to aSettings.Count - 1 do
         begin
           curField := FFields.FieldByName(aSettings.Get(i).FieldName);

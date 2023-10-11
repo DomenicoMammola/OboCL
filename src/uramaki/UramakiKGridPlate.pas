@@ -6,14 +6,14 @@ unit UramakiKGridPlate;
 
 interface
 uses
-  Classes, Controls, Grids,
+  Classes, Controls, Grids, SysUtils,
   kgrids,
   mQuickReadOnlyVirtualDataSetProvider, mKGridHelper,
   mGridHelper, mDataProviderInterfaces,
   UramakiBase, UramakiBaseGridPlate
 
   {$IFDEF DEBUG}
-  , mLog ,SysUtils
+  , mLog
   {$ENDIF}
   ;
 

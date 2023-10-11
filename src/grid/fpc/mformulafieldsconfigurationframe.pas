@@ -81,7 +81,7 @@ uses
 
 procedure TFormulaFieldsConfFrame.AddButtonClick(Sender: TObject);
 begin
-  FGrid.InsertRowWithValues(FGrid.RowCount, ['NEWFIELD', 'DOUBLE', '', '1']);
+  FGrid.InsertRowWithValues(FGrid.RowCount, ['NEWFIELD'+ GenerateRandomIdString(4, true), 'DOUBLE', '', '1']);
   FSomethingChanged:= true;
 end;
 

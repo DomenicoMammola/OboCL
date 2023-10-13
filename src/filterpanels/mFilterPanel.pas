@@ -511,6 +511,7 @@ begin
   FEdit.ButtonCaption:='...';
   FEdit.OnButtonClick:= Self.OnShowLookup;
   FEdit.Flat:= true;
+  FEdit.Spacing:= 0;
   FLabel := Self.CreateStandardLabel;
   FValueType:= efString;
   CreateStandardFilterMenu(FLabel, true);
@@ -1132,14 +1133,15 @@ begin
   FBottomPanel.Height:= FDateEditMin.Height;
   FDateEditMin.Align:= alClient;
   FDateEditMin.Flat:= true;
-  FDateEditMin.Height:= ScaleForMagnification(FDateEditMin.Height, true);
+  FDateEditMin.Spacing:= 0;
+  FBottomPanel.Height:= ScaleForMagnification(FBottomPanel.Height, true);
   FDateEditMax := TmDateEdit.Create(Self);
   FDateEditMax.Parent := FBottomPanel;
   FDateEditMax.Align:= alRight;
   FDateEditMax.Width:= FBottomPanel.Width div 2;
   FDateEditMax.Visible:= false;
   FDateEditMax.Flat:= true;
-  FDateEditMax.Height:= ScaleForMagnification(FDateEditMax.Height, true);
+  FDateEditMax.Spacing:=0;
   FLabel := Self.CreateStandardLabel;
   CreateStandardFilterMenu(FLabel, true);
 end;
@@ -1407,6 +1409,8 @@ begin
   inherited Create(TheOwner);
   Self.BevelInner:= bvNone;
   Self.BevelOuter:= bvNone;
+  Self.BorderSpacing.Left:= 3;
+  Self.BorderSpacing.Right:= 3;
   Self.FFlex := 2;
   Self.Width := ScaleForMagnification(Self.FFlex * DEFAULT_FLEX_WIDTH, true);
   Self.Caption := '';

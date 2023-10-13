@@ -33,6 +33,7 @@ type
     procedure OnInternalCustomDate (Sender : TObject; var ADate : string);
   protected
     property OnCustomDate; // hide the original event
+    function GetDefaultGlyphName: string; override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -42,7 +43,8 @@ type
 implementation
 
 uses
-  SysUtils, LResources;
+  SysUtils, LResources,
+  mMagnificationFactor;
 
 { TmDateEdit }
 
@@ -56,10 +58,16 @@ begin
     OnExtCustomDate(Sender, ADate);
 end;
 
+function TmDateEdit.GetDefaultGlyphName: string;
+begin
+  Result := ''
+end;
+
 constructor TmDateEdit.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   Self.OnCustomDate:= OnInternalCustomDate;
+  ScaleFontForMagnification(Self.Font);
   FCustomGlyph:= TBitmap.Create;
   FCustomGlyph.LoadFromLazarusResource('mdateedit');
   Self.Glyph := FCustomGlyph;

@@ -435,6 +435,8 @@ procedure TmKGridHelper.OnMeasureCell(Sender: TObject; ACol, ARow: integer; R: T
 var
   sz: TPoint;
 begin
+  if ACol >= FSortedVisibleCols.Count then
+    exit;
   if ARow = 0 then
     GetTextExtend(ColToField(ACol).DisplayLabel, FGrid.Font, Extent)
   else

@@ -395,6 +395,9 @@ begin
     exit;
   curField := Self.ColToField(ACol);
 
+  if not Assigned(curField) then
+    exit;
+
   // https://forum.lazarus.freepascal.org/index.php/topic,44833.msg315562.html#msg315562
 
   //grid.Cell[ACol, ARow].ApplyDrawProperties;
@@ -1083,8 +1086,18 @@ begin
 
           for i := 0 to visibleCols.Count - 1 do
           begin
-            FSortedVisibleCols.Add(FFields.FieldByName(TmGridColumnSettings(visibleCols.Items[i]).FieldName));
-            widths.Add(TmGridColumnSettings(visibleCols.Items[i]).Width.AsInteger);
+            curField := FFields.FieldByName(TmGridColumnSettings(visibleCols.Items[i]).FieldName);
+            if Assigned(curField) then
+            begin
+              FSortedVisibleCols.Add(curField);
+              widths.Add(TmGridColumnSettings(visibleCols.Items[i]).Width.AsInteger);
+            end
+            else
+            begin
+              {$IFDEF DEBUG}
+              logger.Debug('[TmKGridHelper.ApplySettings] Missing field ' + TmGridColumnSettings(visibleCols.Items[i]).FieldName);
+              {$ENDIF}
+            end;
           end;
         finally
           visibleCols.Free;
@@ -1096,9 +1109,18 @@ begin
         for i := 0 to aSettings.Count - 1 do
         begin
           curField := FFields.FieldByName(aSettings.Get(i).FieldName);
-          curField.Visible := aSettings.Get(i).Visible.AsBoolean;
-          curField.DisplayFormat := aSettings.Get(i).DisplayFormat.AsString;
-          curField.DisplayLabel := aSettings.Get(i).DisplayLabel.AsString;
+          if Assigned(curField) then
+          begin
+            curField.Visible := aSettings.Get(i).Visible.AsBoolean;
+            curField.DisplayFormat := aSettings.Get(i).DisplayFormat.AsString;
+            curField.DisplayLabel := aSettings.Get(i).DisplayLabel.AsString;
+          end
+          else
+          begin
+            {$IFDEF DEBUG}
+            logger.Debug('[TmKGridHelper.ApplySettings] Missing field ' + aSettings.Get(i).FieldName);
+            {$ENDIF}
+          end;
         end;
 
         RefreshDataProvider(false);

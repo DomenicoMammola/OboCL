@@ -21,7 +21,7 @@ uses
   kgrids,
   mGrids, mGridHelper, KAParser, mVirtualDatasetFormulas, mCellDecorations,
   mDataProviderInterfaces, mVirtualDataSet, mFields, mGridColumnSettings,
-  mVirtualDataSetProvider, mSummary, mIntList, mFilter;
+  mVirtualDataSetProvider, mSummary, mIntList, mFilter, mMaps;
 
 type
 
@@ -88,6 +88,7 @@ type
     FCurrentRow: integer;
     FAlternateGridRowColor : TColor;
     FCurrentDrawingRow : integer;
+    FMeasureCellsCache : TmStringDictionary;
 
     procedure CreateFields;
     procedure UpdateFields;
@@ -150,7 +151,7 @@ uses
   SysUtils, Variants, LCLType, md5, Math,
   kgraphics, kcontrols,
   mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
-  mGridFilterValuesDlg, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg, mMaps,
+  mGridFilterValuesDlg, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg,
   mDateTimeUtility, mMagnificationFactor {$IFDEF DEBUG}, mLog{$ENDIF};
 
 type
@@ -937,6 +938,7 @@ begin
   (FGrid as TKGrid).OnMouseDown := Self.OnMouseDown;
   (FGrid as TKGrid).OnMouseEnterCell := Self.OnMouseEnterCell;
   (FGrid as TKGrid).Flat := True;
+  (FGrid as TKGrid).DefaultRowHeight:= ScaleForMagnification((FGrid as TKGrid).DefaultRowHeight, true);
   ScaleFontForMagnification((FGrid as TKGrid).Font);
   FAlternateGridRowColor:= clNone;
 

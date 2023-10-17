@@ -15,13 +15,36 @@ unit mDarkMode;
 
 interface
 
+uses
+  Graphics;
+
+type
+  TmColorsTheme = record
+    ColorBg,
+    ColorCellBg,
+    ColorCellText,
+    ColorGridLines,
+    ColorSelectedCellBg,
+    ColorSelectedCellText,
+    ColorFocusedCellBg,
+    ColorFocusedCellText,
+    ColorTitleText,
+    ColorDataModifiedTitleText,
+    ColorLabelText,
+    ColorDisabledCellText,
+    ColorStandardEditorText : TColor;
+  end;
+
 procedure SetDarkMode (const aValue : boolean);
 function IsDarkModeEnabled : boolean;
+
+function GetActiveTheme : TmColorsTheme;
 
 implementation
 
 var
   _DarkModeEnabled : boolean;
+  _ActiveTheme : TmColorsTheme;
 
 procedure SetDarkMode(const aValue: boolean);
 begin
@@ -33,8 +56,31 @@ begin
   Result := _DarkModeEnabled;
 end;
 
+function GetActiveTheme: TmColorsTheme;
+begin
+  Result := _ActiveTheme;
+end;
+
+procedure FillDefaultDarkTheme;
+begin
+  _ActiveTheme.ColorBg := $3d3c3b;
+  _ActiveTheme.ColorCellBg := $313030;
+  _ActiveTheme.ColorCellText := $d4d4d4;
+  _ActiveTheme.ColorGridLines := $404040;
+  _ActiveTheme.ColorSelectedCellBg := $444343;
+  _ActiveTheme.ColorSelectedCellText := $cccccc;
+  _ActiveTheme.ColorFocusedCellBg := $89633d;
+  _ActiveTheme.ColorFocusedCellText := $f9e5dd;
+  _ActiveTheme.ColorTitleText := $b5b5b4;
+  _ActiveTheme.ColorDataModifiedTitleText := $64bc73;
+  _ActiveTheme.ColorLabelText := $8e8e8e;
+  _ActiveTheme.ColorDisabledCellText:= $ffffff;
+  _ActiveTheme.ColorStandardEditorText := $000000;
+end;
 
 initialization
-  _DarkModeEnabled := falsE;
+  _DarkModeEnabled := false;
+  FillDefaultDarkTheme;
+
 
 end.

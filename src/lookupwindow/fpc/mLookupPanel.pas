@@ -58,7 +58,7 @@ implementation
 
 uses
   SysUtils, Math, LCLType,
-  mUtility;
+  mUtility, mDarkMode, mMagnificationFactor;
 
 type
   TResultValues = class
@@ -205,6 +205,12 @@ begin
   FFieldsList := TStringList.Create;
   FDisplayFieldNames := TStringList.Create;
   FFieldDefs := TmVirtualFieldDefs.Create;
+  if IsDarkModeEnabled then
+  begin
+    LValues.Color:= GetActiveTheme.ColorCellBg;
+    LValues.Font.Color:= GetActiveTheme.ColorCellText;
+    ScaleFontForMagnification(LValues.Font);
+  end;
 end;
 
 destructor TmLookupPanel.Destroy;

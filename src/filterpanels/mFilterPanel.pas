@@ -922,10 +922,14 @@ begin
   FCombobox := TComboBox.Create(Self);
   FCombobox.Parent := Self;
   FCombobox.Align:= alBottom;
+  {$ifndef windows}
   FCombobox.Style:= csOwnerDrawFixed;
+  FCombobox.OnDrawItem:= CustomDrawItem();
+  {$endif}
   FCombobox.DropDownCount:= 20;
   FCombobox.OnDropDown:= Self.OnDropDown;
-  FCombobox.OnDrawItem:= CustomDrawItem();
+  ScaleFontForMagnification(FCombobox.Font);
+  FCombobox.Height := ScaleForMagnification(FCombobox.Height, true);
   FLabel := Self.CreateStandardLabel;
   FGarbage := TObjectList.Create(true);
   FDefaultItemIndex:= -1;

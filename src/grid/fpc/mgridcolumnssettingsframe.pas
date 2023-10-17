@@ -82,7 +82,7 @@ implementation
 
 uses
   Graphics, LCLType,
-  mDBGrid;
+  mDBGrid, mMagnificationFactor;
 
 {$R *.lfm}
 
@@ -353,7 +353,7 @@ begin
   FListBoxHiddenColumns.OnStartDrag:= @LBHiddenColumnsStartDrag;
   FListBoxHiddenColumns.OnDrawItem:= @Self.LBDrawItem;
   FListBoxHiddenColumns.Style:= lbOwnerDrawFixed;
-  FListBoxHiddenColumns.ItemHeight:= 20;
+  FListBoxHiddenColumns.ItemHeight:= ScaleForMagnification(20, true);
 end;
 
 procedure TGridColumnsSettingsFrame.CreateVisibleColsPanel;
@@ -385,7 +385,7 @@ begin
   FListBoxVisibleColumns.OnStartDrag:= @LBVisibleColumnsStartDrag;
   FListBoxVisibleColumns.OnDrawItem:= @Self.LBDrawItem;
   FListBoxVisibleColumns.Style:= lbOwnerDrawFixed;
-  FListBoxVisibleColumns.ItemHeight:= 20;
+  FListBoxVisibleColumns.ItemHeight:= ScaleForMagnification(20, true);
 
   FVisibleColsMenu := TPopupMenu.Create(FListBoxVisibleColumns);
   FListBoxVisibleColumns.PopupMenu := FVisibleColsMenu;
@@ -401,13 +401,13 @@ begin
 
   FFormatPanel:= TPanel.Create(FPropertiesPanel);
   FFormatPanel.Parent:= FPropertiesPanel;
-  FFormatPanel.Height:= 40;
+  FFormatPanel.Height:= ScaleForMagnification(40, true);
   FFormatPanel.Align:= alTop;
   FFormatPanel.BevelOuter:= bvNone;
 
   FLabelPanel:= TPanel.Create(FPropertiesPanel);
   FLabelPanel.Parent:= FPropertiesPanel;
-  FLabelPanel.Height:= 40;
+  FLabelPanel.Height:= ScaleForMagnification(40, true);
   FLabelPanel.Align:= alTop;
   FLabelPanel.BevelOuter:= bvNone;
 

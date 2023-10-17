@@ -248,7 +248,7 @@ uses
   {$ENDIF}
   LCLType,
   Dialogs, dateutils,
-  mToast, mFormSetup, mMagnificationFactor, mIntList, mBaseClassesAsObjects, mEditingFormLinesConfigurationForm;
+  mToast, mFormSetup, mMagnificationFactor, mIntList, mBaseClassesAsObjects, mEditingFormLinesConfigurationForm, mDarkMode;
 
 type
 
@@ -538,23 +538,48 @@ begin
     FValueListEditor.Canvas.Font.Style := FValueListEditor.Canvas.Font.Style + [fsBold];
 
     if (sender as TmValueListEditor).Row = aRow then
-      FValueListEditor.Canvas.Brush.Color := TmEditingPanel.COLOR_CURRENT_ROW;
+    begin
+      if IsDarkModeEnabled then
+        FValueListEditor.Canvas.Brush.Color := GetActiveTheme.ColorSelectedCellBg
+      else
+        FValueListEditor.Canvas.Brush.Color := TmEditingPanel.COLOR_CURRENT_ROW;
+    end;
 
     if MultiEditMode and (aRow > 0) then
     begin
       if (FLinesByRowIndex.Find(aRow) as TEditorLine).ForceClear then
-        FValueListEditor.Canvas.Font.Color:= clLtGray
+      begin
+        if IsDarkModeEnabled then
+          FValueListEditor.Canvas.Font.Color:= GetActiveTheme.ColorLabelText
+        else
+          FValueListEditor.Canvas.Font.Color:= clLtGray;
+      end
       else
       if not (FLinesByRowIndex.Find(aRow) as TEditorLine).Changed then
-        FValueListEditor.Canvas.Font.Color:= clGray
+      begin
+        if IsDarkModeEnabled then
+          FValueListEditor.Canvas.Font.Color:= GetActiveTheme.ColorCellText
+        else
+          FValueListEditor.Canvas.Font.Color:= clGray;
+      end
       else
-        FValueListEditor.Canvas.Font.Color:= clBlack;
+      begin
+        if IsDarkModeEnabled then
+          FValueListEditor.Canvas.Font.Color:= GetActiveTheme.ColorDataModifiedTitleText
+        else
+          FValueListEditor.Canvas.Font.Color:= clBlack;
+      end;
     end
     else
     begin
       if (aRow > 0) then
         if (FLinesByRowIndex.Find(aRow) as TEditorLine).Configuration.ReadOnly = roReadOnly then
-          FValueListEditor.Canvas.Font.Color:= clGray;
+        begin
+          if IsDarkModeEnabled then
+            FValueListEditor.Canvas.Font.Color := GetActiveTheme.ColorDisabledCellText
+          else
+            FValueListEditor.Canvas.Font.Color:= clGray;
+        end;
     end;
   end;
 end;
@@ -616,7 +641,13 @@ begin
     FButtonWizardCellEditor.TextEditor.Text:= FValueListEditor.Cells[FValueListEditor.Col, FValueListEditor.Row];
     Editor := FButtonWizardCellEditor;
     FButtonWizardCellEditor.AllowFreeTypedText:= curLine.Configuration.AllowFreeTypedText;
+  end
+  else
+  begin
+    if IsDarkModeEnabled and Assigned(Editor) and (Editor is TStringCellEditor) then
+      (Editor as TStringCellEditor).Font.Color:= GetActiveTheme.ColorStandardEditorText;
   end;
+
 end;
 
 procedure TmEditingPanel.OnValueListEditorValidateEntry(sender: TObject; aCol, aRow: Integer; const OldValue: string; var NewValue: String);
@@ -1156,6 +1187,12 @@ begin
   tmpPanel2.BorderWidth:= 1;
   tmpPanel2.BorderStyle:=bsSingle;
   tmpPanel2.OnPaint:= OnPaintMemoCaptionPanel;
+  if IsDarkModeEnabled then
+  begin
+    tmpPanel2.Color:= GetActiveTheme.ColorBg;
+    tmpPanel2.Font.Color:= GetActiveTheme.ColorCellText;
+      tmpPanel2.BevelColor:= GetActiveTheme.ColorGridLines;
+  end;
   tmpMemo:= TMemo.Create(tmpPanel1);
   tmpMemo.Parent := tmpPanel1;
   tmpMemo.Align:= alClient;
@@ -1163,6 +1200,11 @@ begin
   tmpMemo.WantReturns:= true;
   tmpMemo.Text:= aDefaultValue;
   tmpMemo.OnChange:= OnChangeMemo;
+  if IsDarkModeEnabled then
+  begin
+    tmpMemo.Color:= GetActiveTheme.ColorCellBg;
+    tmpMemo.Font.Color:= GetActiveTheme.ColorCellText;
+  end;
 
   tmpEditorMemo := TEditorMemo.Create;
   tmpEditorMemo.ForceClear:= false;
@@ -1765,6 +1807,12 @@ begin
   FRootPanel.PanelType:= ptVertical;
   FRootPanel.Align:= alClient;
 
+  if IsDarkModeEnabled then
+  begin
+    FRootPanel.SplitterColor:= GetActiveTheme.ColorBg;
+    FRootPanel.SplitterHoverColor:= GetActiveTheme.ColorSelectedCellBg;
+  end;
+
   FCommitted:= false;
   FMultiEditMode:= false;
   FSomethingChanged:= false;
@@ -1774,7 +1822,8 @@ begin
   FValueListEditor.Align:= alClient;
   FRootPanel.PanelCollection.AddControl(FValueListEditor);
   FValueListEditor.Height:= 200;
-  FValueListEditor.AlternateColor := clMoneyGreen;
+  if not IsDarkModeEnabled then
+    FValueListEditor.AlternateColor := GetAlternateColor;
   FValueListEditor.AutoAdvance := aaDown;
   FValueListEditor.DefaultColWidth := 400;
   FValueListEditor.FixedCols := 0;
@@ -1789,6 +1838,15 @@ begin
   FValueListEditor.ColWidths[0] := 400;
   FValueListEditor.ColWidths[1] := 500;
 
+  if IsDarkModeEnabled then
+  begin
+    FValueListEditor.FixedColor:= GetActiveTheme.ColorBg;
+    FValueListEditor.FixedGridLineColor:= GetActiveTheme.ColorGridLines;
+    FValueListEditor.Color:= GetActiveTheme.ColorCellBg;
+    FValueListEditor.Font.Color:= GetActiveTheme.ColorCellText;
+    ScaleFontForMagnification(FValueListEditor.Font);
+  end;
+
   FValueListPopupMenu := TPopupMenu.Create(FValueListEditor);
   FValueListEditor.PopupMenu := FValueListPopupMenu;
 
@@ -1799,6 +1857,11 @@ begin
   FDateCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FDateCellEditor.ParentGrid := FValueListEditor;
   FDateCellEditor.ButtonStyle:= cebsCalendar;
+  if IsDarkModeEnabled then
+  begin
+    FDateCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    ScaleFontForMagnification(FDateCellEditor.Font);
+  end;
 
   FButtonCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FButtonCellEditor.Visible:= false;
@@ -1806,6 +1869,11 @@ begin
   FButtonCellEditor.OnClearEvent:= Self.OnValueListEditorClearValue;
   FButtonCellEditor.ParentGrid := FValueListEditor;
   FButtonCellEditor.AllowFreeTypedText:= false;
+  if IsDarkModeEnabled then
+  begin
+    FButtonCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    ScaleFontForMagnification(FButtonCellEditor.Font);
+  end;
 
   FWizardCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FWizardCellEditor.Visible:= false;
@@ -1814,6 +1882,11 @@ begin
   FWizardCellEditor.ParentGrid := FValueListEditor;
   FWizardCellEditor.AllowFreeTypedText:= false;
   FWizardCellEditor.ButtonStyle:= cebsMagicWand;
+  if IsDarkModeEnabled then
+  begin
+    FWizardCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    ScaleFontForMagnification(FWizardCellEditor.Font);
+  end;
 
   FSwitchCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FSwitchCellEditor.Visible:= false;
@@ -1822,6 +1895,11 @@ begin
   FSwitchCellEditor.ParentGrid := FValueListEditor;
   FSwitchCellEditor.AllowFreeTypedText:= false;
   FSwitchCellEditor.ButtonStyle:= cebsSwitchBetweenValues;
+  if IsDarkModeEnabled then
+  begin
+    FSwitchCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    ScaleFontForMagnification(FSwitchCellEditor.Font);
+  end;
 
   FButtonWizardCellEditor := TmExtButtonsTextCellEditor.Create(Self);
   FButtonWizardCellEditor.Visible:= false;
@@ -1835,6 +1913,11 @@ begin
   FButtonWizardCellEditor.SetOnClickButton(0, Self.OnGetValueFromWizard);
   FButtonWizardCellEditor.TextEditor.OnShowWizardEvent:= Self.OnGetValueFromWizard;
   FButtonWizardCellEditor.SetOnClickButton(1, Self.OnGetValueFromMainSource);
+  if IsDarkModeEnabled then
+  begin
+    FButtonWizardCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    ScaleFontForMagnification(FButtonWizardCellEditor.Font);
+  end;
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();
@@ -1904,6 +1987,11 @@ begin
       tmpPanel.Font.Style:=[fsBold];
       tmpPanel.BorderWidth:= 1;
       tmpPanel.BorderStyle:=bsSingle;
+      if IsDarkModeEnabled then
+      begin
+        tmpPanel.Color:= GetActiveTheme.ColorBg;
+        tmpPanel.Font.Color:= GetActiveTheme.ColorTitleText;
+      end;
     end;
     if not Assigned(FClearValuesList) then
     begin
@@ -1911,6 +1999,11 @@ begin
       FClearValuesList.Parent := FClearValuesPanel;
       FClearValuesList.Align:= alClient;
       FClearValuesList.OnClickCheck:= Self.OnClickClearValue;
+      if IsDarkModeEnabled then
+      begin
+        FClearValuesList.Color:= GetActiveTheme.ColorCellBg;
+        FClearValuesList.Font.Color:= GetActiveTheme.ColorCellText;
+      end;
     end;
   end
   else

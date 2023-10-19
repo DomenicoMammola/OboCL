@@ -101,7 +101,7 @@ type
     procedure OnCustomSort(Sender: TObject; ByIndex: integer; SortMode: TKGridSortMode; var Sorted: boolean);
     function ColToField(const aCol: integer): TmField;
     function GetValue(const aCol, aRow: integer): variant;
-    function GetValueAsFormattedString(const aCol, aRow: integer): string;
+    function GetValueAsFormattedString(const aCol, aRow: integer; out aOutOfIndex : boolean): string;
     procedure RefreshSummaryPanel(Sender: TObject);
     procedure BuildHeaderPopupMenu;
     procedure OnColumnsHeaderMenuPopup(Sender: TObject);
@@ -389,7 +389,7 @@ procedure TmKGridHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: integer; R: 
 var
   grid: TKGrid;
   curField: TmField;
-  isInt, isFloat: boolean;
+  isInt, isFloat, outOfBounds: boolean;
 begin
   grid := (FGrid as TKGrid);
   if ACol >= Self.FSortedVisibleCols.Count then
@@ -428,23 +428,31 @@ begin
     ApplyDecorations(grid.CellPainter, curField, ARow - (FGrid as TKGrid).FixedRows, State);
 
   grid.CellPainter.DrawDefaultCellBackground;
+  outOfBounds:= false;
   if ARow = 0 then
     grid.CellPainter.Text := curField.DisplayLabel
   else
-    grid.CellPainter.Text := GetValueAsFormattedString(ACol, ARow - (FGrid as TKGrid).FixedRows);
+    grid.CellPainter.Text := GetValueAsFormattedString(ACol, ARow - (FGrid as TKGrid).FixedRows, outOfBounds);
+  if outOfBounds then
+  begin
+    grid.CellPainter.BackColor:= grid.Color;
+    grid.CellPainter.Canvas.Brush.Color:= grid.Color;
+  end;
   grid.CellPainter.DrawCellCommon;
 end;
 
 procedure TmKGridHelper.OnMeasureCell(Sender: TObject; ACol, ARow: integer; R: TRect; State: TKGridDrawState; Priority: TKGridMeasureCellPriority; var Extent: TPoint);
 var
   sz: TPoint;
+  outOfBounds: boolean;
 begin
   if ACol >= FSortedVisibleCols.Count then
     exit;
+  outOfBounds := false;
   if ARow = 0 then
     GetTextExtend(ColToField(ACol).DisplayLabel, FGrid.Font, Extent)
   else
-    GetTextExtend(GetValueAsFormattedString(ACol, ARow - (FGrid as TKGrid).FixedRows), FGrid.Font, Extent);
+    GetTextExtend(GetValueAsFormattedString(ACol, ARow - (FGrid as TKGrid).FixedRows, outOfBounds), FGrid.Font, Extent);
   Extent.X := Extent.X + ((FGrid as TKGrid).CellPainter.HPadding * 2);
   Extent.Y := Extent.Y + ((FGrid as TKGrid).CellPainter.VPadding * 2);
 end;
@@ -508,12 +516,13 @@ begin
     Result := Null;
 end;
 
-function TmKGridHelper.GetValueAsFormattedString(const aCol, aRow: integer): string;
+function TmKGridHelper.GetValueAsFormattedString(const aCol, aRow: integer; out aOutOfIndex : boolean): string;
 var
   curField: TmField;
   Value: variant;
   isInt, isFloat, isDate: boolean;
 begin
+  aOutOfIndex:= false;
   if (aRow < FProvider.GetRecordCount) and (aCol < FSortedVisibleCols.Count) then
   begin
     curField := ColToField(aCol);
@@ -533,8 +542,10 @@ begin
       Result := VarToStr(Value);
   end
   else
-    Result := '';
-
+  begin
+    Result := '-';
+    aOutOfIndex := true;
+  end;
 end;
 
 procedure TmKGridHelper.RefreshSummaryPanel(Sender: TObject);
@@ -665,7 +676,7 @@ begin
               try
                 FDataAreFiltered := True;
                 FProvider.Refresh(FDataAreSorted, FDataAreFiltered);
-                (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
+                (FGrid as TKGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows);
               finally
                 (FGrid as TKGrid).UnlockUpdate;
               end;
@@ -734,7 +745,7 @@ begin
       FDataAreFiltered := False;
       FProvider.FilterConditions.Clear;
       FProvider.Refresh(FDataAreSorted, False);
-      (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
+      (FGrid as TKGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows);
     finally
       (FGrid as TKGrid).UnlockUpdate;
     end;
@@ -774,7 +785,7 @@ begin
           try
             FDataAreFiltered := (FProvider.FilterConditions.Count > 0);
             FProvider.Refresh(FDataAreSorted, FDataAreFiltered);
-            (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
+            (FGrid as TKGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows);
           finally
             (FGrid as TKGrid).UnlockUpdate;
           end;
@@ -991,7 +1002,7 @@ begin
     (FGrid as TKGrid).FixedRows := 1;
     (FGrid as TKGrid).FixedCols := 0;
 
-    (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
+    (FGrid as TKGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows);
     (FGrid as TKGrid).ColCount := FFields.Count;
   finally
     (FGrid as TKGrid).UnlockUpdate;
@@ -1163,13 +1174,14 @@ begin
 
     FDataAreSorted := False;
     FProvider.Refresh(False, FDataAreFiltered);
-    (FGrid as TKGrid).RowCount := FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows;
+    (FGrid as TKGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows);
 
     FSummaryManager.RefreshSummaries;
     (FGrid as TKGrid).ClearSelections;
   finally
     (FGrid as TKGrid).UnlockUpdate;
   end;
+  (FGrid as TKGrid).Invalidate;
 end;
 
 function TmKGridHelper.GetSummaryManager: ISummaryDatasetManager;
@@ -1235,6 +1247,7 @@ end;
 procedure TmKGridHelper.GetSelectedRows(aRows: TIntegerList);
 var
   i, k: integer;
+  curRect : TKGridRect;
 begin
   aRows.Clear;
 
@@ -1242,7 +1255,17 @@ begin
   begin
     for i := 0 to (FGrid as TKGrid).SelectionCount - 1 do
     begin
-      for k := (FGrid as TKGrid).Selections[i].Row1 to (FGrid as TKGrid).Selections[i].Row2 do
+      {$IFDEF DEBUG}
+      logger.Debug('TmKGridHelper.GetSelectedRows - Col1:' + IntToStr((FGrid as TKGrid).Selections[i].Col1) + ' Col2:' + IntToStr((FGrid as TKGrid).Selections[i].Col2) +
+        ' Row1:' + IntToStr((FGrid as TKGrid).Selections[i].Row1) + ' Row2:' + IntToStr((FGrid as TKGrid).Selections[i].Col1) +
+        ' Cell1:' + IntToStr((FGrid as TKGrid).Selections[i].Cell1.Row) + '-' + IntToStr((FGrid as TKGrid).Selections[i].Cell1.Col) +
+        ' Cell2:' + IntToStr((FGrid as TKGrid).Selections[i].Cell2.Row) + '-' + IntToStr((FGrid as TKGrid).Selections[i].Cell2.Col));
+      {$ENDIF}
+
+      curRect := (FGrid as TKGrid).Selections[i];
+      NormalizeGridRect(curRect);
+
+      for k := curRect.Cell1.Row to curRect.Cell2.Row do
       begin
         if k >= (FGrid as TKGrid).FixedRows then
           aRows.Add(k - (FGrid as TKGrid).FixedRows);

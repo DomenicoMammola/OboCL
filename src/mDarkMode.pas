@@ -22,6 +22,7 @@ type
   TmColorsTheme = record
     ColorBg,
     ColorCellBg,
+    ColorAlternateCellBg,
     ColorCellText,
     ColorGridLines,
     ColorSelectedCellBg,
@@ -64,11 +65,12 @@ end;
 procedure FillDefaultDarkTheme;
 begin
   _ActiveTheme.ColorBg := $3d3c3b;
-  _ActiveTheme.ColorCellBg := $313030;
+  _ActiveTheme.ColorCellBg := $303030;
+  _ActiveTheme.ColorAlternateCellBg := $414141;
   _ActiveTheme.ColorCellText := $d4d4d4;
   _ActiveTheme.ColorGridLines := $404040;
-  _ActiveTheme.ColorSelectedCellBg := $444343;
-  _ActiveTheme.ColorSelectedCellText := $cccccc;
+  _ActiveTheme.ColorSelectedCellBg := $787878; //$5c5c5c; // $444343;
+  _ActiveTheme.ColorSelectedCellText := $dadada; // $cccccc;
   _ActiveTheme.ColorFocusedCellBg := $89633d;
   _ActiveTheme.ColorFocusedCellText := $f9e5dd;
   _ActiveTheme.ColorTitleText := $b5b5b4;

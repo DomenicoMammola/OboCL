@@ -239,7 +239,6 @@ type
   end;
 
 
-
 implementation
 
 uses
@@ -248,7 +247,7 @@ uses
   {$ENDIF}
   LCLType,
   Dialogs, dateutils,
-  mToast, mFormSetup, mMagnificationFactor, mIntList, mBaseClassesAsObjects, mEditingFormLinesConfigurationForm, mDarkMode;
+  mToast, mFormSetup, mMagnificationFactor, mIntList, mBaseClassesAsObjects, mEditingFormLinesConfigurationForm, mDarkMode, mGridHelper;
 
 type
 
@@ -501,6 +500,11 @@ begin
   FEditingPanel := TmEditingPanel.Create(Self);
   FEditingPanel.Parent := Self;
   FEditingPanel.Align:= alClient;
+  if IsDarkModeEnabled then
+    FEditingPanel.AlternateColor:= GetActiveTheme.ColorAlternateCellBg
+  else
+    if mGridHelper.DefaultGridAlternateColor <> clNone then
+      FEditingPanel.AlternateColor:= mGridHelper.DefaultGridAlternateColor;
 
   SetupFormAndCenter(Self, 0.8);
   FCancelBtn.Left:= FBottomPanel.Width - ScaleForMagnification(10, true) - FCancelBtn.Width;
@@ -1823,7 +1827,7 @@ begin
   FRootPanel.PanelCollection.AddControl(FValueListEditor);
   FValueListEditor.Height:= 200;
   if not IsDarkModeEnabled then
-    FValueListEditor.AlternateColor := GetAlternateColor;
+    FValueListEditor.AlternateColor := clMoneyGreen;
   FValueListEditor.AutoAdvance := aaDown;
   FValueListEditor.DefaultColWidth := 400;
   FValueListEditor.FixedCols := 0;

@@ -443,7 +443,6 @@ end;
 
 procedure TmKGridHelper.OnMeasureCell(Sender: TObject; ACol, ARow: integer; R: TRect; State: TKGridDrawState; Priority: TKGridMeasureCellPriority; var Extent: TPoint);
 var
-  sz: TPoint;
   outOfBounds: boolean;
 begin
   if ACol >= FSortedVisibleCols.Count then

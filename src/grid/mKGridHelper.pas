@@ -21,7 +21,7 @@ uses
   kgrids,
   mGrids, mGridHelper, KAParser, mVirtualDatasetFormulas, mCellDecorations,
   mDataProviderInterfaces, mVirtualDataSet, mFields, mGridColumnSettings,
-  mVirtualDataSetProvider, mSummary, mIntList, mFilter, mMaps;
+  mVirtualDatasetProvider, mSummary, mIntList, mFilter, mMaps;
 
 type
 
@@ -228,12 +228,12 @@ end;
 
 procedure TmKGridCursor.StartBrowsing;
 begin
-
+  // nope
 end;
 
 procedure TmKGridCursor.EndBrowsing;
 begin
-
+  // nope
 end;
 
 procedure TmKGridCursor.First;
@@ -987,8 +987,36 @@ begin
 end;
 
 procedure TmKGridHelper.SelectRows(const aKeyField: string; const aValues: TStringList);
+var
+  index : TmStringDictionary;
+  i : integer;
+  tmpValue : variant;
+  tmpRect : TKGridRect;
 begin
+  (FGrid as TKGrid).ClearSelections;
+  index := TmStringDictionary.Create(false);
+  try
+    for i := 0 to aValues.Count - 1 do
+    begin
+      if not index.Contains(aValues.Strings[i]) then
+        index.Add(aValues.Strings[i], index);
+    end;
 
+    for i := 0 to FProvider.GetRecordCount - 1 do
+    begin
+      FProvider.GetFieldValue(aKeyField, i, tmpValue);
+      if index.Contains(VarToStr(tmpValue)) then
+      begin
+        tmpRect.Cell1.Col := 0;
+        tmpRect.Cell1.Row := i + (FGrid as TKGrid).FixedRows;
+        tmpRect.Cell2.Col := FSortedVisibleCols.Count - 1;
+        tmpRect.Cell2.Row := tmpRect.Cell1.Row;
+        (FGrid as TKGrid).AddSelection(tmpRect);
+      end;
+    end;
+  finally
+    index.Free;
+  end;
 end;
 
 procedure TmKGridHelper.InitGrid;

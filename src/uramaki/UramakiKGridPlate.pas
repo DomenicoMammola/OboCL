@@ -254,7 +254,16 @@ end;
 
 procedure TUramakiKGridPlate.SelectItems(const aDataProvider: IVDDataProvider; const aKeyValues: TStringList);
 begin
-
+  FTriggerSelectionChanges := false;
+  try
+    FGridHelper.SelectRows(aDataProvider.GetKeyFieldName, aKeyValues);
+  finally
+    if AutomaticChildsUpdateMode = cuOnChangeSelection then
+    begin
+      FTriggerSelectionChanges:= true;
+      UpdateChildsIfNeeded(true);
+    end;
+  end;
 end;
 
 procedure TUramakiKGridPlate.OnExecuteFilter(Sender: TObject);

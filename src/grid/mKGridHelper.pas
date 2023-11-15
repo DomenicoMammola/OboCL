@@ -1030,7 +1030,7 @@ begin
     (FGrid as TKGrid).FixedCols := 0;
 
     (FGrid as TKGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TKGrid).FixedRows);
-    (FGrid as TKGrid).ColCount := FFields.Count;
+    (FGrid as TKGrid).ColCount := FSortedVisibleCols.Count;
   finally
     (FGrid as TKGrid).UnlockUpdate;
   end;

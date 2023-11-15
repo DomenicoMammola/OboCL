@@ -77,6 +77,7 @@ type
     FDataAreFiltered: boolean;
     FDataAreSorted: boolean;
     FOnGridFiltered: TNotifyEvent;
+    FOnGridSorted: TNotifyEvent;
     FParser : TKAParser;
     // menu
     FColumnsHeaderPopupMenu: TPopupMenu;
@@ -142,6 +143,7 @@ type
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
     property FiltersPanel : IFilterPanel read FFiltersPanel write FFiltersPanel;
     property OnGridFiltered: TNotifyEvent read FOnGridFiltered write FOnGridFiltered;
+    property OnGridSorted: TNotifyEvent read FOnGridSorted write FOnGridSorted;
     property AlternateGridRowColor : TColor read FAlternateGridRowColor write FAlternateGridRowColor;
   end;
 
@@ -495,6 +497,8 @@ begin
     Sorted := True;
     FDataAreSorted := True;
   end;
+  if Assigned(FOnGridSorted) then
+    FOnGridSorted(Self);
 end;
 
 function TmKGridHelper.ColToField(const aCol: integer): TmField;
@@ -930,6 +934,8 @@ constructor TmKGridHelper.Create(aGrid: TKGrid; aFormulaFields: TmFormulaFields)
 begin
   FDataAreFiltered := False;
   FDataAreSorted := False;
+  FOnGridFiltered:= nil;
+  FOnGridSorted:= nil;
   FOwnedCellDecorations := TmCellDecorations.Create;
   InternalSetup(aGrid, aFormulaFields, FOwnedCellDecorations);
   FGrid := aGrid;

@@ -38,6 +38,7 @@ type
     FRunningDoUpdateChilds : boolean;
     procedure OnGridFiltered(Sender : TObject);
     procedure OnSelectionChanged(Sender : TObject);
+    procedure OnDataSorted(Sender : TObject);
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
@@ -100,6 +101,13 @@ begin
     UpdateChildsIfNeeded(false);
 end;
 
+procedure TUramakiKGridPlate.OnDataSorted(Sender: TObject);
+begin
+  FLastSelectedRow:= -1;
+  FLastSelectedRowsCount:= 0;
+  if Assigned(Self.Parent) then
+    InvokeChildsRefresh;
+end;
 
 procedure TUramakiKGridPlate.UpdateChildsIfNeeded(const aUpdateThemAnyWay: boolean);
 var
@@ -194,16 +202,11 @@ var
 begin
   rows := TIntegerList.Create;
   try
-    FGrid.LockUpdate;
-    try
-      FGridHelper.GetSelectedRows(rows);
-      for i := 0 to rows.Count -1 do
-      begin
-        FCurrentRow:= rows.Items[i];
-        aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
-      end;
-    finally
-      FGrid.UnlockUpdate;
+    FGridHelper.GetSelectedRows(rows);
+    for i := 0 to rows.Count -1 do
+    begin
+      FCurrentRow:= rows.Items[i];
+      aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
     end;
   finally
     rows.Free;
@@ -227,28 +230,23 @@ var
   tmpDatum : IVDDatum;
   tmpKey : variant;
 begin
-  (FGrid as TKGrid).LockUpdate;
+  {$IFDEF DEBUG}
+  logger.Debug('FGrid.Row ' + IntToStr(FGrid.Row));
+  logger.Debug('FGrid.EntireSelectedRowCount ' + IntToStr(FGrid.EntireSelectedRowCount));
+  logger.Debug('FGrid.SelectionCount ' + IntToStr(FGrid.SelectionCount));
+  {$ENDIF}
+  list := TIntegerList.Create;
   try
-    {$IFDEF DEBUG}
-    logger.Debug('FGrid.Row ' + IntToStr(FGrid.Row));
-    logger.Debug('FGrid.EntireSelectedRowCount ' + IntToStr(FGrid.EntireSelectedRowCount));
-    logger.Debug('FGrid.SelectionCount ' + IntToStr(FGrid.SelectionCount));
-    {$ENDIF}
-    list := TIntegerList.Create;
-    try
-      FGridHelper.GetSelectedRows(list);
-      for i := 0 to list.Count -1 do
-      begin
-        FProvider.GetFieldValue(aKeyFieldName, list.Items[i], tmpKey);
-        tmpDatum := GetDataProvider.FindDatumByStringKey(VarToStr(tmpKey));
-        if Assigned(tmpDatum) then
-          aList.Add(tmpDatum.AsObject);
-      end;
-    finally
-      list.Free;
+    FGridHelper.GetSelectedRows(list);
+    for i := 0 to list.Count -1 do
+    begin
+      FProvider.GetFieldValue(aKeyFieldName, list.Items[i], tmpKey);
+      tmpDatum := GetDataProvider.FindDatumByStringKey(VarToStr(tmpKey));
+      if Assigned(tmpDatum) then
+        aList.Add(tmpDatum.AsObject);
     end;
   finally
-    (FGrid as TKGrid).UnlockUpdate;
+    list.Free;
   end;
 end;
 
@@ -335,7 +333,9 @@ begin
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
   FGridHelper.OnGridFiltered := OnGridFiltered;
+  FGridHelper.OnGridSorted:= OnDataSorted;
   FGrid.OnSelectionChanged:= OnSelectionChanged;
+
 
   FRunningDoUpdateChilds := false;
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;

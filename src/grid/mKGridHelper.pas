@@ -1026,8 +1026,6 @@ begin
 end;
 
 procedure TmKGridHelper.InitGrid;
-var
-  curField: TmField;
 begin
   (FGrid as TKGrid).LockUpdate;
   try

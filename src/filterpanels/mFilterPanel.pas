@@ -108,7 +108,7 @@ type
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
     procedure ImportFromFilter (const aFilter: TmFilter); override;
-    procedure SetFilterValue (aValue : Variant);
+    procedure SetFilterValue (aValue : Variant; const aFilterOperator : TmFilterOperator = foEq);
     function IsEmpty : boolean; override;
     procedure Clear; override;
 
@@ -866,15 +866,13 @@ begin
   end;
 end;
 
-procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant);
+procedure TmEditFilterConditionPanel.SetFilterValue(aValue: Variant; const aFilterOperator : TmFilterOperator = foEq);
 begin
   if VarIsNull(aValue) then
     Self.Clear
   else
-  begin
     FEdit.Text := VarToStr(aValue);
-    Self.FilterOperator := foEq;
-  end;
+  Self.FilterOperator := aFilterOperator;
 end;
 
 function TmEditFilterConditionPanel.IsEmpty: boolean;

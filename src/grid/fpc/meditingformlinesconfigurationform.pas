@@ -79,7 +79,7 @@ type
 implementation
 uses
   LCLType,
-  mFormSetup;
+  mFormSetup, mMagnificationFactor;
 
 {$R *.lfm}
 
@@ -145,7 +145,7 @@ begin
   Self.Caption := SLinesOrderFormCaption;
   LinesListBox.OnDrawItem:= @Self.LBDrawItem;
   LinesListBox.Style:= lbOwnerDrawFixed;
-  LinesListBox.ItemHeight:= 20;
+  LinesListBox.ItemHeight:= ScaleForMagnification(20, true);
 end;
 
 procedure TEditingFormLinesSettingsForm.FormDestroy(Sender: TObject);

@@ -47,6 +47,8 @@ resourcestring
   SErrorYearTooFaraway = 'Year too faraway.';
   SMultiEditClearValues = 'To be cleared';
   SMenuCustomizeLinesOrder = 'Customize order of lines...';
+  SCustomizeLinesOrderDoneTitle = 'Success';
+  SCustomizeLinesOrderDoneMessage = 'Order of lines was changed. Close and re-open the window to view the changes. Save the report to a file to make them persistent.';
 
 type
 
@@ -1787,6 +1789,7 @@ begin
       try
         frm.ExtractSettings(linesList);
         Self.FOnCustomizeOrderOfLinesEvent(Self, linesList);
+        MessageDlg(SCustomizeLinesOrderDoneTitle, SCustomizeLinesOrderDoneMessage, mtInformation, [mbOk], 0);
       finally
         linesList.Free;
       end;

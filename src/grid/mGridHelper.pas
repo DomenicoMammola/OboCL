@@ -26,7 +26,7 @@ uses
   {$ENDIF}
   mGridColumnSettings, mXML,
   mGridSettingsForm, mFormulaFieldsConfigurationForm,
-  mDBGrid, mDrawGrid, mNullables, mGrids, mFields,
+  mDBGrid, mNullables, mGrids, mFields,
   mVirtualDatasetFormulas, mCellDecorations,
   mCellDecorationsConfigurationForm;
 
@@ -121,22 +121,6 @@ type
     property DBGrid : TmDBGrid read FDBGrid;
   end;
 
-  { TmDrawGridHelper }
-
-  TmDrawGridHelper = class(TmAbstractGridHelper)
-  protected
-    FDrawGrid : TmDrawGrid;
-  public
-    constructor Create(aGrid : TmDrawGrid; aFormulaFields : TmFormulaFields; aCellDecorations: TmCellDecorations); virtual;
-    destructor Destroy; override;
-
-    procedure SetupGrid(const aEnableAutoSizedColumns : boolean = true); override;
-    procedure SelectAllRows; override;
-    procedure SelectRows (const aKeyField : String; const aValues : TStringList); override;
-
-    property DrawGrid : TmDrawGrid read FDrawGrid;
-  end;
-
 function GetLastUsedFolderForExport : TNullableString;
 
 var
@@ -160,74 +144,6 @@ begin
   Result := _LastUsedFolderForExport;
 end;
 
-{ TmDrawGridHelper }
-
-constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields; aCellDecorations: TmCellDecorations);
-begin
-  InternalSetup(aGrid, aFormulaFields, aCellDecorations);
-  FDrawGrid:= aGrid;
-end;
-
-destructor TmDrawGridHelper.Destroy;
-begin
-  FDrawGrid:= nil;
-  inherited Destroy;
-end;
-
-procedure TmDrawGridHelper.SetupGrid(const aEnableAutoSizedColumns : boolean = true);
-begin
-  FDrawGrid.Align:= alClient;
-  FDrawGrid.AlternateColor:= DefaultGridAlternateColor;
-  FDrawGrid.Flat := True;
-  //(FDBGrid as TDrawGrid).Options := [dgTitles, dgIndicator, dgColumnResize, dgColumnMove, dgColLines, dgRowLines, dgTabs, dgAlwaysShowSelection, dgConfirmDelete, dgCancelOnExit, dgAutoSizeColumns, dgDisableDelete, dgDisableInsert, dgMultiselect];
-  FDrawGrid.Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect];
-      (*
-      goFixedVertLine,      // Ya
-      goFixedHorzLine,      // Ya
-      goVertLine,           // Ya
-      goHorzLine,           // Ya
-      goRangeSelect,        // Ya
-      goDrawFocusSelected,  // Ya
-      goRowSizing,          // Ya
-      goColSizing,          // Ya
-      goRowMoving,          // Ya
-      goColMoving,          // Ya
-      goEditing,            // Ya
-      goAutoAddRows,        // JuMa
-      goTabs,               // Ya
-      goRowSelect,          // Ya
-      goAlwaysShowEditor,   // Ya
-      goThumbTracking,      // ya
-      // Additional Options
-      goColSpanning,        // Enable cellextent calcs
-      ,   // User can see focused cell on goRowSelect
-      goDblClickAutoSize,   // dblclicking columns borders (on hdrs) resize col.
-      goSmoothScroll,       // Switch scrolling mode (pixel scroll is by default)
-      goFixedRowNumbering,  // Ya
-      goScrollKeepVisible,  // keeps focused cell visible while scrolling
-      goHeaderHotTracking,  // Header cells change look when mouse is over them
-      goHeaderPushedLook,   // Header cells looks pushed when clicked
-      goSelectionActive,    // Setting grid.Selection moves also cell cursor
-      goFixedColSizing,     // Allow to resize fixed columns
-      goDontScrollPartCell, // clicking partially visible cells will not scroll
-      goCellHints,          // show individual cell hints
-      goTruncCellHints,     // show cell hints if cell text is too long
-      goCellEllipsis,       // show "..." if cell text is too long
-      goAutoAddRowsSkipContentCheck,//BB Also add a row (if AutoAddRows in Options) if last row is empty
-      goRowHighlight        // Highlight the current Row
-      *)
-
-end;
-
-procedure TmDrawGridHelper.SelectAllRows;
-begin
-
-end;
-
-procedure TmDrawGridHelper.SelectRows(const aKeyField: String; const aValues: TStringList);
-begin
-
-end;
 
 { TmDBGridHelper }
 

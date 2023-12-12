@@ -225,23 +225,6 @@ type
     procedure Clear; override;
   end;
 
-  { TUramakiDrawGridPlate }
-
-  TUramakiDrawGridPlate = class (TUramakiBaseGridPlate)
-  protected
-    FGrid : TmDrawGrid;
-    FGridHelper: TmDrawGridHelper;
-    FUramakiGridHelper : TUramakiGridHelper;
-    FProvider : TReadOnlyVirtualDatasetProvider;
-  public
-    constructor Create(TheOwner: TComponent); override;
-    destructor Destroy; override;
-
-    procedure DisableControls; override;
-    procedure EnableControls; override;
-    procedure RefreshDataset; override;
-  end;
-
 implementation
 
 uses
@@ -403,55 +386,6 @@ begin
     end;
     FPanel.Visible:= true;
   end;
-
-end;
-
-
-{ TUramakiDrawGridPlate }
-
-constructor TUramakiDrawGridPlate.Create(TheOwner: TComponent);
-begin
-  inherited Create(TheOwner);
-
-  FGrid := TmDrawGrid.Create(Self);
-  FGrid.Parent := Self;
-  FGrid.Align:= alClient;
-  FGrid.SummaryPanel := FSummaryPanel;
-  FProvider := TReadOnlyVirtualDatasetProvider.Create;
-
-  FGridHelper:= TmDrawGridHelper.Create(FGrid, FProvider.FormulaFields, nil);// missing CellDecorations!!
-  FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper); // missing CellDecorations!!
-  FGridHelper.SetupGrid;
-(*  FGrid.SortManager := Self.FProvider.SortManager;
-  FGrid.FilterManager := Self.FProvider.FilterManager;
-  FGrid.SummaryManager := Self.FProvider.SummaryManager;
-  FGrid.ColumnsHeaderMenuVisible:= true;*)
-
-  //FRunningDoUpdateChilds := false;
-  Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
-end;
-
-destructor TUramakiDrawGridPlate.Destroy;
-begin
-  FGridHelper.Free;
-  FUramakiGridHelper.Free;
-  FProvider.Free;
-
-  inherited Destroy;
-end;
-
-procedure TUramakiDrawGridPlate.DisableControls;
-begin
-
-end;
-
-procedure TUramakiDrawGridPlate.EnableControls;
-begin
-
-end;
-
-procedure TUramakiDrawGridPlate.RefreshDataset;
-begin
 
 end;
 

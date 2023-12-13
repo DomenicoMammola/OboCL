@@ -16,8 +16,7 @@ unit UramakiDrawGridPlate;
 interface
 
 uses
-  Classes, Controls, Grids, SysUtils,
-  Grids,
+  Classes, Controls, Grids, SysUtils, Graphics,
   mQuickReadOnlyVirtualDataSetProvider, mDrawGridHelper,
   mGridHelper, mDataProviderInterfaces,
   UramakiBase, UramakiBaseGridPlate
@@ -31,12 +30,31 @@ type
   { TUramakiDrawGridPlate }
 
   TUramakiDrawGridPlate = class(TUramakiBaseGridPlate)
+  strict private
+    function GetAlternateGridRowColor: TColor;
+    procedure SetAlternateGridRowColor(AValue: TColor);
+    function GetValueFromDatasetRow (const aFieldName : String) : variant;
   protected
-    FGrid: TDrawGrid;
+    FGrid: TmDrawGrid;
     FGridFiltersPanel: TUramakiGridFiltersPanel;
     FProvider : TReadOnlyVirtualDatasetProvider;
     FGridHelper : TmDrawGridHelper;
     FUramakiGridHelper : TUramakiGridHelper;
+
+    FCurrentRow : integer;
+
+    procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
+    procedure DoSelectAll (Sender : TObject); override;
+    procedure DoAutoAdjustColumns(Sender : TObject); override;
+    function GetUramakiGridHelper : IUramakiGridHelper; override;
+    function GetGridHelper : TmAbstractGridHelper; override;
+    procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow); override;
+    procedure DoProcessRefreshChilds; override;
+    procedure GetSelectedItems (const aKeyFieldName : string; aList : TList); override;
+    procedure SelectItems(const aDataProvider : IVDDataProvider; const aKeyValues : TStringList);
+    procedure OnExecuteFilter (Sender : TObject);
+    procedure SetupDataStructures; override;
+    procedure SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String); override;
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -45,11 +63,138 @@ type
     procedure EnableControls; override;
     procedure RefreshDataset; override;
     procedure Clear; override;
+
+    property AlternateGridRowColor : TColor read GetAlternateGridRowColor write SetAlternateGridRowColor;
   end;
 
 implementation
 
+uses
+  mIntList, mFilter, mWaitCursor, mFields;
+
 { TUramakiDrawGridPlate }
+
+function TUramakiDrawGridPlate.GetAlternateGridRowColor: TColor;
+begin
+  Result := FGrid.AlternateColor;
+end;
+
+procedure TUramakiDrawGridPlate.SetAlternateGridRowColor(AValue: TColor);
+begin
+  FGrid.AlternateColor:= AValue;
+end;
+
+function TUramakiDrawGridPlate.GetValueFromDatasetRow(const aFieldName: String): variant;
+var
+  tmpValue : Variant;
+begin
+  FProvider.GetFieldValue(aFieldName, FCurrentRow, tmpValue);
+  Result := tmpValue;
+end;
+
+procedure TUramakiDrawGridPlate.UpdateChildsIfNeeded(const aUpdateThemAnyWay: boolean);
+begin
+
+end;
+
+procedure TUramakiDrawGridPlate.DoSelectAll(Sender: TObject);
+begin
+
+end;
+
+procedure TUramakiDrawGridPlate.DoAutoAdjustColumns(Sender: TObject);
+begin
+
+end;
+
+function TUramakiDrawGridPlate.GetUramakiGridHelper: IUramakiGridHelper;
+begin
+  Result := FUramakiGridHelper;
+end;
+
+function TUramakiDrawGridPlate.GetGridHelper: TmAbstractGridHelper;
+begin
+  Result := FGridHelper;
+end;
+
+procedure TUramakiDrawGridPlate.ConvertSelectionToUramakiRoll(aUramakiRoll: TUramakiRoll; aDoFillRollFromDatasetRow: TDoFillRollFromDatasetRow);
+var
+  i, k : integer;
+  rows : TIntegerList;
+begin
+  rows := TIntegerList.Create;
+  try
+    FGridHelper.GetSelectedRows(rows);
+    for i := 0 to rows.Count -1 do
+    begin
+      FCurrentRow:= rows.Items[i];
+      aDoFillRollFromDatasetRow(aUramakiRoll, GetValueFromDatasetRow);
+    end;
+  finally
+    rows.Free;
+  end;
+end;
+
+procedure TUramakiDrawGridPlate.DoProcessRefreshChilds;
+begin
+
+end;
+
+procedure TUramakiDrawGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TList);
+begin
+
+end;
+
+procedure TUramakiDrawGridPlate.SelectItems(const aDataProvider: IVDDataProvider; const aKeyValues: TStringList);
+begin
+
+end;
+
+procedure TUramakiDrawGridPlate.OnExecuteFilter(Sender: TObject);
+var
+  tmpFilters : TmFilters;
+begin
+  Self.DisableControls;
+  try
+    try
+      TWaitCursor.ShowWaitCursor('TUramakiKGridPlate.OnExecuteFilter');
+
+      tmpFilters := TmFilters.Create;
+      try
+        FFilterPanel.GetFilters(tmpFilters);
+        Self.ReloadData(tmpFilters);
+        RefreshDataset;
+      finally
+        tmpFilters.Free;
+      end;
+    finally
+      TWaitCursor.UndoWaitCursor('TUramakiKGridPlate.OnExecuteFilter');
+    end;
+  finally
+    Self.EnableControls;
+  end;
+  //FLastSelectedRow := -1;
+  //FLastSelectedRowsCount:= 0;
+  //FLastSelectedRowsHash := '';
+  if AutomaticChildsUpdateMode = cuOnChangeSelection then
+    InvokeChildsRefresh
+  else
+    InvokeChildsClear;
+end;
+
+procedure TUramakiDrawGridPlate.SetupDataStructures;
+begin
+  FGridHelper.InitGrid;
+end;
+
+procedure TUramakiDrawGridPlate.SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String);
+var
+  curField : TmField;
+begin
+  curField := FGridHelper.GetField(aFieldName);
+  if Assigned(curField) then
+    curField.DisplayLabel:= aDisplayLabel;
+end;
 
 constructor TUramakiDrawGridPlate.Create(TheOwner: TComponent);
 begin
@@ -58,7 +203,7 @@ begin
   FGridFiltersPanel := TUramakiGridFiltersPanel.Create;
   FGridFiltersPanel.LinkToPlate(Self);
 
-  FGrid := TDrawGrid.Create(Self);
+  FGrid := TmDrawGrid.Create(Self);
   FGrid.Parent := Self;
   FGrid.Align:= alClient;
 
@@ -69,9 +214,9 @@ begin
   FGridHelper.FiltersPanel := FGridFiltersPanel;;
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
-  FGridHelper.OnGridFiltered := OnGridFiltered;
-  FGridHelper.OnGridSorted:= OnDataSorted;
-  FGrid.OnSelectionChanged:= OnSelectionChanged;
+//  FGridHelper.OnGridFiltered := OnGridFiltered;
+//  FGridHelper.OnGridSorted:= OnDataSorted;
+//  FGrid.OnSelectionChanged:= OnSelectionChanged;
 
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
 end;
@@ -113,9 +258,9 @@ begin
   finally
     Self.EnableControls;
   end;
-  FLastSelectedRow := -1;
-  FLastSelectedRowsCount:= 0;
-  FLastSelectedRowsHash := '';
+  //FLastSelectedRow := -1;
+  //FLastSelectedRowsCount:= 0;
+  //FLastSelectedRowsHash := '';
   InvokeChildsClear;
 end;
 

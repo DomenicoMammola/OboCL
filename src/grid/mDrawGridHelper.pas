@@ -144,6 +144,7 @@ type
 {$IFDEF DEBUG}
 var
   logger : TmLog;
+{$ENDIF}
 
 { TmDrawGrid }
 
@@ -163,7 +164,6 @@ begin
   Self.DrawCellText(aCol, aRow, aRect, aState, aText);
 end;
 
-{$ENDIF}
 
 { TNotifyEventShell }
 

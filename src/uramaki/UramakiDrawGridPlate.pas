@@ -70,7 +70,13 @@ type
 implementation
 
 uses
+  Variants,
   mIntList, mFilter, mWaitCursor, mFields;
+
+{$IFDEF DEBUG}
+var
+  logger: TmLog;
+{$ENDIF}
 
 { TUramakiDrawGridPlate }
 
@@ -104,7 +110,12 @@ end;
 
 procedure TUramakiDrawGridPlate.DoAutoAdjustColumns(Sender: TObject);
 begin
-
+  TWaitCursor.ShowWaitCursor('TUramakiDrawGridPlate.DoAutoAdjustColumns');
+  try
+    FGridHelper.AutoSizeColumns;
+  finally
+    TWaitCursor.UndoWaitCursor('TUramakiDrawGridPlate.DoAutoAdjustColumns');
+  end;
 end;
 
 function TUramakiDrawGridPlate.GetUramakiGridHelper: IUramakiGridHelper;
@@ -141,8 +152,29 @@ begin
 end;
 
 procedure TUramakiDrawGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TList);
+var
+  list : TIntegerList;
+  i, k : integer;
+  tmpDatum : IVDDatum;
+  tmpKey : variant;
 begin
-
+  {$IFDEF DEBUG}
+  logger.Debug('FGrid.Row ' + IntToStr(FGrid.Row));
+  logger.Debug('FGrid.SelectedRangeCount ' + IntToStr(FGrid.SelectedRangeCount));
+  {$ENDIF}
+  list := TIntegerList.Create;
+  try
+    FGridHelper.GetSelectedRows(list);
+    for i := 0 to list.Count -1 do
+    begin
+      FProvider.GetFieldValue(aKeyFieldName, list.Items[i], tmpKey);
+      tmpDatum := GetDataProvider.FindDatumByStringKey(VarToStr(tmpKey));
+      if Assigned(tmpDatum) then
+        aList.Add(tmpDatum.AsObject);
+    end;
+  finally
+    list.Free;
+  end;
 end;
 
 procedure TUramakiDrawGridPlate.SelectItems(const aDataProvider: IVDDataProvider; const aKeyValues: TStringList);
@@ -264,4 +296,8 @@ begin
   InvokeChildsClear;
 end;
 
+{$IFDEF DEBUG}
+initialization
+  logger := logManager.AddLog('UramakiDrawGridPlate');
+{$ENDIF}
 end.

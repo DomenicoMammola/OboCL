@@ -32,7 +32,9 @@ type
     procedure DrawHeaderCell(aCol, aRow: Integer; aRect: TRect; aState:TGridDrawState; const aText: String);
     procedure DrawSingleCell(aCol, aRow: Integer; aRect: TRect; aState:TGridDrawState; const aText: String; const aAlignment: TAlignment);
   public
+    constructor Create(AOwner: TComponent); override;
     property AlternateColor;
+    property RangeSelectMode;
   end;
 
   { TmDrawGridCursor }
@@ -87,8 +89,16 @@ type
     FParser : TKAParser;
     FSortedVisibleCols: TList;
 
+    FColumnsHeaderPopupMenu: TPopupMenu;
+    FOriginalPopupMenu: TPopupMenu;
+    FMI_EditFilters: TMenuItem;
+    FMI_RemoveAllFilters: TMenuItem;
+    FMI_Summaries: TMenuItem;
+
+    FCurrentCol: integer;
+    FCurrentRow: integer;
+
     procedure RefreshSummaryPanel(Sender: TObject);
-    procedure BuildHeaderPopupMenu;
     procedure SetProvider(AValue: TmVirtualDatasetDataProvider);
     procedure CreateFields;
     procedure UpdateFields;
@@ -96,6 +106,15 @@ type
     function GetValue(const aCol, aRow: integer): variant;
     function GetValueAsFormattedString(const aCol, aRow: integer; out aOutOfIndex : boolean): string;
     procedure OnDrawGridCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState:TGridDrawState);
+    procedure OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure BuildHeaderPopupMenu;
+    procedure OnFilterValues(Sender: TObject);
+    procedure OnEditSummaries(Sender: TObject);
+    procedure OnRemoveSummaries(Sender: TObject);
+    procedure OnRemoveAllFilters(Sender: TObject);
+    procedure OnEditFilters(Sender: TObject);
+    procedure OnColumnsHeaderMenuPopup(Sender: TObject);
+
   public
     constructor Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields); virtual;
     destructor Destroy; override;
@@ -108,6 +127,7 @@ type
     function GetDataCursor : ImGridCursor;
     procedure GetColumns(aColumns : TmGridColumns);
     procedure GetSelectedRows(aRows: TIntegerList);
+    procedure AutoSizeColumns;
 
     procedure InitGrid;
     function GetField(const aFieldName : String): TmField;
@@ -124,7 +144,7 @@ type
 implementation
 
 uses
-  SysUtils, Math, Variants,
+  SysUtils, Math, Variants, Types,
   mDataProviderUtility, mMagnificationFactor, mDataFieldsStandardSetup,
   mDataFieldsUtility, mDateTimeUtility
 
@@ -164,6 +184,11 @@ begin
   Self.DrawCellText(aCol, aRow, aRect, aState, aText);
 end;
 
+constructor TmDrawGrid.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+end;
+
 
 { TNotifyEventShell }
 
@@ -183,7 +208,107 @@ begin
 end;
 
 procedure TmDrawGridHelper.BuildHeaderPopupMenu;
+var
+  tmpMenuItem: TMenuItem;
+  i: TmSummaryOperator;
 begin
+
+  if not Assigned(FColumnsHeaderPopupMenu) then
+  begin
+    FColumnsHeaderPopupMenu := TPopupMenu.Create(FGrid);
+    tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    tmpMenuItem.Caption := SFilterValuesMenuCaption;
+    tmpMenuItem.OnClick := Self.OnFilterValues;
+    FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
+
+    FMI_EditFilters := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    FMI_EditFilters.Caption := SEditFiltersMenuCaption;
+    FMI_EditFilters.OnClick := Self.OnEditFilters;
+    FColumnsHeaderPopupMenu.Items.Add(FMI_EditFilters);
+
+    FMI_RemoveAllFilters := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    FMI_RemoveAllFilters.Caption := SRemoveFiltersMenuCaption;
+    FMI_RemoveAllFilters.OnClick := Self.OnRemoveAllFilters;
+    FColumnsHeaderPopupMenu.Items.Add(FMI_RemoveAllFilters);
+
+    tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    tmpMenuItem.Caption := '-';
+    FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
+
+    FMI_Summaries := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    FMI_Summaries.Caption := SAddSummaryMenuCaption;
+    FColumnsHeaderPopupMenu.Items.Add(FMI_Summaries);
+    for i := Low(TmSummaryOperator) to High(TmSummaryOperator) do
+    begin
+      tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
+      tmpMenuItem.Caption := TmSummaryOperatorToString(i);
+      tmpMenuItem.OnClick := Self.OnEditSummaries;
+      tmpMenuItem.Tag := ptrInt(i);
+      FMI_Summaries.Add(tmpMenuItem);
+    end;
+
+    tmpMenuItem := TMenuItem.Create(FColumnsHeaderPopupMenu);
+    tmpMenuItem.Caption := SRemoveSummariesMenuCaption;
+    tmpMenuItem.OnClick := Self.OnRemoveSummaries;
+    FColumnsHeaderPopupMenu.Items.Add(tmpMenuItem);
+
+    FColumnsHeaderPopupMenu.OnPopup := Self.OnColumnsHeaderMenuPopup;
+  end;
+
+end;
+
+procedure TmDrawGridHelper.OnFilterValues(Sender: TObject);
+begin
+
+end;
+
+procedure TmDrawGridHelper.OnEditSummaries(Sender: TObject);
+begin
+
+end;
+
+procedure TmDrawGridHelper.OnRemoveSummaries(Sender: TObject);
+begin
+
+end;
+
+procedure TmDrawGridHelper.OnRemoveAllFilters(Sender: TObject);
+begin
+
+end;
+
+procedure TmDrawGridHelper.OnEditFilters(Sender: TObject);
+begin
+
+end;
+
+procedure TmDrawGridHelper.OnColumnsHeaderMenuPopup(Sender: TObject);
+var
+  currentField: TmField;
+  currentOperator: TmSummaryOperator;
+  tmpDef: TmSummaryDefinition;
+  i: integer;
+begin
+  //  FMI_RemoveAllFilters.Enabled := Self.FilterManager.GetFiltered;
+  FMI_EditFilters.Enabled := FMI_RemoveAllFilters.Enabled;
+  for i := 0 to FMI_Summaries.Count - 1 do
+  begin
+    FMI_Summaries.Items[i].Checked := False;
+  end;
+  if Assigned(FSummaryManager) then
+  begin
+    if (FCurrentCol >= 0) then
+    begin
+      currentField := ColToField(FCurrentCol);
+
+      for i := 0 to FMI_Summaries.Count - 1 do
+      begin
+        currentOperator := TmSummaryOperator(FMI_Summaries.Items[i].Tag);
+        tmpDef := FSummaryManager.GetSummaryDefinitions.FindByFieldNameAndOperator(currentField.FieldName, currentOperator);
+        FMI_Summaries.Items[i].Checked := Assigned(tmpDef);
+      end;
+    end;
+  end;
 
 end;
 
@@ -327,6 +452,27 @@ begin
   end;
 end;
 
+procedure TmDrawGridHelper.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+begin
+  if (Button = mbRight)  then
+  begin
+    (FGrid as TmDrawGrid).MouseToCell(X, Y, FCurrentCol, FCurrentRow);
+    if FCurrentRow = 0 then
+    begin
+      BuildHeaderPopupMenu;
+      FOriginalPopupMenu := (FGrid as TmDrawGrid).PopupMenu;
+      (FGrid as TmDrawGrid).PopupMenu := FColumnsHeaderPopupMenu;
+    end
+    else
+    begin
+      if Assigned(FOriginalPopupMenu) then
+        (FGrid as TmDrawGrid).PopupMenu := FOriginalPopupMenu
+      else if (FGrid as TmDrawGrid).PopupMenu = FColumnsHeaderPopupMenu then
+        (FGrid as TmDrawGrid).PopupMenu := nil;
+    end;
+  end;
+end;
+
 constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields);
 begin
   FDataAreFiltered := False;
@@ -341,9 +487,11 @@ begin
 
   (FGrid as TmDrawGrid).AlternateColor:= DefaultGridAlternateColor;
   (FGrid as TmDrawGrid).Flat := True;
-  (FGrid as TmDrawGrid).Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect];
+  (FGrid as TmDrawGrid).Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goFixedHorzLine, goFixedVertLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect, goRangeSelect, goRowSelect ];
+  (FGrid as TmDrawGrid).RangeSelectMode := rsmMulti;
   (FGrid as TmDrawGrid).DefaultDrawing := true;
   (FGrid as TmDrawGrid).OnDrawCell := OnDrawGridCell;
+  (FGrid as TmDrawGrid).OnMouseDown := OnMouseDown;
 
   (FGrid as TmDrawGrid).DefaultRowHeight:= ScaleForMagnification((FGrid as TmDrawGrid).DefaultRowHeight, true);
   ScaleFontForMagnification((FGrid as TmDrawGrid).Font);
@@ -428,8 +576,55 @@ begin
 end;
 
 procedure TmDrawGridHelper.GetSelectedRows(aRows: TIntegerList);
+var
+  grid : TmDrawGrid;
+  i, k : integer;
 begin
+  aRows.Clear;
 
+  grid := (FGrid as TmDrawGrid);
+  for i := 0 to grid.SelectedRangeCount - 1 do
+  begin
+    for k := grid.SelectedRange[i].Top to grid.SelectedRange[i].Bottom do
+      aRows.Add(k - grid.FixedRows);
+  end;
+end;
+
+procedure TmDrawGridHelper.AutoSizeColumns;
+var
+  grid: TmDrawGrid;
+  curField: TmField;
+  i, k : integer;
+  w, ts : TSize;
+  outOfBounds : boolean;
+  str : string;
+  tmpCanvas : TCanvas;
+begin
+  grid := (FGrid as TmDrawGrid);
+
+  tmpCanvas := GetWorkingCanvas(grid.Canvas);
+  try
+    tmpCanvas.Font := grid.Font;
+    for i := 0 to grid.ColCount -1 do
+    begin
+      w.Width := 0;
+
+      curField := Self.ColToField(i);
+      w := tmpCanvas.TextExtent(curField.DisplayLabel);
+
+      for k := 0 to FProvider.GetRecordCount - 1 do
+      begin
+        str := GetValueAsFormattedString(i, k, outOfBounds);
+        ts := tmpCanvas.TextExtent(str);
+        if ts.Width > w.Width then
+          w := ts;
+      end;
+      grid.ColWidths[i]:= w.Width;
+    end;
+  finally
+    if tmpCanvas <> grid.Canvas then
+      FreeWorkingCanvas(tmpCanvas);
+  end;
 end;
 
 procedure TmDrawGridHelper.InitGrid;
@@ -465,7 +660,6 @@ end;
 procedure TmDrawGridHelper.SetupGrid(const aEnableAutoSizedColumns: boolean);
 begin
   (FGrid as TmDrawGrid).Align := alClient;
-  BuildHeaderPopupMenu;
 end;
 
 { TmDrawGridSummaryManager }

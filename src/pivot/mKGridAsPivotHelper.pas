@@ -46,7 +46,7 @@ implementation
 uses
   sysutils, LCLType, math,
   kfunctions, kgraphics,
-  mGraphicsUtility, mKGridUtils;
+  mGraphicsUtility, mKGridHelper;
 
 
 procedure TmKGridAsPivotHelper.OnDrawGridCell(Sender: TObject; ACol, ARow: Integer; R: TRect; State: TKGridDrawState);
@@ -134,7 +134,7 @@ end;
 
 procedure TmKGridAsPivotHelper.AutosizeColumns;
 begin
-  mKGridUtils.AutoSizeColumns(FKGrid);
+  AutoSizeKGridColumns(FKGrid);
 end;
 
 

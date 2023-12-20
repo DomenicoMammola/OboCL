@@ -75,7 +75,7 @@ implementation
 
 uses
   Variants,
-  mKGridUtils, mWaitCursor, mFilter, mIntList, mFields;
+  mWaitCursor, mFilter, mIntList, mFields;
 
 {$IFDEF DEBUG}
 var

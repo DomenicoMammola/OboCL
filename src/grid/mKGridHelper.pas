@@ -148,6 +148,8 @@ type
     property AlternateGridRowColor : TColor read FAlternateGridRowColor write FAlternateGridRowColor;
   end;
 
+  procedure AutoSizeKGridColumns(aGrid : TKGrid);
+
 implementation
 
 uses
@@ -166,6 +168,28 @@ type
     event: TNotifyEvent;
     constructor Create(aEvent: TNotifyEvent);
   end;
+
+procedure AutoSizeKGridColumns(aGrid: TKGrid);
+var
+  i : integer;
+  total, w : integer;
+  ratio : double;
+begin
+  if (not (goVirtualGrid in aGrid.Options)) or Assigned(aGrid.OnMeasureCell) then
+  begin
+    aGrid.AutoSizeGrid(mpColWidth);
+    total := 0;
+    for i := 0 to aGrid.FixedCols - 1 do
+      total := total + aGrid.ColWidths[i];
+    w := trunc (aGrid.Width * 0.95);
+    if total >= w then
+    begin
+      ratio := total / w;
+      for i := 0 to aGrid.FixedCols - 1 do
+        aGrid.ColWidths[i] := max(5, trunc(aGrid.ColWidths[i] / ratio));
+    end;
+  end;
+end;
 
 {$IFDEF DEBUG}
 var
@@ -1316,25 +1340,8 @@ begin
 end;
 
 procedure TmKGridHelper.AutoSizeColumns;
-var
-  i : integer;
-  total, w : integer;
-  ratio : double;
 begin
-  if (not (goVirtualGrid in (FGrid as TKGrid).Options)) or Assigned((FGrid as TKGrid).OnMeasureCell) then
-  begin
-    (FGrid as TKGrid).AutoSizeGrid(mpColWidth);
-    total := 0;
-    for i := 0 to (FGrid as TKGrid).FixedCols - 1 do
-      total := total + (FGrid as TKGrid).ColWidths[i];
-    w := trunc ((FGrid as TKGrid).Width * 0.95);
-    if total >= w then
-    begin
-      ratio := total / w;
-      for i := 0 to (FGrid as TKGrid).FixedCols - 1 do
-        (FGrid as TKGrid).ColWidths[i] := max(5, trunc((FGrid as TKGrid).ColWidths[i] / ratio));
-    end;
-  end;
+  AutoSizeKGridColumns((FGrid as TKGrid));
 end;
 
 {$IFDEF DEBUG}

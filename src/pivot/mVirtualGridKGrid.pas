@@ -45,7 +45,7 @@ implementation
 
 uses
   kfunctions,
-  mKGridUtils;
+  mKGridHelper;
 
 { TmKGridAsVirtualGrid }
 
@@ -136,7 +136,7 @@ end;
 
 procedure TmKGridAsVirtualGrid.AutosizeColumns;
 begin
-  mKGridUtils.AutoSizeColumns(FGrid);
+  AutoSizeKGridColumns(FGrid);
 end;
 
 end.

@@ -84,6 +84,7 @@ type
     FMI_EditFilters: TMenuItem;
     FMI_RemoveAllFilters: TMenuItem;
     FMI_Summaries: TMenuItem;
+
     FCurrentCol: integer;
     FCurrentRow: integer;
     FAlternateGridRowColor : TColor;
@@ -137,6 +138,7 @@ type
     procedure GetColumns(aColumns: TmGridColumns);
     function CalculateHashCodeOfSelectedRows: string;
     procedure GetSelectedRows(aRows: TIntegerList);
+    procedure AutoSizeColumns;
 
     property Provider: TmVirtualDatasetDataProvider read FProvider write SetProvider;
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
@@ -1252,6 +1254,7 @@ begin
   Result := '';
   list := TIntegerList.Create;
   try
+    GetSelectedRows(list);
     tmp := '';
     for k := 0 to list.Count - 1 do
     begin
@@ -1308,6 +1311,28 @@ begin
     begin
       if (FGrid as TKGrid).Row >= (FGrid as TKGrid).FixedRows then
         aRows.Add((FGrid as TKGrid).Row - (FGrid as TKGrid).FixedRows);
+    end;
+  end;
+end;
+
+procedure TmKGridHelper.AutoSizeColumns;
+var
+  i : integer;
+  total, w : integer;
+  ratio : double;
+begin
+  if (not (goVirtualGrid in (FGrid as TKGrid).Options)) or Assigned((FGrid as TKGrid).OnMeasureCell) then
+  begin
+    (FGrid as TKGrid).AutoSizeGrid(mpColWidth);
+    total := 0;
+    for i := 0 to (FGrid as TKGrid).FixedCols - 1 do
+      total := total + (FGrid as TKGrid).ColWidths[i];
+    w := trunc ((FGrid as TKGrid).Width * 0.95);
+    if total >= w then
+    begin
+      ratio := total / w;
+      for i := 0 to (FGrid as TKGrid).FixedCols - 1 do
+        (FGrid as TKGrid).ColWidths[i] := max(5, trunc((FGrid as TKGrid).ColWidths[i] / ratio));
     end;
   end;
 end;

@@ -188,7 +188,7 @@ procedure TUramakiKGridPlate.DoAutoAdjustColumns(Sender: TObject);
 begin
   TWaitCursor.ShowWaitCursor('TUramakiKGridPlate.DoAutoAdjustColumns');
   try
-    mKGridUtils.AutoSizeColumns(FGrid);
+    FGridHelper.AutoSizeColumns;
   finally
     TWaitCursor.UndoWaitCursor('TUramakiKGridPlate.DoAutoAdjustColumns');
   end;

@@ -89,6 +89,10 @@ type
     FParser : TKAParser;
     FSortedVisibleCols: TList;
 
+    FOnGridFiltered: TNotifyEvent;
+    FOnGridSorted: TNotifyEvent;
+
+
     FColumnsHeaderPopupMenu: TPopupMenu;
     FOriginalPopupMenu: TPopupMenu;
     FMI_EditFilters: TMenuItem;
@@ -114,7 +118,8 @@ type
     procedure OnRemoveAllFilters(Sender: TObject);
     procedure OnEditFilters(Sender: TObject);
     procedure OnColumnsHeaderMenuPopup(Sender: TObject);
-
+    procedure RefreshFiltersPanel;
+    procedure OnHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
   public
     constructor Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields); virtual;
     destructor Destroy; override;
@@ -136,6 +141,9 @@ type
     procedure SelectRows (const aKeyField : String; const aValues : TStringList); override;
     procedure SetupGrid (const aEnableAutoSizedColumns : boolean = true); override;
 
+    property OnGridFiltered: TNotifyEvent read FOnGridFiltered write FOnGridFiltered;
+    property OnGridSorted: TNotifyEvent read FOnGridSorted write FOnGridSorted;
+
     property Provider: TmVirtualDatasetDataProvider read FProvider write SetProvider;
     property SummaryPanel: ISummaryPanel read FSummaryPanel write FSummaryPanel;
     property FiltersPanel : IFilterPanel read FFiltersPanel write FFiltersPanel;
@@ -146,7 +154,8 @@ implementation
 uses
   SysUtils, Math, Variants, Types,
   mDataProviderUtility, mMagnificationFactor, mDataFieldsStandardSetup,
-  mDataFieldsUtility, mDateTimeUtility
+  mDataFieldsUtility, mDateTimeUtility, mGridFilterValuesDlg, mWaitCursor,
+  mFilterOperators, mGridFiltersEditDlg, mSortConditions
 
   {$IFDEF DEBUG}, mLog{$ENDIF};
 
@@ -258,28 +267,175 @@ begin
 end;
 
 procedure TmDrawGridHelper.OnFilterValues(Sender: TObject);
+var
+  dlg: TFilterValuesDlg;
+  values: TStringList;
+  checkedValues: TStringList;
+  i: integer;
+  tmpFilter: TmFilter;
+  tmpVariant: variant;
+  currentField: TmField;
 begin
-
+  if FCurrentCol >= 0 then
+  begin
+    currentField := ColToField(FCurrentCol);
+    values := TStringList.Create;
+    dlg := TFilterValuesDlg.Create(FGrid);
+    try
+      try
+        TWaitCursor.ShowWaitCursor('TmDrawGridHelper.OnFilterValues');
+        FProvider.GetUniqueStringValuesForField(currentField.FieldName, values);
+        dlg.Init(values);
+      finally
+        TWaitCursor.UndoWaitCursor('TmDrawGridHelper.OnFilterValues');
+      end;
+      if dlg.ShowModal = mrOk then
+      begin
+        checkedValues := TStringList.Create;
+        try
+          dlg.GetCheckedValues(checkedValues);
+          FProvider.FilterConditions.ClearForField(currentField.FieldName);
+          if checkedValues.Count > 0 then
+          begin
+            (FGrid as TmDrawGrid).ClearSelections;
+            try
+              TWaitCursor.ShowWaitCursor('TmDrawGridHelper.OnFilterValues');
+              tmpFilter := FProvider.FilterConditions.Add;
+              tmpFilter.FieldName := currentField.FieldName;
+              tmpFilter.FilterOperator := foIn;
+              tmpVariant := variants.VarArrayCreate([0, checkedValues.Count - 1], varOleStr);
+              for i := 0 to checkedValues.Count - 1 do
+                VarArrayPut(tmpVariant, checkedValues.Strings[i], [i]);
+              tmpFilter.Value := tmpVariant;
+              (FGrid as TmDrawGrid).BeginUpdate;
+              try
+                FDataAreFiltered := True;
+                FProvider.Refresh(FDataAreSorted, FDataAreFiltered);
+                (FGrid as TmDrawGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TmDrawGrid).FixedRows);
+              finally
+                (FGrid as TmDrawGrid).EndUpdate(true);
+              end;
+              FSummaryManager.RefreshSummaries;
+              if Assigned(FOnGridFiltered) then
+                FOnGridFiltered(Self);
+            finally
+              TWaitCursor.UndoWaitCursor('TmDrawGridHelper.OnFilterValues');
+            end;
+          end;
+          RefreshFiltersPanel;
+        finally
+          checkedValues.Free;
+        end;
+      end;
+    finally
+      dlg.Free;
+      values.Free;
+    end;
+  end;
 end;
 
 procedure TmDrawGridHelper.OnEditSummaries(Sender: TObject);
+var
+  CurrentField: TmField;
+  currentOperator: TmSummaryOperator;
+  tmpDef: TmSummaryDefinition;
 begin
+  if Assigned(FSummaryManager) then
+  begin
+    if FCurrentCol >= 0 then
+    begin
+      CurrentField := ColToField(FCurrentCol);
+      currentOperator := TmSummaryOperator((Sender as TMenuItem).Tag);
 
+      tmpDef := FSummaryManager.GetSummaryDefinitions.FindByFieldNameAndOperator(CurrentField.FieldName, currentOperator);
+      if Assigned(tmpDef) then
+      begin
+        FSummaryManager.GetSummaryDefinitions.Remove(tmpDef);
+      end
+      else
+      begin
+        tmpDef := FSummaryManager.GetSummaryDefinitions.Add;
+        tmpDef.FieldName := CurrentField.FieldName;
+        tmpDef.FieldType := CurrentField.DataType;
+        tmpDef.DisplayLabel.Value := CurrentField.DisplayLabel;
+        tmpDef.SummaryOperator := currentOperator;
+      end;
+      FSummaryManager.RefreshSummaries;
+    end;
+  end;
 end;
 
 procedure TmDrawGridHelper.OnRemoveSummaries(Sender: TObject);
 begin
-
+  FSummaryManager.GetSummaryDefinitions.Clear;
+  FSummaryManager.RefreshSummaries;
 end;
 
 procedure TmDrawGridHelper.OnRemoveAllFilters(Sender: TObject);
 begin
-
+  if FDataAreFiltered then
+  begin
+    (FGrid as TmDrawGrid).BeginUpdate;
+    try
+      FDataAreFiltered := False;
+      FProvider.FilterConditions.Clear;
+      FProvider.Refresh(FDataAreSorted, False);
+      (FGrid as TmDrawGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TmDrawGrid).FixedRows);
+    finally
+      (FGrid as TmDrawGrid).EndUpdate(true);
+    end;
+    FSummaryManager.RefreshSummaries;
+    RefreshFiltersPanel;
+    if Assigned(FOnGridFiltered) then
+      FOnGridFiltered(Self);
+  end;
 end;
 
 procedure TmDrawGridHelper.OnEditFilters(Sender: TObject);
+var
+  dlg: TFiltersEditDlg;
+  removedFilters: TStringList;
+  i: integer;
 begin
 
+  if not FDataAreFiltered then
+    exit;
+
+  dlg := TFiltersEditDlg.Create(FGrid);
+  try
+    dlg.Init(FProvider.FilterConditions, FFields);
+    if dlg.ShowModal = mrOk then
+    begin
+      removedFilters := TStringList.Create;
+      try
+        dlg.GetRemovedFilterConditions(removedFilters);
+        if removedFilters.Count > 0 then
+        begin
+          // it is necessary to clear old selection
+          (FGrid as TmDrawGrid).ClearSelections;
+          for i := 0 to removedFilters.Count - 1 do
+            FProvider.FilterConditions.ClearForField(removedFilters[i]);
+
+          (FGrid as TmDrawGrid).BeginUpdate;
+          try
+            FDataAreFiltered := (FProvider.FilterConditions.Count > 0);
+            FProvider.Refresh(FDataAreSorted, FDataAreFiltered);
+            (FGrid as TmDrawGrid).RowCount := max(2, FProvider.GetRecordCount + (FGrid as TmDrawGrid).FixedRows);
+          finally
+            (FGrid as TmDrawGrid).EndUpdate(true);
+          end;
+          FSummaryManager.RefreshSummaries;
+          RefreshFiltersPanel;
+          if Assigned(FOnGridFiltered) then
+            FOnGridFiltered(Self);
+        end;
+      finally
+        removedFilters.Free;
+      end;
+    end;
+  finally
+    dlg.Free;
+  end;
 end;
 
 procedure TmDrawGridHelper.OnColumnsHeaderMenuPopup(Sender: TObject);
@@ -309,6 +465,112 @@ begin
       end;
     end;
   end;
+
+end;
+
+procedure TmDrawGridHelper.RefreshFiltersPanel;
+var
+  tmpFields : TmFields;
+begin
+  if Assigned(FFiltersPanel) then
+    FFiltersPanel.SetFilters(FProvider.FilterConditions, FFields);
+end;
+
+procedure TmDrawGridHelper.OnHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
+var
+  fld : TmField;
+  tmpSortType : TSortType;
+begin
+  fld := ColToField(Index);
+  if Assigned(fld) then
+  begin
+    (FGrid as TmDrawGrid).ClearSelections;
+    try
+      TWaitCursor.ShowWaitCursor('OnHeaderClick');
+      tmpSortType := stAscending;
+
+      // remove every arrow from column captions
+      //for i := 0 to Self.Columns.Count - 1 do
+      //begin
+      //  case Self.Columns[i].Title.ImageIndex of
+      //    GRID_ICON_DOWN, GRID_ICON_UP :
+      //      Self.Columns[i].Title.ImageIndex := -1;
+      //    GRID_ICON_UP_FILTER, GRID_ICON_DOWN_FILTER:
+      //      Self.Columns[i].Title.ImageIndex := GRID_ICON_FILTER;
+      //  end;
+      //end;
+
+      // analize current filter
+      if (FDataAreSorted) and (FProvider.SortConditions.Count > 0) and (FProvider.SortConditions.Items[0].FieldName = fld.FieldName) then
+      begin
+        if FProvider.SortConditions.Items[0].SortType = stAscending then
+          tmpSortType:= stDescending
+        else
+        begin
+          FProvider.Refresh(False, FDataAreFiltered);
+          FDataAreSorted:= false;
+          exit;
+        end
+      end;
+
+      // set new sort condition
+      FProvider.SortConditions.Clear;
+      with FProvider.SortConditions.Add do
+      begin
+        FieldName:= fld.FieldName;
+        SortType:= tmpSortType;
+      end;
+
+      FProvider.Refresh(True, FDataAreFiltered);
+      FDataAreSorted := True;
+
+      // do sort
+      //if FSortManager.Sort then
+      //begin
+      //  if Self.Columns[Column.Index].Title.ImageIndex = GRID_ICON_FILTER then
+      //  begin
+      //    if tmpSortType = stAscending then
+      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_UP_FILTER
+      //    else
+      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_DOWN_FILTER;
+      //  end
+      //  else
+      //  begin
+      //    if tmpSortType = stAscending then
+      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_UP
+      //    else
+      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_DOWN;
+      //  end;
+      //end;
+    finally
+      TWaitCursor.UndoWaitCursor('OnHeaderClick');
+    end;
+  end;
+
+  //if SortMode = smNone then
+  //begin
+  //  FProvider.SortConditions.Clear;
+  //  FProvider.Refresh(False, FDataAreFiltered);
+  //  Sorted := False;
+  //  FDataAreSorted := False;
+  //end
+  //else
+  //begin
+  //  if FProvider.SortConditions.Count = 0 then
+  //    FProvider.SortConditions.Add;
+  //
+  //  FProvider.SortConditions.Items[0].FieldName := ColToField(ByIndex).FieldName;
+  //
+  //  if SortMode = smDown then
+  //    FProvider.SortConditions.Items[0].SortType := stDescending
+  //  else if SortMode = smUp then
+  //    FProvider.SortConditions.Items[0].SortType := stAscending;
+  //  FProvider.Refresh(True, FDataAreFiltered);
+  //  Sorted := True;
+  //  FDataAreSorted := True;
+  //end;
+  if Assigned(FOnGridSorted) then
+    FOnGridSorted(Self);
 
 end;
 
@@ -477,6 +739,9 @@ constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormula
 begin
   FDataAreFiltered := False;
   FDataAreSorted := False;
+  FOnGridFiltered:= nil;
+  FOnGridSorted:= nil;
+
 
   FOwnedCellDecorations := TmCellDecorations.Create;
   InternalSetup(aGrid, aFormulaFields, FOwnedCellDecorations);
@@ -492,6 +757,7 @@ begin
   (FGrid as TmDrawGrid).DefaultDrawing := true;
   (FGrid as TmDrawGrid).OnDrawCell := OnDrawGridCell;
   (FGrid as TmDrawGrid).OnMouseDown := OnMouseDown;
+  (FGrid as TmDrawGrid).OnHeaderClick := OnHeaderClick;
 
   (FGrid as TmDrawGrid).DefaultRowHeight:= ScaleForMagnification((FGrid as TmDrawGrid).DefaultRowHeight, true);
   ScaleFontForMagnification((FGrid as TmDrawGrid).Font);

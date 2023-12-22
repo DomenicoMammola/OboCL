@@ -140,7 +140,7 @@ begin
         end;
       end
       else begin
-        if (FGrid.EntireSelectedRowCount = 0) then
+        if (FGrid.EntireSelectedRowCount = 0)  then
         begin
           FLastSelectedRow:= -1;
           FLastSelectedRowsCount:= 0;
@@ -149,7 +149,7 @@ begin
         end
         else
         begin
-          if FGrid.Row <> FLastSelectedRow then
+          if (FGrid.Row <> FLastSelectedRow) or (FLastSelectedRowsCount <> FGrid.EntireSelectedRowCount) then
           begin
             FLastSelectedRow := FGrid.Row;
             FLastSelectedRowsCount := 1;

@@ -133,6 +133,7 @@ type
     procedure GetColumns(aColumns : TmGridColumns);
     procedure GetSelectedRows(aRows: TIntegerList);
     procedure AutoSizeColumns;
+    function CalculateHashCodeOfSelectedRows: string;
 
     procedure InitGrid;
     function GetField(const aFieldName : String): TmField;
@@ -152,10 +153,10 @@ type
 implementation
 
 uses
-  SysUtils, Math, Variants, Types,
+  SysUtils, Math, Variants, Types, md5,
   mDataProviderUtility, mMagnificationFactor, mDataFieldsStandardSetup,
   mDataFieldsUtility, mDateTimeUtility, mGridFilterValuesDlg, mWaitCursor,
-  mFilterOperators, mGridFiltersEditDlg, mSortConditions
+  mFilterOperators, mGridFiltersEditDlg, mSortConditions, mGraphicsUtility
 
   {$IFDEF DEBUG}, mLog{$ENDIF};
 
@@ -690,6 +691,8 @@ var
   curField: TmField;
   isInt, isFloat, outOfBounds: boolean;
   alignment : TAlignment;
+  tmpRect : TRect;
+  ifl : integer;
 begin
   grid := (FGrid as TmDrawGrid);
   if ACol >= Self.FSortedVisibleCols.Count then
@@ -701,7 +704,21 @@ begin
   (Sender as TmDrawGrid).DefaultDrawCell(aCol, aRow, aRect, aState);
 
   if aRow = 0 then
-    (Sender as TmDrawGrid).DrawHeaderCell(aCol, aRow, aRect, aState, curField.DisplayLabel)
+  begin
+    (Sender as TmDrawGrid).DrawHeaderCell(aCol, aRow, aRect, aState, curField.DisplayLabel);
+    if (FDataAreSorted) and (FProvider.SortConditions.Count > 0) and (FProvider.SortConditions.Items[0].FieldName = curField.FieldName) then
+    begin
+      tmpRect:= aRect;
+      tmpRect.Left := aRect.Right - aRect.Height;
+      ifl := -1 * max( 1, trunc(tmpRect.Height * 0.2));
+      InflateRect(tmpRect, ifl, ifl);
+      (Sender as TmDrawGrid).Canvas.Brush.Color:= (Sender as TmDrawGrid).Font.Color;
+      if FProvider.SortConditions.Items[0].SortType = stAscending then
+        DrawTriangle((Sender as TmDrawGrid).Canvas, tmpRect, toTop)
+      else
+        DrawTriangle((Sender as TmDrawGrid).Canvas, tmpRect, toBottom);
+    end;
+  end
   else
   begin
     isInt := FieldTypeIsInteger(curField.DataType);
@@ -848,6 +865,9 @@ var
 begin
   aRows.Clear;
 
+  if FProvider.GetRecordCount = 0 then
+    exit;
+
   grid := (FGrid as TmDrawGrid);
   for i := 0 to grid.SelectedRangeCount - 1 do
   begin
@@ -860,13 +880,14 @@ procedure TmDrawGridHelper.AutoSizeColumns;
 var
   grid: TmDrawGrid;
   curField: TmField;
-  i, k : integer;
+  i, k, e : integer;
   w, ts : TSize;
   outOfBounds : boolean;
   str : string;
   tmpCanvas : TCanvas;
 begin
   grid := (FGrid as TmDrawGrid);
+  e := varCellpadding * 2;
 
   tmpCanvas := GetWorkingCanvas(grid.Canvas);
   try
@@ -877,11 +898,13 @@ begin
 
       curField := Self.ColToField(i);
       w := tmpCanvas.TextExtent(curField.DisplayLabel);
+      w.Width:= w.Width + e;
 
       for k := 0 to FProvider.GetRecordCount - 1 do
       begin
         str := GetValueAsFormattedString(i, k, outOfBounds);
         ts := tmpCanvas.TextExtent(str);
+        ts.Width := ts.Width + e;
         if ts.Width > w.Width then
           w := ts;
       end;
@@ -890,6 +913,38 @@ begin
   finally
     if tmpCanvas <> grid.Canvas then
       FreeWorkingCanvas(tmpCanvas);
+  end;
+end;
+
+function TmDrawGridHelper.CalculateHashCodeOfSelectedRows: string;
+var
+  list: TIntegerList;
+  k: integer;
+  tmp: string;
+begin
+  Result := '';
+  list := TIntegerList.Create;
+  try
+    GetSelectedRows(list);
+    tmp := '';
+    for k := 0 to list.Count - 1 do
+    begin
+      tmp := tmp + '*' + IntToStr(k);
+      if Length(tmp) > 1024 then
+      begin
+        Result := MD5Print(MD5String(Result + MD5Print(MD5String(tmp))));
+        tmp := '';
+      end;
+    end;
+    if Result = '' then
+      Result := tmp
+    else
+    begin
+      if tmp <> '' then
+        Result := MD5Print(MD5String(Result + MD5Print(MD5String(tmp))));
+    end;
+  finally
+    list.Free;
   end;
 end;
 
@@ -1009,8 +1064,9 @@ begin
     FProvider.GetFieldValue(aFieldName, FCurrentRecNo, Result);
 end;
 
-{$IFDEF DEBUG}
 initialization
+// {$I lcl_dbgrid_customimages.lrs}
+{$IFDEF DEBUG}
   logger := logManager.AddLog('mDrawGridHelper');
 {$ENDIF}
 end.

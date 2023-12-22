@@ -31,6 +31,11 @@ type
 
   TUramakiDrawGridPlate = class(TUramakiBaseGridPlate)
   strict private
+    FLastSelectedRow : longint;
+    FLastSelectedRowsCount : integer;
+    FLastSelectedRowsHash : string;
+    FTriggerSelectionChanges : boolean;
+
     function GetAlternateGridRowColor: TColor;
     procedure SetAlternateGridRowColor(AValue: TColor);
     function GetValueFromDatasetRow (const aFieldName : String) : variant;
@@ -42,7 +47,7 @@ type
     FUramakiGridHelper : TUramakiGridHelper;
 
     FCurrentRow : integer;
-
+    FRunningDoUpdateChilds : boolean;
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
@@ -55,6 +60,7 @@ type
     procedure OnExecuteFilter (Sender : TObject);
     procedure SetupDataStructures; override;
     procedure SetDisplayLabelOfField(const aFieldName, aDisplayLabel: String); override;
+    procedure OnSelectionChanged(Sender: TObject; aCol, aRow: Integer);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -99,8 +105,59 @@ begin
 end;
 
 procedure TUramakiDrawGridPlate.UpdateChildsIfNeeded(const aUpdateThemAnyWay: boolean);
+var
+  newHash : string;
+  selectedRows : TIntegerList;
 begin
-
+  selectedRows := TIntegerList.Create;
+  FRunningDoUpdateChilds := true;
+  try
+    FGridHelper.GetSelectedRows(selectedRows);
+    if (FAutomaticChildsUpdateMode = cuOnChangeSelection) and (not aUpdateThemAnyWay) then
+    begin
+      if selectedRows.Count > 1 then
+      begin
+        newHash:= FGridHelper.CalculateHashCodeOfSelectedRows;
+        if newHash <> FLastSelectedRowsHash then
+        begin
+          FLastSelectedRowsHash:= newHash;
+          FLastSelectedRow := FGrid.Row;
+          FLastSelectedRowsCount := selectedRows.Count;
+          if Assigned(Self.Parent) then
+            InvokeChildsRefresh;
+        end;
+      end
+      else begin
+        if (selectedRows.Count = 0) then
+        begin
+          FLastSelectedRow:= -1;
+          FLastSelectedRowsCount:= 0;
+          if Assigned(Self.Parent) then
+            InvokeChildsRefresh;
+        end
+        else
+        begin
+          if (FGrid.Row <> FLastSelectedRow) or (FLastSelectedRowsCount <> selectedRows.Count) then
+          begin
+            FLastSelectedRow := FGrid.Row;
+            FLastSelectedRowsCount := 1;
+            if Assigned(Self.Parent) then
+              InvokeChildsRefresh;
+          end;
+        end;
+      end;
+    end
+    else
+    begin
+      FLastSelectedRow:= -1;
+      FLastSelectedRowsCount:= 0;
+      if Assigned(Self.Parent) then
+        InvokeChildsRefresh;
+    end;
+  finally
+    FRunningDoUpdateChilds := false;
+    selectedRows.Free;
+  end;
 end;
 
 procedure TUramakiDrawGridPlate.DoSelectAll(Sender: TObject);
@@ -148,7 +205,12 @@ end;
 
 procedure TUramakiDrawGridPlate.DoProcessRefreshChilds;
 begin
-
+  FTriggerSelectionChanges := false;
+  try
+    EngineMediator.PleaseRefreshMyChilds(Self);
+  finally
+    FTriggerSelectionChanges:= true;
+  end;
 end;
 
 procedure TUramakiDrawGridPlate.GetSelectedItems(const aKeyFieldName: string; aList: TList);
@@ -179,7 +241,16 @@ end;
 
 procedure TUramakiDrawGridPlate.SelectItems(const aDataProvider: IVDDataProvider; const aKeyValues: TStringList);
 begin
-
+  FTriggerSelectionChanges := false;
+  try
+    FGridHelper.SelectRows(aDataProvider.GetKeyFieldName, aKeyValues);
+  finally
+    if AutomaticChildsUpdateMode = cuOnChangeSelection then
+    begin
+      FTriggerSelectionChanges:= true;
+      UpdateChildsIfNeeded(true);
+    end;
+  end;
 end;
 
 procedure TUramakiDrawGridPlate.OnExecuteFilter(Sender: TObject);
@@ -205,9 +276,9 @@ begin
   finally
     Self.EnableControls;
   end;
-  //FLastSelectedRow := -1;
-  //FLastSelectedRowsCount:= 0;
-  //FLastSelectedRowsHash := '';
+  FLastSelectedRow := -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   if AutomaticChildsUpdateMode = cuOnChangeSelection then
     InvokeChildsRefresh
   else
@@ -228,12 +299,26 @@ begin
     curField.DisplayLabel:= aDisplayLabel;
 end;
 
+procedure TUramakiDrawGridPlate.OnSelectionChanged(Sender: TObject; aCol, aRow: Integer);
+begin
+  if FRunningDoUpdateChilds then
+    exit;
+  if not FTriggerSelectionChanges then
+    exit;
+  if FAutomaticChildsUpdateMode = cuOnChangeSelection then
+    UpdateChildsIfNeeded(false);
+end;
+
 constructor TUramakiDrawGridPlate.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
 
   FGridFiltersPanel := TUramakiGridFiltersPanel.Create;
   FGridFiltersPanel.LinkToPlate(Self);
+
+  FLastSelectedRow:= -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
 
   FGrid := TmDrawGrid.Create(Self);
   FGrid.Parent := Self;
@@ -248,9 +333,11 @@ begin
   FGridHelper.SetupGrid;
 //  FGridHelper.OnGridFiltered := OnGridFiltered;
 //  FGridHelper.OnGridSorted:= OnDataSorted;
-//  FGrid.OnSelectionChanged:= OnSelectionChanged;
+  FGrid.OnSelection:= OnSelectionChanged;
 
+  FRunningDoUpdateChilds := false;
   Self.AutomaticChildsUpdateMode:= cuOnChangeSelection;
+  FTriggerSelectionChanges:= true;
 end;
 
 destructor TUramakiDrawGridPlate.Destroy;
@@ -275,9 +362,9 @@ end;
 
 procedure TUramakiDrawGridPlate.RefreshDataset;
 begin
-//  FLastSelectedRow:= -1;
-//  FLastSelectedRowsCount:= 0;
-//  FLastSelectedRowsHash := '';
+  FLastSelectedRow:= -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   FGridHelper.RefreshDataProvider(false);
 end;
 
@@ -290,9 +377,9 @@ begin
   finally
     Self.EnableControls;
   end;
-  //FLastSelectedRow := -1;
-  //FLastSelectedRowsCount:= 0;
-  //FLastSelectedRowsHash := '';
+  FLastSelectedRow := -1;
+  FLastSelectedRowsCount:= 0;
+  FLastSelectedRowsHash := '';
   InvokeChildsClear;
 end;
 

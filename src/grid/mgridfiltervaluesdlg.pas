@@ -261,12 +261,13 @@ begin
     finally
       ValuesListBox.Items.EndUpdate;
     end;
-    ListFilterEdit.ForceFilter('#');
+     ListFilterEdit.AutoSelect:= true;
+    ListFilterEdit.Filter := '#';
     ListFilterEdit.ResetFilter;
 
     ListFilterEditAdvanced.FilteredListbox := ListBoxToBeFiltered;
     ListFilterEditAdvanced.Items.AddStrings(aList);
-    ListFilterEditAdvanced.ForceFilter('#');
+    ListFilterEditAdvanced.Filter := '#';
     ListFilterEditAdvanced.ResetFilter;
   finally
     TWaitCursor.UndoWaitCursor('TFilterValuesDlg.Init');

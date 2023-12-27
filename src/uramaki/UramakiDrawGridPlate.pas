@@ -162,7 +162,18 @@ end;
 
 procedure TUramakiDrawGridPlate.DoSelectAll(Sender: TObject);
 begin
-
+  if FProvider.GetRecordCount > 0 then
+  begin
+    FTriggerSelectionChanges := false;
+    try
+      FGridHelper.SelectAllRows;
+      // FGrid.Invalidate;
+    finally
+      FTriggerSelectionChanges:= true;
+      if AutomaticChildsUpdateMode = cuOnChangeSelection then
+        UpdateChildsIfNeeded(true);
+    end;
+  end;
 end;
 
 procedure TUramakiDrawGridPlate.DoAutoAdjustColumns(Sender: TObject);

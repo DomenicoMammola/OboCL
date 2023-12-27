@@ -101,6 +101,7 @@ type
 
     FCurrentCol: integer;
     FCurrentRow: integer;
+    FCurrentDrawingRow : integer;
 
     procedure RefreshSummaryPanel(Sender: TObject);
     procedure SetProvider(AValue: TmVirtualDatasetDataProvider);
@@ -110,7 +111,10 @@ type
     function GetValue(const aCol, aRow: integer): variant;
     function GetValueAsFormattedString(const aCol, aRow: integer; out aOutOfIndex : boolean): string;
     procedure OnDrawGridCell(Sender: TObject; aCol, aRow: Integer; aRect: TRect; aState:TGridDrawState);
+    procedure OnPrepareCanvas(Sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
     procedure OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure OnParserGetValue (Sender: TObject; const valueName: string; var Value: Double; out Successfull : boolean);
+    procedure OnParserGetStrValue (Sender: TObject; const valueName: string; var StrValue: string; out Successfull : boolean);
     procedure BuildHeaderPopupMenu;
     procedure OnFilterValues(Sender: TObject);
     procedure OnEditSummaries(Sender: TObject);
@@ -731,6 +735,76 @@ begin
   end;
 end;
 
+procedure TmDrawGridHelper.OnPrepareCanvas(Sender: TObject; aCol, aRow: Integer; aState: TGridDrawState);
+var
+  tmpCellDecoration : TmCellDecoration;
+  tmpListOfDecorations : TmListOfDecorations;
+  PerformCustomizedDraw : boolean;
+  tmpValue : double;
+  i : integer;
+  grid : TmDrawGrid;
+  curField : TmField;
+begin
+  grid := FGrid as TmDrawGrid;
+
+  curField := Self.ColToField(ACol);
+  FCurrentDrawingRow := aRow - grid.FixedRows;
+
+  FCellDecorations.FindByFieldName(curField.FieldName, tmpListOfDecorations);
+  if not Assigned(tmpListOfDecorations) then
+    FCellDecorations.FindByFieldName(DECORATE_ALL_FIELDS_FIELDNAME, tmpListOfDecorations);
+  if Assigned(tmpListOfDecorations) then
+  begin
+    for i := 0 to tmpListOfDecorations.Count - 1 do
+    begin
+     tmpCellDecoration := tmpListOfDecorations.Get(i);
+
+     PerformCustomizedDraw := true;
+     if tmpCellDecoration.Condition.NotNull then
+     begin
+       if not Assigned(FParser) then
+       begin
+         FParser := TKAParser.Create;
+         FParser.OnGetValue:= Self.OnParserGetValue;
+         FParser.OnGetStrValue:= OnParserGetStrValue;
+       end;
+       try
+         if FParser.Calculate(tmpCellDecoration.Condition.Value, tmpValue) then
+           PerformCustomizedDraw:= round(tmpValue) = 1;
+       except
+         on e:Exception do
+         begin
+           PerformCustomizedDraw:= false;
+         end;
+       end;
+     end;
+     if PerformCustomizedDraw then
+     begin
+       if tmpCellDecoration.BackgroundColor.NotNull then
+       begin
+         if gdSelected in AState then
+         begin
+           if IsDark(tmpCellDecoration.BackgroundColor.Value) then
+             grid.Canvas.Brush.Color := LighterColor(tmpCellDecoration.BackgroundColor.Value, 70)
+           else
+             grid.Canvas.Brush.Color := DarkerColor(tmpCellDecoration.BackgroundColor.Value, 20);
+         end
+         else
+           grid.Canvas.Brush.Color := tmpCellDecoration.BackgroundColor.Value;
+       end;
+       if tmpCellDecoration.TextColor.NotNull then
+         grid.Canvas.Font.Color:= tmpCellDecoration.TextColor.Value;
+       if tmpCellDecoration.TextBold.NotNull and tmpCellDecoration.TextBold.Value then
+         grid.Canvas.Font.Style:= grid.Canvas.Font.Style + [fsBold];
+       if tmpCellDecoration.TextItalic.NotNull and tmpCellDecoration.TextItalic.Value then
+         grid.Canvas.Font.Style:= grid.Canvas.Font.Style + [fsItalic];
+
+       break;
+     end;
+    end;
+  end;
+end;
+
 procedure TmDrawGridHelper.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if (Button = mbRight)  then
@@ -752,13 +826,85 @@ begin
   end;
 end;
 
+procedure TmDrawGridHelper.OnParserGetValue(Sender: TObject; const valueName: string; var Value: Double; out Successfull: boolean);
+var
+  tmpField : TmField;
+  varValue : variant;
+begin
+  Successfull:= false;
+
+  if FCurrentDrawingRow < 0 then
+    exit;
+
+  if FFields.Count > 0 then
+  begin
+    Value := 0;
+    if FProvider.GetRecordCount = 0 then
+      Successfull:= true
+    else
+    begin
+      tmpField := Self.GetField(valueName);
+      if Assigned(tmpField) then
+      begin
+        if FieldTypeIsInteger(tmpField.DataType) or FieldTypeIsFloat(tmpField.DataType) or
+          FieldTypeIsDate(tmpField.DataType) or FieldTypeIsTime(tmpField.DataType) or FieldTypeIsDateTime(tmpField.DataType) or
+          FieldTypeIsBoolean(tmpField.DataType) then
+        begin
+          FProvider.GetFieldValue(valueName, FCurrentDrawingRow, varValue);
+          if not VarIsNull(varValue) then
+          begin
+            if FieldTypeIsBoolean(tmpField.DataType) then
+            begin
+              if varValue then
+                Value := 1
+              else
+                Value := 0;
+            end
+            else
+              Value := varValue;
+          end;
+          Successfull:= true;
+        end;
+      end;
+    end;
+  end;
+end;
+
+procedure TmDrawGridHelper.OnParserGetStrValue(Sender: TObject; const valueName: string; var StrValue: string; out Successfull: boolean);
+var
+  tmpField: TmField;
+  varValue : variant;
+begin
+  Successfull:= false;
+
+  if FCurrentDrawingRow < 0 then
+    exit;
+
+  if FFields.Count > 0 then
+  begin
+    StrValue := '';
+    if FProvider.GetRecordCount = 0 then
+      Successfull:= true
+    else
+    begin
+      tmpField := GetField(valueName);
+      if Assigned(tmpField) then
+      begin
+        FProvider.GetFieldValue(valueName, FCurrentDrawingRow, varValue);
+        if not VarIsNull(varValue) then
+          StrValue := VarToStr(varValue);
+        Successfull:= true;
+      end;
+    end;
+  end;
+end;
+
 constructor TmDrawGridHelper.Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields);
 begin
   FDataAreFiltered := False;
   FDataAreSorted := False;
   FOnGridFiltered:= nil;
   FOnGridSorted:= nil;
-
 
   FOwnedCellDecorations := TmCellDecorations.Create;
   InternalSetup(aGrid, aFormulaFields, FOwnedCellDecorations);
@@ -773,11 +919,16 @@ begin
   (FGrid as TmDrawGrid).RangeSelectMode := rsmMulti;
   (FGrid as TmDrawGrid).DefaultDrawing := true;
   (FGrid as TmDrawGrid).OnDrawCell := OnDrawGridCell;
+  (FGrid as TmDrawGrid).OnPrepareCanvas := OnPrepareCanvas;
   (FGrid as TmDrawGrid).OnMouseDown := OnMouseDown;
   (FGrid as TmDrawGrid).OnHeaderClick := OnHeaderClick;
 
   (FGrid as TmDrawGrid).DefaultRowHeight:= ScaleForMagnification((FGrid as TmDrawGrid).DefaultRowHeight, true);
   ScaleFontForMagnification((FGrid as TmDrawGrid).Font);
+
+  FCurrentCol := -1;
+  FCurrentRow := -1;
+  FCurrentDrawingRow := -1;
 
   FSummaryManager := TmDrawGridSummaryManager.Create;
   FSummaryManager.RegisterListener(Self.RefreshSummaryPanel);
@@ -795,13 +946,147 @@ begin
 end;
 
 procedure TmDrawGridHelper.ReadSettings(aSettings: TmGridColumnsSettings);
-begin
+  procedure AssignField(colSettings: TmGridColumnSettings; aField: TmField);
+  begin
+    colSettings.Visible.Value := aField.Visible;
+    colSettings.DisplayFormat.Value := aField.DisplayFormat;
+    colSettings.DisplayLabel.Value := aField.DisplayLabel;
+  end;
 
+var
+  op: TmGridColumnSettings;
+  curField: TmField;
+  i: integer;
+  processed: TmStringDictionary;
+begin
+  TWaitCursor.ShowWaitCursor('TmDrawGridHelper.ReadSettings');
+  try
+    processed := TmStringDictionary.Create(False);
+    try
+      for i := 0 to Self.FSortedVisibleCols.Count - 1 do
+      begin
+        curField := TmField(FSortedVisibleCols.Items[i]);
+        if not IsSystemField(curField.FieldName) then
+        begin
+          op := aSettings.AddSettingsForField(curField.FieldName);
+          AssignField(op, curField);
+          op.SortOrder.Value := i;
+          op.Width.Value := max(MINIMUM_GRID_COLUMN_WIDTH, (FGrid as TmDrawGrid).ColWidths[i]);
+          processed.Add(curField.FieldName, processed);
+        end;
+      end;
+      for i := 0 to FFields.Count - 1 do
+      begin
+        curField := FFields.Get(i);
+        if (not processed.Contains(curField.FieldName)) and (not IsSystemField(curField.FieldName)) then
+        begin
+          op := aSettings.AddSettingsForField(curField.FieldName);
+          AssignField(op, curField);
+          op.SortOrder.Value := aSettings.Count - 1;
+          op.Width.Value := MINIMUM_GRID_COLUMN_WIDTH * 4;
+          processed.Add(curField.FieldName, processed);
+        end;
+      end;
+    finally
+      processed.Free;
+    end;
+  finally
+    TWaitCursor.UndoWaitCursor('TmDrawGridHelper.ReadSettings');
+  end;
 end;
 
-procedure TmDrawGridHelper.ApplySettings(aSettings: TmGridColumnsSettings);
+function CompareVisibleColumns(Item1, Item2: Pointer): integer;
+var
+  c1, c2: TmGridColumnSettings;
 begin
+  c1 := TmGridColumnSettings(Item1);
+  c2 := TmGridColumnSettings(Item2);
+  if c1.SortOrder.AsInteger < c2.SortOrder.AsInteger then
+    Result := -1
+  else if c1.SortOrder.AsInteger > c2.SortOrder.AsInteger then
+    Result := 1
+  else
+    Result := 0;
+end;
 
+
+procedure TmDrawGridHelper.ApplySettings(aSettings: TmGridColumnsSettings);
+var
+  i: integer;
+  curField: TmField;
+  visibleCols: TFPList;
+  widths: TIntegerList;
+begin
+  try
+    TWaitCursor.ShowWaitCursor('TmDrawGridHelper.ApplySettings');
+
+    (FGrid as TmDrawGrid).BeginUpdate;
+    try
+      widths := TIntegerList.Create;
+      try
+        FSortedVisibleCols.Clear;
+
+        visibleCols := TFPList.Create;
+        try
+          for i := 0 to aSettings.Count - 1 do
+            if aSettings.Get(i).Visible.AsBoolean then
+              visibleCols.Add(aSettings.Get(i));
+          visibleCols.Sort(CompareVisibleColumns);
+
+          for i := 0 to visibleCols.Count - 1 do
+          begin
+            curField := FFields.FieldByName(TmGridColumnSettings(visibleCols.Items[i]).FieldName);
+            if Assigned(curField) then
+            begin
+              FSortedVisibleCols.Add(curField);
+              widths.Add(TmGridColumnSettings(visibleCols.Items[i]).Width.AsInteger);
+            end
+            else
+            begin
+              {$IFDEF DEBUG}
+              logger.Debug('[TmDrawGridHelper.ApplySettings] Missing field ' + TmGridColumnSettings(visibleCols.Items[i]).FieldName);
+              {$ENDIF}
+            end;
+          end;
+        finally
+          visibleCols.Free;
+        end;
+
+        for i := 0 to FFields.Count -1 do
+          FFields.Get(i).Visible := false;
+
+        for i := 0 to aSettings.Count - 1 do
+        begin
+          curField := FFields.FieldByName(aSettings.Get(i).FieldName);
+          if Assigned(curField) then
+          begin
+            curField.Visible := aSettings.Get(i).Visible.AsBoolean;
+            curField.DisplayFormat := aSettings.Get(i).DisplayFormat.AsString;
+            curField.DisplayLabel := aSettings.Get(i).DisplayLabel.AsString;
+          end
+          else
+          begin
+            {$IFDEF DEBUG}
+            logger.Debug('[TmDrawGridHelper.ApplySettings] Missing field ' + aSettings.Get(i).FieldName);
+            {$ENDIF}
+          end;
+        end;
+
+        RefreshDataProvider(false);
+
+        for i := 0 to widths.Count - 1 do
+          (FGrid as TmDrawGrid).ColWidths[i] := widths.Items[i];
+      finally
+        widths.Free;
+      end;
+    finally
+      (FGrid as TmDrawGrid).EndUpdate(true);
+    end;
+
+    // (FGrid as TmDrawGrid).Invalidate;
+  finally
+    TWaitCursor.UndoWaitCursor('TmDrawGridHelper.ApplySettings');
+  end;
 end;
 
 procedure TmDrawGridHelper.RefreshDataProvider(const aReloadFields: boolean);
@@ -969,8 +1254,23 @@ begin
 end;
 
 procedure TmDrawGridHelper.SelectAllRows;
+var
+  r : TRect;
 begin
-
+  (FGrid as TmDrawGrid).BeginUpdate;
+  try
+    (FGrid as TmDrawGrid).ClearSelections;
+    if FProvider.GetRecordCount > 0 then
+    begin
+      r.Left:= 0;
+      r.Right:= FSortedVisibleCols.Count - 1;
+      r.Top := (FGrid as TmDrawGrid).FixedRows;
+      r.Bottom:= FProvider.GetRecordCount - 1 + (FGrid as TmDrawGrid).FixedRows;
+      (FGrid as TmDrawGrid).Selection := r;
+    end;
+  finally
+    (FGrid as TmDrawGrid).EndUpdate(true);
+  end;
 end;
 
 procedure TmDrawGridHelper.SelectRows(const aKeyField: String; const aValues: TStringList);

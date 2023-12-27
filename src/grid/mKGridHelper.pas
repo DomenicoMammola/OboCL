@@ -985,6 +985,7 @@ begin
 
   FCurrentCol := -1;
   FCurrentRow := -1;
+  FCurrentDrawingRow := -1;
 
   FSummaryManager := TmKGridSummaryManager.Create;
   FSummaryManager.RegisterListener(Self.RefreshSummaryPanel);

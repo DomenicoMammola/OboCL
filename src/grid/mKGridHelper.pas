@@ -19,7 +19,7 @@ uses
   Classes, Contnrs, Menus, Controls, Graphics,
   kgrids,
   mGrids, mGridHelper, KAParser, mVirtualDatasetFormulas, mCellDecorations,
-  mDataProviderInterfaces, mVirtualDataSet, mFields, mGridColumnSettings,
+  mDataProviderInterfaces, mFields, mGridColumnSettings,
   mVirtualDatasetProvider, mSummary, mIntList, mFilter, mMaps;
 
 type
@@ -155,7 +155,7 @@ implementation
 uses
   SysUtils, Variants, LCLType, md5, Math,
   kgraphics, kcontrols,
-  mDataProviderFieldDefs, mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
+  mDataFieldsStandardSetup, mGraphicsUtility, mDataProviderUtility, mSortConditions,
   mGridFilterValuesDlg, mFilterOperators, mWaitCursor, mDataFieldsUtility, mGridFiltersEditDlg,
   mDateTimeUtility, mMagnificationFactor {$IFDEF DEBUG}, mLog{$ENDIF};
 

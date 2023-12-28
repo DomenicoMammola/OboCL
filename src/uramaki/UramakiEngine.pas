@@ -17,7 +17,7 @@ interface
 
 uses
   Classes, contnrs, syncobjs, Forms,
-  mMaps, mUtility, mXML,
+  mUtility, mXML,
   UramakiBase, UramakiEngineClasses;
 
 type

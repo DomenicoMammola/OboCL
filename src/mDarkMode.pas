@@ -69,8 +69,8 @@ begin
   _ActiveTheme.ColorAlternateCellBg := $414141;
   _ActiveTheme.ColorCellText := $d4d4d4;
   _ActiveTheme.ColorGridLines := $404040;
-  _ActiveTheme.ColorSelectedCellBg := $787878; //$5c5c5c; // $444343;
-  _ActiveTheme.ColorSelectedCellText := $dadada; // $cccccc;
+  _ActiveTheme.ColorSelectedCellBg := $787878;
+  _ActiveTheme.ColorSelectedCellText := $dadada;
   _ActiveTheme.ColorFocusedCellBg := $89633d;
   _ActiveTheme.ColorFocusedCellText := $f9e5dd;
   _ActiveTheme.ColorTitleText := $b5b5b4;

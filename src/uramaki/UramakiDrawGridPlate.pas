@@ -340,6 +340,8 @@ begin
   FGridHelper.Provider := FProvider;
   FGridHelper.SummaryPanel := FSummaryPanel;
   FGridHelper.FiltersPanel := FGridFiltersPanel;;
+  FSummaryPanel.SummaryManager := FGridHelper.GetSummaryManager;
+
   FUramakiGridHelper := TUramakiGridHelper.Create(Self, FGridHelper);
   FGridHelper.SetupGrid;
 //  FGridHelper.OnGridFiltered := OnGridFiltered;

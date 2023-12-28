@@ -103,6 +103,7 @@ type
     FCurrentRow: integer;
     FCurrentDrawingRow : integer;
 
+    procedure OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure RefreshSummaryPanel(Sender: TObject);
     procedure SetProvider(AValue: TmVirtualDatasetDataProvider);
     procedure CreateFields;
@@ -124,6 +125,7 @@ type
     procedure OnColumnsHeaderMenuPopup(Sender: TObject);
     procedure RefreshFiltersPanel;
     procedure OnHeaderClick(Sender: TObject; IsColumn: Boolean; Index: Integer);
+    procedure OnColRowMoved (Sender: TObject; IsColumn:Boolean; sIndex, tIndex: Integer);
   public
     constructor Create(aGrid: TmDrawGrid; aFormulaFields: TmFormulaFields); virtual;
     destructor Destroy; override;
@@ -157,7 +159,7 @@ type
 implementation
 
 uses
-  SysUtils, Math, Variants, Types, md5,
+  SysUtils, Math, Variants, Types, md5, LCLType,
   mDataProviderUtility, mMagnificationFactor, mDataFieldsStandardSetup,
   mDataFieldsUtility, mDateTimeUtility, mGridFilterValuesDlg, mWaitCursor,
   mFilterOperators, mGridFiltersEditDlg, mSortConditions, mGraphicsUtility
@@ -221,12 +223,17 @@ begin
     mDataProviderUtility.RefreshSummaryPanel(FSummaryManager, FSummaryPanel);
 end;
 
+procedure TmDrawGridHelper.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Shift = [ssCtrl]) and (Key = VK_C) then
+    CopyTextToClipboard(VarToStr(GetValue((FGrid as TmDrawGrid).Col, (FGrid as TmDrawGrid).Row - (FGrid as TmDrawGrid).FixedRows)));
+end;
+
 procedure TmDrawGridHelper.BuildHeaderPopupMenu;
 var
   tmpMenuItem: TMenuItem;
   i: TmSummaryOperator;
 begin
-
   if not Assigned(FColumnsHeaderPopupMenu) then
   begin
     FColumnsHeaderPopupMenu := TPopupMenu.Create(FGrid);
@@ -579,6 +586,28 @@ begin
 
 end;
 
+procedure TmDrawGridHelper.OnColRowMoved(Sender: TObject; IsColumn: Boolean; sIndex, tIndex: Integer);
+var
+  tmpField: TmField;
+  i : integer;
+begin
+  if IsColumn then
+  begin
+    tmpField := TmField(FSortedVisibleCols.Items[sIndex]);
+    if sIndex < tIndex then
+    begin
+      for i := sIndex to tIndex - 1 do
+        FSortedVisibleCols.Items[i] := FSortedVisibleCols.Items[i + 1];
+    end
+    else
+    begin
+      for i := sIndex downto tIndex + 1 do
+        FSortedVisibleCols.Items[i] := FSortedVisibleCols.Items[i - 1];
+    end;
+    FSortedVisibleCols.Items[tIndex] := tmpField;
+  end;
+end;
+
 procedure TmDrawGridHelper.SetProvider(AValue: TmVirtualDatasetDataProvider);
 begin
   if FProvider=AValue then Exit;
@@ -813,7 +842,8 @@ begin
     if FCurrentRow = 0 then
     begin
       BuildHeaderPopupMenu;
-      FOriginalPopupMenu := (FGrid as TmDrawGrid).PopupMenu;
+      if Assigned((FGrid as TmDrawGrid).PopupMenu) and ((FGrid as TmDrawGrid).PopupMenu <> FColumnsHeaderPopupMenu) then
+        FOriginalPopupMenu := (FGrid as TmDrawGrid).PopupMenu;
       (FGrid as TmDrawGrid).PopupMenu := FColumnsHeaderPopupMenu;
     end
     else
@@ -922,6 +952,8 @@ begin
   (FGrid as TmDrawGrid).OnPrepareCanvas := OnPrepareCanvas;
   (FGrid as TmDrawGrid).OnMouseDown := OnMouseDown;
   (FGrid as TmDrawGrid).OnHeaderClick := OnHeaderClick;
+  (FGrid as TmDrawGrid).OnColRowMoved := OnColRowMoved;
+  (FGrid as TmDrawGrid).OnKeyDown := OnKeyDown;
 
   (FGrid as TmDrawGrid).DefaultRowHeight:= ScaleForMagnification((FGrid as TmDrawGrid).DefaultRowHeight, true);
   ScaleFontForMagnification((FGrid as TmDrawGrid).Font);

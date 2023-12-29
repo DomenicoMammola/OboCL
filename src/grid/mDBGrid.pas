@@ -684,7 +684,7 @@ begin
       Successfull:= true
     else
     begin
-      tmpField := DataSource.DataSet.FieldByName(valueName);
+      tmpField := DataSource.DataSet.FindField(valueName);
       if Assigned(tmpField) then
       begin
         if not tmpField.IsNull then
@@ -717,7 +717,7 @@ begin
       Successfull:= true
     else
     begin
-      tmpField := DataSource.DataSet.FieldByName(valueName);
+      tmpField := DataSource.DataSet.FindField(valueName);
       if Assigned(tmpField) then
       begin
         if not tmpField.IsNull then

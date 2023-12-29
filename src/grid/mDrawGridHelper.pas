@@ -722,10 +722,11 @@ procedure TmDrawGridHelper.OnDrawGridCell(Sender: TObject; aCol, aRow: Integer; 
 var
   grid: TmDrawGrid;
   curField: TmField;
-  isInt, isFloat, outOfBounds: boolean;
+  outOfBounds: boolean;
   alignment : TAlignment;
   tmpRect : TRect;
   ifl : integer;
+  v : variant;
 begin
   grid := (FGrid as TmDrawGrid);
   if ACol >= Self.FSortedVisibleCols.Count then
@@ -754,13 +755,29 @@ begin
   end
   else
   begin
-    isInt := FieldTypeIsInteger(curField.DataType);
-    isFloat := FieldTypeIsFloat(curField.DataType);
-    if isFloat or isInt then
-      alignment:= Classes.taRightJustify
+    if FieldTypeIsBoolean(curField.DataType) then
+    begin
+      v := GetValue(ACol, ARow - (FGrid as TmDrawGrid).FixedRows);
+      if VarIsNull(v) then
+        (Sender as TmDrawGrid).DrawSingleCell(aCol, aRow, aRect, aState, '', Classes.taLeftJustify)
+      else
+      begin
+        tmpRect:= aRect;
+        tmpRect.Left := aRect.Left + (aRect.Width div 2) - (aRect.Height div 2);
+        tmpRect.Right := tmpRect.Left + aRect.Height;
+        ifl := -1 * max( 1, trunc(tmpRect.Height * 0.2));
+        InflateRect(tmpRect, ifl, ifl);
+        DrawCheckedBox((Sender as TmDrawGrid).Canvas, tmpRect, v, (Sender as TmDrawGrid).Font.Color, (Sender as TmDrawGrid).Color, (Sender as TmDrawGrid).GridLineColor);
+      end;
+    end
     else
-      alignment:= Classes.taLeftJustify;
-    (Sender as TmDrawGrid).DrawSingleCell(aCol, aRow, aRect, aState, GetValueAsFormattedString(ACol, ARow - (FGrid as TmDrawGrid).FixedRows, outOfBounds), alignment);
+    begin
+      if FieldTypeIsFloat(curField.DataType) or FieldTypeIsInteger(curField.DataType) then
+        alignment:= Classes.taRightJustify
+      else
+        alignment:= Classes.taLeftJustify;
+      (Sender as TmDrawGrid).DrawSingleCell(aCol, aRow, aRect, aState, GetValueAsFormattedString(ACol, ARow - (FGrid as TmDrawGrid).FixedRows, outOfBounds), alignment);
+    end;
   end;
 end;
 

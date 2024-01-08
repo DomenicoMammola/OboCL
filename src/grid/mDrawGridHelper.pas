@@ -1325,6 +1325,7 @@ end;
 procedure TmDrawGridHelper.SelectRows(const aKeyField: String; const aValues: TStringList);
 begin
 
+  raise Exception.Create('unimplemented');
 end;
 
 procedure TmDrawGridHelper.SetupGrid(const aEnableAutoSizedColumns: boolean);

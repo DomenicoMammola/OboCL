@@ -651,7 +651,10 @@ begin
   else
   begin
     if IsDarkModeEnabled and Assigned(Editor) and (Editor is TStringCellEditor) then
-      (Editor as TStringCellEditor).Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    begin
+      (Editor as TStringCellEditor).Font.Color:= GetActiveTheme.ColorSelectedCellText;
+      (Editor as TStringCellEditor).Color:= GetActiveTheme.ColorSelectedCellBg;
+    end;
   end;
 
 end;
@@ -1866,8 +1869,11 @@ begin
   FDateCellEditor.ButtonStyle:= cebsCalendar;
   if IsDarkModeEnabled then
   begin
-    FDateCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    FDateCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FDateCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FDateCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
     ScaleFontForMagnification(FDateCellEditor.Font);
+    ScaleFontForMagnification(FDateCellEditor.TextEditor.Font);
   end;
 
   FButtonCellEditor := TmExtButtonTextCellEditor.Create(Self);
@@ -1878,8 +1884,11 @@ begin
   FButtonCellEditor.AllowFreeTypedText:= false;
   if IsDarkModeEnabled then
   begin
-    FButtonCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    FButtonCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FButtonCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FButtonCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
     ScaleFontForMagnification(FButtonCellEditor.Font);
+    ScaleFontForMagnification(FButtonCellEditor.TextEditor.Font);
   end;
 
   FWizardCellEditor := TmExtButtonTextCellEditor.Create(Self);
@@ -1891,8 +1900,11 @@ begin
   FWizardCellEditor.ButtonStyle:= cebsMagicWand;
   if IsDarkModeEnabled then
   begin
-    FWizardCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    FWizardCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FWizardCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FWizardCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
     ScaleFontForMagnification(FWizardCellEditor.Font);
+    ScaleFontForMagnification(FWizardCellEditor.TextEditor.Font);
   end;
 
   FSwitchCellEditor := TmExtButtonTextCellEditor.Create(Self);
@@ -1904,8 +1916,11 @@ begin
   FSwitchCellEditor.ButtonStyle:= cebsSwitchBetweenValues;
   if IsDarkModeEnabled then
   begin
-    FSwitchCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    FSwitchCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FSwitchCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FSwitchCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
     ScaleFontForMagnification(FSwitchCellEditor.Font);
+    ScaleFontForMagnification(FSwitchCellEditor.TextEditor.Font);
   end;
 
   FButtonWizardCellEditor := TmExtButtonsTextCellEditor.Create(Self);
@@ -1922,8 +1937,11 @@ begin
   FButtonWizardCellEditor.SetOnClickButton(1, Self.OnGetValueFromMainSource);
   if IsDarkModeEnabled then
   begin
-    FButtonWizardCellEditor.Font.Color:= GetActiveTheme.ColorStandardEditorText;
+    FButtonWizardCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FButtonWizardCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
+    FButtonWizardCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
     ScaleFontForMagnification(FButtonWizardCellEditor.Font);
+    ScaleFontForMagnification(FButtonWizardCellEditor.TextEditor.Font);
   end;
 
   FLinesByName := TmStringDictionary.Create();

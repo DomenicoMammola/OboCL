@@ -42,6 +42,7 @@ type
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
+    procedure DoCopyKeyOfCurrentRowToClipboard(Sender : TObject); override;
     function GetUramakiGridHelper : IUramakiGridHelper; override;
     function GetGridHelper : TmAbstractGridHelper; override;
     function GetValueFromDatasetRow (const aFieldName : String) : variant;
@@ -68,7 +69,8 @@ type
 implementation
 
 uses
-  mFilter, mWaitCursor
+  Variants,
+  mFilter, mWaitCursor, mGraphicsUtility
 {$IFDEF DEBUG}
   , mLog, mUtility
 {$ENDIF}
@@ -202,6 +204,19 @@ begin
   if not Assigned(FGrid) then
     exit;
   FGrid.AutoAdjustColumns;
+end;
+
+procedure TUramakiDBGridPlate.DoCopyKeyOfCurrentRowToClipboard(Sender: TObject);
+var
+  tmpValue : variant;
+begin
+  if FDataset.RecordCount > 0 then
+  begin
+    tmpValue := FDataset.FieldByName(FProvider.GetKeyFieldName).Value;
+    CopyTextToClipboard(VarToStr(tmpValue));
+  end
+  else
+    CopyTextToClipboard('');
 end;
 
 function TUramakiDBGridPlate.GetUramakiGridHelper : IUramakiGridHelper;

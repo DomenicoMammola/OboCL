@@ -51,6 +51,7 @@ type
     procedure UpdateChildsIfNeeded (const aUpdateThemAnyWay : boolean); override;
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
+    procedure DoCopyKeyOfCurrentRowToClipboard(Sender : TObject); override;
     function GetUramakiGridHelper : IUramakiGridHelper; override;
     function GetGridHelper : TmAbstractGridHelper; override;
     procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow); override;
@@ -75,7 +76,7 @@ implementation
 
 uses
   Variants,
-  mWaitCursor, mFilter, mIntList, mFields;
+  mWaitCursor, mFilter, mIntList, mFields, mGraphicsUtility;
 
 {$IFDEF DEBUG}
 var
@@ -192,6 +193,19 @@ begin
   finally
     TWaitCursor.UndoWaitCursor('TUramakiKGridPlate.DoAutoAdjustColumns');
   end;
+end;
+
+procedure TUramakiKGridPlate.DoCopyKeyOfCurrentRowToClipboard(Sender: TObject);
+var
+  tmpValue : variant;
+begin
+  tmpValue := null;
+  if (FProvider.GetRecordCount > 0) and (FGrid.Row >= FGrid.FixedRows) then
+    FProvider.GetFieldValue(FProvider.GetKeyFieldName, FGrid.Row - FGrid.FixedRows, tmpValue);
+  if VarIsNull(tmpValue) then
+    CopyTextToClipboard('')
+  else
+    CopyTextToClipboard(VarToStr(tmpValue));
 end;
 
 function TUramakiKGridPlate.GetUramakiGridHelper: IUramakiGridHelper;

@@ -793,22 +793,19 @@ var
   tmpIndex : integer;
   curEditorMemo : TEditorMemo;
 begin
-  if FMultiEditMode and (Sender is TPanel) then
+  if MultiEditMode and (Sender is TPanel) then
   begin
-    if MultiEditMode then
-    begin
-      tmpIndex := (Sender as TPanel).Tag;
+    tmpIndex := (Sender as TPanel).Tag;
 
-      if (tmpIndex >= 0) and (tmpIndex < FMemos.Count) then
-      begin
-        curEditorMemo := FMemos.Items[tmpIndex] as TEditorMemo;
-        if curEditorMemo.ForceClear then
-          (Sender as TPanel).Font.Color := clLtGray
-        else if not curEditorMemo.Changed then
-          (Sender as TPanel).Font.Color := clGray
-        else
-          (Sender as TPanel).Font.Color := clBlack;
-      end;
+    if (tmpIndex >= 0) and (tmpIndex < FMemos.Count) then
+    begin
+      curEditorMemo := FMemos.Items[tmpIndex] as TEditorMemo;
+      if curEditorMemo.ForceClear then
+        (Sender as TPanel).Font.Color := clLtGray
+      else if not curEditorMemo.Changed then
+        (Sender as TPanel).Font.Color := clGray
+      else
+        (Sender as TPanel).Font.Color := clBlack;
     end;
   end;
 end;
@@ -818,7 +815,7 @@ var
   tmpIndex : integer;
   curEditorMemo : TEditorMemo;
 begin
-  if FMultiEditMode and (Sender is TMemo) then
+  if MultiEditMode and (Sender is TMemo) then
   begin
     tmpIndex := (Sender as TMemo).Tag;
     if (tmpIndex >= 0) and (tmpIndex < FMemos.Count) then
@@ -1854,8 +1851,8 @@ begin
     FValueListEditor.FixedGridLineColor:= GetActiveTheme.ColorGridLines;
     FValueListEditor.Color:= GetActiveTheme.ColorCellBg;
     FValueListEditor.Font.Color:= GetActiveTheme.ColorCellText;
-    ScaleFontForMagnification(FValueListEditor.Font);
   end;
+  ScaleFontForMagnification(FValueListEditor.Font);
 
   FValueListPopupMenu := TPopupMenu.Create(FValueListEditor);
   FValueListEditor.PopupMenu := FValueListPopupMenu;
@@ -1887,9 +1884,9 @@ begin
     FButtonCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FButtonCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FButtonCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
-    ScaleFontForMagnification(FButtonCellEditor.Font);
-    ScaleFontForMagnification(FButtonCellEditor.TextEditor.Font);
   end;
+  ScaleFontForMagnification(FButtonCellEditor.Font);
+  ScaleFontForMagnification(FButtonCellEditor.TextEditor.Font);
 
   FWizardCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FWizardCellEditor.Visible:= false;
@@ -1903,9 +1900,9 @@ begin
     FWizardCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FWizardCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FWizardCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
-    ScaleFontForMagnification(FWizardCellEditor.Font);
-    ScaleFontForMagnification(FWizardCellEditor.TextEditor.Font);
   end;
+  ScaleFontForMagnification(FWizardCellEditor.Font);
+  ScaleFontForMagnification(FWizardCellEditor.TextEditor.Font);
 
   FSwitchCellEditor := TmExtButtonTextCellEditor.Create(Self);
   FSwitchCellEditor.Visible:= false;
@@ -1919,9 +1916,9 @@ begin
     FSwitchCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FSwitchCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FSwitchCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
-    ScaleFontForMagnification(FSwitchCellEditor.Font);
-    ScaleFontForMagnification(FSwitchCellEditor.TextEditor.Font);
   end;
+  ScaleFontForMagnification(FSwitchCellEditor.Font);
+  ScaleFontForMagnification(FSwitchCellEditor.TextEditor.Font);
 
   FButtonWizardCellEditor := TmExtButtonsTextCellEditor.Create(Self);
   FButtonWizardCellEditor.Visible:= false;
@@ -1940,9 +1937,9 @@ begin
     FButtonWizardCellEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FButtonWizardCellEditor.TextEditor.Font.Color:= GetActiveTheme.ColorSelectedCellText;
     FButtonWizardCellEditor.Color:= GetActiveTheme.ColorSelectedCellBg;
-    ScaleFontForMagnification(FButtonWizardCellEditor.Font);
-    ScaleFontForMagnification(FButtonWizardCellEditor.TextEditor.Font);
   end;
+  ScaleFontForMagnification(FButtonWizardCellEditor.Font);
+  ScaleFontForMagnification(FButtonWizardCellEditor.TextEditor.Font);
 
   FLinesByName := TmStringDictionary.Create();
   FLinesByRowIndex := TmIntegerDictionary.Create();
@@ -2114,11 +2111,11 @@ begin
   for i := 0 to FMemos.Count - 1 do
   begin
     tmpMemo := FMemos.Items[i] as TEditorMemo;
-    if Assigned(tmpMemo.ChangedValueDestination) and (not tmpMemo.Memo.ReadOnly) then
+    if Assigned(tmpMemo.ChangedValueDestination) and (tmpMemo.ForceClear or (not tmpMemo.Memo.ReadOnly)) then
     begin
       if tmpMemo.ForceClear then
         tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(null)
-      else
+      else if (not MultiEditMode) or (MultiEditMode and tmpMemo.Changed) then
         tmpMemo.ChangedValueDestination.CheckIfDifferentAndAssign(Self.GetValue(tmpMemo.Name));
       FSomethingChanged := FSomethingChanged or tmpMemo.ChangedValueDestination.TagChanged;
     end;

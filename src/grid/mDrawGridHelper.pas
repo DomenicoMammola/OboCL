@@ -778,6 +778,14 @@ begin
         alignment:= Classes.taLeftJustify;
       (Sender as TmDrawGrid).DrawSingleCell(aCol, aRow, aRect, aState, GetValueAsFormattedString(ACol, ARow - (FGrid as TmDrawGrid).FixedRows, outOfBounds), alignment);
     end;
+    if ((Sender as TmDrawGrid).Col = ACol) and ((Sender as TmDrawGrid).Row = ARow) then
+    begin
+      tmpRect := aRect;
+      tmpRect.Right := tmpRect.Right - 1;
+      tmpRect.Top := tmpRect.Top + 1;
+      tmpRect.Bottom := tmpRect.Bottom - 2;
+      DrawRubberRect((Sender as TmDrawGrid).Canvas, tmpRect, (Sender as TmDrawGrid).FocusColor, BF_RECT);
+    end;
   end;
 end;
 
@@ -962,7 +970,7 @@ begin
 
   (FGrid as TmDrawGrid).AlternateColor:= DefaultGridAlternateColor;
   (FGrid as TmDrawGrid).Flat := True;
-  (FGrid as TmDrawGrid).Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goFixedHorzLine, goFixedVertLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect, goRangeSelect, goRowSelect ];
+  (FGrid as TmDrawGrid).Options := [goRowHighlight, goColSizing, goColMoving, goVertLine, goHorzLine, goFixedHorzLine, goFixedVertLine, goTabs, goDrawFocusSelected, goDblClickAutoSize, goRelaxedRowSelect, goRangeSelect, goRowSelect, goSmoothScroll];
   (FGrid as TmDrawGrid).RangeSelectMode := rsmMulti;
   (FGrid as TmDrawGrid).DefaultDrawing := true;
   (FGrid as TmDrawGrid).OnDrawCell := OnDrawGridCell;

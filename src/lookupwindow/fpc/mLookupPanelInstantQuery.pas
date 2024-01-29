@@ -35,20 +35,24 @@ type
     FGrid : TDBGrid;
     FDatasource : TDatasource;
     FTopPanel : TPanel;
+    FBottomPanel : TPanel;
     FSearchBtn : TButton;
     FEditText: TEdit;
     FDisplayFieldNames : TStringList;
     FKeyFieldName : String;
     FOnSelectAValue : TOnSelectAValueDatum;
+    FClicked : boolean;
 
     FDatasetProvider: TReadOnlyVirtualDatasetProvider;
     FVirtualDataset : TmVirtualDataset;
     FInstantQueryManager : IVDInstantQueryManager;
+    FInstantQueryManagerAdditionalOptions: TList;
 
     procedure OnClickSearch(aSender : TObject);
     procedure OnDoubleClickGrid(Sender: TObject);
     procedure OnKeyDownGrid(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure OnKeyDownEdit(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure OnChangeOption(Sender: TObject);
   public
     constructor Create(TheOwner: TComponent); override;
     destructor Destroy; override;
@@ -67,25 +71,23 @@ implementation
 
 uses
   Variants, Forms, LCLType,
-  mMagnificationFactor;
+  mMagnificationFactor, mWaitCursor;
 
 { TmLookupPanelInstantQuery }
 
 procedure TmLookupPanelInstantQuery.OnClickSearch(aSender: TObject);
-var
-  OldCursor : TCursor;
 begin
   if Assigned(FInstantQueryManager) then
   begin
-    OldCursor := Screen.Cursor;
+    TWaitCursor.ShowWaitCursor('TmLookupPanelInstantQuery.OnClickSearch');
     try
-      Screen.Cursor := crHourGlass;
+      FClicked := true;
       FInstantQueryManager.Clear;
       FInstantQueryManager.FilterDataProvider(FEditText.Text);
       FVirtualDataset.Refresh;
       FGrid.AutoAdjustColumns;
     finally
-      Screen.Cursor := OldCursor;
+      TWaitCursor.UndoWaitCursor('TmLookupPanelInstantQuery.OnClickSearch');
     end;
   end;
 end;
@@ -129,6 +131,20 @@ begin
   end;
 end;
 
+procedure TmLookupPanelInstantQuery.OnChangeOption(Sender: TObject);
+begin
+  if Sender is TCheckBox then
+  begin
+    TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[(Sender as TCheckBox).Tag]).Callback((Sender as TCheckBox).Checked);
+    if FClicked then
+    begin
+      FInstantQueryManager.Clear;
+      FVirtualDataset.Refresh;
+      FGrid.AutoAdjustColumns;
+    end;
+  end;
+end;
+
 constructor TmLookupPanelInstantQuery.Create(TheOwner: TComponent);
 begin
   inherited Create(TheOwner);
@@ -138,6 +154,7 @@ begin
   FInstantQueryManager := nil;
   FDisplayFieldNames := TStringList.Create;
   FKeyFieldName:= '';
+  FClicked := false;
 
   FDatasetProvider:= TReadOnlyVirtualDatasetProvider.Create;
 
@@ -148,6 +165,15 @@ begin
   FTopPanel.BevelOuter:= bvNone;
   FTopPanel.Caption := '';
   FTopPanel.Height:= ScaleForMagnification(20, true);
+
+  FBottomPanel := TPanel.Create(Self);
+  FBottomPanel.Parent := Self;
+  FBottomPanel.Align := alBottom;
+  FBottomPanel.BevelInner:= bvNone;
+  FBottomPanel.BevelOuter:= bvNone;
+  FBottomPanel.Caption:= '';
+  FBottomPanel.Height:= ScaleForMagnification(20, true);
+  FBottomPanel.Visible:= false;
 
   FGrid := TDBGrid.Create(Self);
   FGrid.Parent := Self;
@@ -190,12 +216,29 @@ procedure TmLookupPanelInstantQuery.Init(const aInstantQueryManager: IVDInstantQ
 var
   fields : TStringList;
   i, q : integer;
+  tmpCheckBox: TCheckBox;
 begin
   fields := TStringList.Create;
   try
-
     FInstantQueryManager := aInstantQueryManager;
     FInstantQueryManager.Clear;
+
+    FInstantQueryManagerAdditionalOptions := FInstantQueryManager.GetAdditionalOptions;
+    if Assigned(FInstantQueryManagerAdditionalOptions) and (FInstantQueryManagerAdditionalOptions.Count > 0) then
+    begin
+      FBottomPanel.Visible:= true;
+      for i := 0 to FInstantQueryManagerAdditionalOptions.Count - 1 do
+      begin
+        tmpCheckBox := TCheckBox.Create(FBottomPanel);
+        tmpCheckBox.Parent := FBottomPanel;
+        tmpCheckBox.Caption := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).Caption;
+        tmpCheckBox.Checked := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).DefaultValue;
+        tmpCheckBox.Tag:= i;
+        tmpCheckBox.OnChange := OnChangeOption;
+        tmpCheckBox.Align:= alLeft;
+      end;
+    end;
+
     FGrid.DataSource.DataSet.DisableControls;
     try
       FDatasetProvider.Init(FInstantQueryManager.GetDataProvider);

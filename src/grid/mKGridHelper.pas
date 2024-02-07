@@ -1332,10 +1332,13 @@ begin
   end
   else
   begin
-    if (FProvider.GetRecordCount > 0) then
+    curRect := (FGrid as TKGrid).Selection;
+    NormalizeGridRect(curRect);
+
+    for k := curRect.Cell1.Row to curRect.Cell2.Row do
     begin
-      if (FGrid as TKGrid).Row >= (FGrid as TKGrid).FixedRows then
-        aRows.Add((FGrid as TKGrid).Row - (FGrid as TKGrid).FixedRows);
+      if k >= (FGrid as TKGrid).FixedRows then
+        aRows.Add(k - (FGrid as TKGrid).FixedRows);
     end;
   end;
 end;

@@ -227,11 +227,11 @@ begin
     if Assigned(FInstantQueryManagerAdditionalOptions) and (FInstantQueryManagerAdditionalOptions.Count > 0) then
     begin
       FBottomPanel.Visible:= true;
-      for i := 0 to FInstantQueryManagerAdditionalOptions.Count - 1 do
+      for i := FInstantQueryManagerAdditionalOptions.Count - 1 downto 0 do
       begin
         tmpCheckBox := TCheckBox.Create(FBottomPanel);
         tmpCheckBox.Parent := FBottomPanel;
-        tmpCheckBox.Caption := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).Caption;
+        tmpCheckBox.Caption := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).Caption + '  ';
         tmpCheckBox.Checked := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).DefaultValue;
         tmpCheckBox.Tag:= i;
         tmpCheckBox.OnChange := OnChangeOption;

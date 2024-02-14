@@ -550,6 +550,7 @@ var
   Value: variant;
   isInt, isFloat, isDate: boolean;
 begin
+  Result := '';
   aOutOfIndex:= false;
   if (aRow < FProvider.GetRecordCount) and (aCol < FSortedVisibleCols.Count) then
   begin

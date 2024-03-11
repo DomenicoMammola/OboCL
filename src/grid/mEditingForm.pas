@@ -1827,6 +1827,7 @@ begin
   FValueListEditor:= TmValueListEditor.Create(FRootPanel);
   FValueListEditor.Parent := FRootPanel;
   FValueListEditor.Align:= alClient;
+  FValueListEditor.Strings.NameValueSeparator := '~';
   FRootPanel.PanelCollection.AddControl(FValueListEditor);
   FValueListEditor.Height:= 200;
   if not IsDarkModeEnabled then

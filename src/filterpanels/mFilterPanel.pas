@@ -532,7 +532,7 @@ end;
 procedure TmBaseLookupFilterConditionPanel.SetFilterCaption(aValue: String);
 begin
   inherited SetFilterCaption(aValue);
-  Self.ApplyFilterCaption(FLabel, aValue, false);
+  Self.ApplyFilterCaption(FLabel, aValue, true);
 end;
 
 procedure TmBaseLookupFilterConditionPanel.ExportToFilter(aFilter: TmFilter);

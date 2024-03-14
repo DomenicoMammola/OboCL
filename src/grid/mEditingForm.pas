@@ -1287,150 +1287,155 @@ var
   addedLines : TmStringDictionary;
   curIndex : TIntegerObject;
 begin
-  sortedLines := TIntegerList.Create;
-  try
-    if Assigned(aCustomizedSortOrder) then
-    begin
-      indexLines := TmStringDictionary.Create(true);
-      addedLines := TmStringDictionary.Create(false);
-      try
-        for j := 0 to FLines.Count - 1 do
-        begin
-          curLine := FLines.Items[j] as TEditorLine;
-          indexLines.Add(curLine.Name, TIntegerObject.Create(j));
-        end;
-
-        for j := 0 to aCustomizedSortOrder.Count - 1 do
-        begin
-          if not addedLines.Contains(aCustomizedSortOrder.Strings[j]) then
+  if FLines.Count = 0 then
+    FValueListEditor.Visible:= false
+  else
+  begin
+    sortedLines := TIntegerList.Create;
+    try
+      if Assigned(aCustomizedSortOrder) then
+      begin
+        indexLines := TmStringDictionary.Create(true);
+        addedLines := TmStringDictionary.Create(false);
+        try
+          for j := 0 to FLines.Count - 1 do
           begin
-            curIndex := indexLines.Find(aCustomizedSortOrder.Strings[j]) as TIntegerObject;
-            if Assigned(curIndex) then
+            curLine := FLines.Items[j] as TEditorLine;
+            indexLines.Add(curLine.Name, TIntegerObject.Create(j));
+          end;
+
+          for j := 0 to aCustomizedSortOrder.Count - 1 do
+          begin
+            if not addedLines.Contains(aCustomizedSortOrder.Strings[j]) then
             begin
-              sortedLines.Add(curIndex.Value);
-              addedLines.Add(aCustomizedSortOrder.Strings[j], addedLines);
+              curIndex := indexLines.Find(aCustomizedSortOrder.Strings[j]) as TIntegerObject;
+              if Assigned(curIndex) then
+              begin
+                sortedLines.Add(curIndex.Value);
+                addedLines.Add(aCustomizedSortOrder.Strings[j], addedLines);
+              end;
             end;
           end;
-        end;
 
-        for j := 0 to FLines.Count -1 do
-        begin
-          curLine := FLines.Items[j] as TEditorLine;
-          if not addedLines.Contains(curLine.Name) then
-            sortedLines.Add(j);
-        end;
-      finally
-        indexLines.Free;
-        addedLines.Free;
-      end;
-    end
-    else
-    begin
-      for j := 0 to FLines.Count - 1 do
-        sortedLines.Add(j);
-    end;
-
-    for j := 0 to sortedLines.Count - 1 do
-    begin
-      curLine := FLines.Items[sortedLines.Items[j]] as TEditorLine;
-
-      if not Assigned(curLine.Configuration.ChangedValueDestination) then
-        raise Exception.Create('Nullable destination not set for field ' + curLine.Name);
-
-      curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
-
-      if (curLine.Configuration.DataType = dtFloat) and (curLine.Configuration.ChangedValueDestination is TNullableDouble) then
-      begin
-        curLine.Configuration.FDisplayFormat:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).DisplayFormat;
-        curLine.Configuration.FFractionalPartDigits := (curLine.Configuration.ChangedValueDestination as TNullableDouble).FractionalPartDigits;
-        curLine.Configuration.FRoundingMethod:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).RoundingMethod;
-        str := curLine.Configuration.ChangedValueDestination.AsString;
-      end
-      else if (curLine.Configuration.DataType = dtDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
-        str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
-      else if (curLine.Configuration.DataType = dtDateTime) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
-        str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(true)
-      else if (curLine.Configuration.DataType = dtColor) then
-        str := (curLine.Configuration.ChangedValueDestination as TNullableColor).AsString
-      else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
-        str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
-      else if ((curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard))) and (curLine.Configuration.ChangedValueDestination.NotNull) then
-      begin
-        assert (Assigned(curLine.Configuration.DataProvider));
-
-        if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
-          curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
-
-        if curLine.Configuration.AlternativeKeyFieldName = '' then
-          curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
-        else
-        begin
-          curDatum := nil;
-          for k := 0 to curLine.Configuration.DataProvider.Count - 1 do
+          for j := 0 to FLines.Count -1 do
           begin
-            curValue := curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.AlternativeKeyFieldName);
-            if CompareVariants(curValue, curLine.Configuration.ChangedValueDestination.AsVariant) = 0 then
-            begin
-              curDatum := curLine.Configuration.DataProvider.GetDatum(k);
-              break;
-            end;
+            curLine := FLines.Items[j] as TEditorLine;
+            if not addedLines.Contains(curLine.Name) then
+              sortedLines.Add(j);
           end;
+        finally
+          indexLines.Free;
+          addedLines.Free;
         end;
-        if Assigned(curDatum) then
-          str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
-        else
-          str := curLine.Configuration.ChangedValueDestination.AsString;
-      end
-      else if (curLine.Configuration.EditorKind = ekSwitchBeetwenValues) then
-      begin
-        assert (Assigned(curLine.Configuration.DataProvider));
-
-        if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
-          curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
-
-        if curLine.Configuration.AlternativeKeyFieldName = '' then
-          curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
-        else
-        begin
-          curDatum := nil;
-          for k := 0 to curLine.Configuration.DataProvider.Count - 1 do
-          begin
-            curValue := curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.AlternativeKeyFieldName);
-            if CompareVariants(curValue, curLine.Configuration.ChangedValueDestination.AsVariant) = 0 then
-            begin
-              curDatum := curLine.Configuration.DataProvider.GetDatum(k);
-              break;
-            end;
-          end;
-        end;
-        if Assigned(curDatum) then
-          str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
-        else
-          str := curLine.Configuration.ChangedValueDestination.AsString;
-      end
-      else if ((curLine.Configuration.EditorKind = ekLookupInstantQuery) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard)) and Assigned(curLine.Configuration.StartDatum) then
-      begin
-        if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
-          curLine.Configuration.InstantQueryManager.GetDataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
-        str := ConcatenateFieldValues(curLine.Configuration.StartDatum, curLine.Configuration.DisplayLabelFieldNames);
       end
       else
-        str := curLine.Configuration.ChangedValueDestination.AsString;
+      begin
+        for j := 0 to FLines.Count - 1 do
+          sortedLines.Add(j);
+      end;
 
-      curLine.Index:= FValueListEditor.InsertRow(ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory), str, true);
+      for j := 0 to sortedLines.Count - 1 do
+      begin
+        curLine := FLines.Items[sortedLines.Items[j]] as TEditorLine;
 
-      FLinesByRowIndex.Add(curLine.RowIndex, curLine);
-      FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
-      if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
-        or (curLine.Configuration.EditorKind = ekColorDialog) or (curLine.Configuration.EditorKind = ekLookupInstantQuery)
-        or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard)) then
-          FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
+        if not Assigned(curLine.Configuration.ChangedValueDestination) then
+          raise Exception.Create('Nullable destination not set for field ' + curLine.Name);
 
-      if MultiEditMode and Assigned(FClearValuesList) then
-        FClearValuesList.AddItem(curLine.Configuration.Caption, curLine);
+        curLine.ActualValue:= curLine.Configuration.ChangedValueDestination.AsVariant;
+
+        if (curLine.Configuration.DataType = dtFloat) and (curLine.Configuration.ChangedValueDestination is TNullableDouble) then
+        begin
+          curLine.Configuration.FDisplayFormat:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).DisplayFormat;
+          curLine.Configuration.FFractionalPartDigits := (curLine.Configuration.ChangedValueDestination as TNullableDouble).FractionalPartDigits;
+          curLine.Configuration.FRoundingMethod:= (curLine.Configuration.ChangedValueDestination as TNullableDouble).RoundingMethod;
+          str := curLine.Configuration.ChangedValueDestination.AsString;
+        end
+        else if (curLine.Configuration.DataType = dtDate) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
+          str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(false)
+        else if (curLine.Configuration.DataType = dtDateTime) and (curLine.Configuration.ChangedValueDestination is TNullableDateTime) then
+          str := (curLine.Configuration.ChangedValueDestination as TNullableDateTime).AsString(true)
+        else if (curLine.Configuration.DataType = dtColor) then
+          str := (curLine.Configuration.ChangedValueDestination as TNullableColor).AsString
+        else if (curLine.Configuration.DataType = dtTime) and (curLine.Configuration.ChangedValueDestination is TNullableTime) then
+          str := (curLine.Configuration.ChangedValueDestination as TNullableTime).AsString
+        else if ((curLine.Configuration.EditorKind = ekLookup) or ((curLine.Configuration.EditorKind = ekLookupPlusWizard))) and (curLine.Configuration.ChangedValueDestination.NotNull) then
+        begin
+          assert (Assigned(curLine.Configuration.DataProvider));
+
+          if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
+            curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+
+          if curLine.Configuration.AlternativeKeyFieldName = '' then
+            curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
+          else
+          begin
+            curDatum := nil;
+            for k := 0 to curLine.Configuration.DataProvider.Count - 1 do
+            begin
+              curValue := curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.AlternativeKeyFieldName);
+              if CompareVariants(curValue, curLine.Configuration.ChangedValueDestination.AsVariant) = 0 then
+              begin
+                curDatum := curLine.Configuration.DataProvider.GetDatum(k);
+                break;
+              end;
+            end;
+          end;
+          if Assigned(curDatum) then
+            str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
+          else
+            str := curLine.Configuration.ChangedValueDestination.AsString;
+        end
+        else if (curLine.Configuration.EditorKind = ekSwitchBeetwenValues) then
+        begin
+          assert (Assigned(curLine.Configuration.DataProvider));
+
+          if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
+            curLine.Configuration.DataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+
+          if curLine.Configuration.AlternativeKeyFieldName = '' then
+            curDatum := curLine.Configuration.DataProvider.FindDatumByStringKey(curLine.Configuration.ChangedValueDestination.AsString)
+          else
+          begin
+            curDatum := nil;
+            for k := 0 to curLine.Configuration.DataProvider.Count - 1 do
+            begin
+              curValue := curLine.Configuration.DataProvider.GetDatum(k).GetPropertyByFieldName(curLine.Configuration.AlternativeKeyFieldName);
+              if CompareVariants(curValue, curLine.Configuration.ChangedValueDestination.AsVariant) = 0 then
+              begin
+                curDatum := curLine.Configuration.DataProvider.GetDatum(k);
+                break;
+              end;
+            end;
+          end;
+          if Assigned(curDatum) then
+            str := ConcatenateFieldValues(curDatum, curLine.Configuration.DisplayLabelFieldNames)
+          else
+            str := curLine.Configuration.ChangedValueDestination.AsString;
+        end
+        else if ((curLine.Configuration.EditorKind = ekLookupInstantQuery) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard)) and Assigned(curLine.Configuration.StartDatum) then
+        begin
+          if (curLine.Configuration.DisplayLabelFieldNames.Count = 0)  then
+            curLine.Configuration.InstantQueryManager.GetDataProvider.GetMinimumFields(curLine.Configuration.DisplayLabelFieldNames);
+          str := ConcatenateFieldValues(curLine.Configuration.StartDatum, curLine.Configuration.DisplayLabelFieldNames);
+        end
+        else
+          str := curLine.Configuration.ChangedValueDestination.AsString;
+
+        curLine.Index:= FValueListEditor.InsertRow(ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory), str, true);
+
+        FLinesByRowIndex.Add(curLine.RowIndex, curLine);
+        FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
+        if (curLine.Configuration.ReadOnly = roAllowEditing) and ((curLine.Configuration.EditorKind = ekCalendar) or (curLine.Configuration.EditorKind = ekLookup)
+          or (curLine.Configuration.EditorKind = ekColorDialog) or (curLine.Configuration.EditorKind = ekLookupInstantQuery)
+          or (curLine.Configuration.EditorKind = ekDialog) or (curLine.Configuration.EditorKind = ekWizard) or (curLine.Configuration.EditorKind = ekLookupPlusWizard) or (curLine.Configuration.EditorKind = ekLookupInstantQueryPlusWizard)) then
+            FValueListEditor.ItemProps[curLine.Index].EditStyle:=esEllipsis;
+
+        if MultiEditMode and Assigned(FClearValuesList) then
+          FClearValuesList.AddItem(curLine.Configuration.Caption, curLine);
+      end;
+    finally
+      sortedLines.Free;
     end;
-  finally
-    sortedLines.Free;
   end;
 
   if MultiEditMode and Assigned(FClearValuesList) then
@@ -1445,16 +1450,21 @@ var
   i : integer;
   curLine : TEditorLine;
 begin
-  for i := 0 to FLines.Count -1 do
+  if (FLines.Count > 0) then
   begin
-    curLine := FLines.Items[i] as TEditorLine;
-    if Assigned(curLine) then
+    for i := 0 to FLines.Count -1 do
     begin
-      FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
-      FValueListEditor.Keys[curLine.RowIndex] := ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory)
+      curLine := FLines.Items[i] as TEditorLine;
+      if Assigned(curLine) then
+      begin
+        FValueListEditor.ItemProps[curLine.Index].ReadOnly:= (curLine.Configuration.ReadOnly <> roAllowEditing);
+        FValueListEditor.Keys[curLine.RowIndex] := ComposeCaption(curLine.Configuration.Caption, curLine.Configuration.Mandatory)
+      end;
     end;
+    FValueListEditor.Invalidate;
+    if not FValueListEditor.Visible then
+      FValueListEditor.Visible:= true;
   end;
-  FValueListEditor.Invalidate;
 end;
 
 procedure TmEditingPanel.SetValue(const aName: string; const aDisplayValue: String; const aActualValue: variant);
@@ -1978,11 +1988,18 @@ end;
 
 procedure TmEditingPanel.SetFocusInEditor;
 begin
-  FValueListEditor.SetFocus;
-  FValueListEditor.Row:= 1;
-  FValueListEditor.Col:= 1;
-  FValueListEditor.EditorMode:= true;
-  FValueListEditor.ColWidths[0] := trunc(FValueListEditor.Width * 0.4);
+  if FLines.Count > 0 then
+  begin
+    FValueListEditor.SetFocus;
+    FValueListEditor.Row:= 1;
+    FValueListEditor.Col:= 1;
+    FValueListEditor.EditorMode:= true;
+    FValueListEditor.ColWidths[0] := trunc(FValueListEditor.Width * 0.4);
+  end
+  else if FMemos.Count > 0 then
+  begin
+    (FMemos.Items[0] as TEditorMemo).Memo.SetFocus;
+  end;
 end;
 
 procedure TmEditingPanel.SetMultiEditMode(AValue: boolean);

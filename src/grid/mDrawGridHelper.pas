@@ -501,17 +501,6 @@ begin
       TWaitCursor.ShowWaitCursor('OnHeaderClick');
       tmpSortType := stAscending;
 
-      // remove every arrow from column captions
-      //for i := 0 to Self.Columns.Count - 1 do
-      //begin
-      //  case Self.Columns[i].Title.ImageIndex of
-      //    GRID_ICON_DOWN, GRID_ICON_UP :
-      //      Self.Columns[i].Title.ImageIndex := -1;
-      //    GRID_ICON_UP_FILTER, GRID_ICON_DOWN_FILTER:
-      //      Self.Columns[i].Title.ImageIndex := GRID_ICON_FILTER;
-      //  end;
-      //end;
-
       // analize current filter
       if (FDataAreSorted) and (FProvider.SortConditions.Count > 0) and (FProvider.SortConditions.Items[0].FieldName = fld.FieldName) then
       begin
@@ -535,55 +524,14 @@ begin
 
       FProvider.Refresh(True, FDataAreFiltered);
       FDataAreSorted := True;
-
-      // do sort
-      //if FSortManager.Sort then
-      //begin
-      //  if Self.Columns[Column.Index].Title.ImageIndex = GRID_ICON_FILTER then
-      //  begin
-      //    if tmpSortType = stAscending then
-      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_UP_FILTER
-      //    else
-      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_DOWN_FILTER;
-      //  end
-      //  else
-      //  begin
-      //    if tmpSortType = stAscending then
-      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_UP
-      //    else
-      //      Self.Columns[Column.Index].Title.ImageIndex := GRID_ICON_DOWN;
-      //  end;
-      //end;
+      FGrid.Invalidate;
     finally
       TWaitCursor.UndoWaitCursor('OnHeaderClick');
     end;
   end;
 
-  //if SortMode = smNone then
-  //begin
-  //  FProvider.SortConditions.Clear;
-  //  FProvider.Refresh(False, FDataAreFiltered);
-  //  Sorted := False;
-  //  FDataAreSorted := False;
-  //end
-  //else
-  //begin
-  //  if FProvider.SortConditions.Count = 0 then
-  //    FProvider.SortConditions.Add;
-  //
-  //  FProvider.SortConditions.Items[0].FieldName := ColToField(ByIndex).FieldName;
-  //
-  //  if SortMode = smDown then
-  //    FProvider.SortConditions.Items[0].SortType := stDescending
-  //  else if SortMode = smUp then
-  //    FProvider.SortConditions.Items[0].SortType := stAscending;
-  //  FProvider.Refresh(True, FDataAreFiltered);
-  //  Sorted := True;
-  //  FDataAreSorted := True;
-  //end;
   if Assigned(FOnGridSorted) then
     FOnGridSorted(Self);
-
 end;
 
 procedure TmDrawGridHelper.OnColRowMoved(Sender: TObject; IsColumn: Boolean; sIndex, tIndex: Integer);

@@ -293,7 +293,7 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
   procedure AddListBoxOperations (aIndex : integer; aOperations : TPerformedOperations);
   var
     lb : TListBox;
-    i : integer;
+    i, maxWidth : integer;
     shell : TBooleanObject;
     pm : TPopupMenu;
     mi : TMenuItem;
@@ -306,6 +306,7 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
     lb.Align := alClient;
     lb.Font.Size:= 12;
     ScaleFontForMagnification(lb.Font);
+    maxWidth:= lb.Width;
     for i := 0 to aOperations.Count - 1 do
     begin
       if aOperations.Get(i).MustBeValidated then
@@ -317,7 +318,9 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
       end
       else
         lb.AddItem(aOperations.Get(i).Message, nil);
+      maxWidth := max(maxWidth, lb.Canvas.TextWidth(aOperations.Get(i).Message));
     end;
+    lb.ScrollWidth:= trunc(maxWidth * 1.1);
 
     pm := TPopupMenu.Create(lb);
     lb.PopupMenu := pm;

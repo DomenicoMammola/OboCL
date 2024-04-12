@@ -66,8 +66,8 @@ type
     procedure ExtractSettingsFromField(aColumn: TGridColumn; aSettings : TmGridColumnSettings);
     procedure ApplySettingsToField(aColumn: TGridColumn; aSettings : TmGridColumnSettings);
 
-    procedure InitGrid;
-    procedure RefreshData;
+//    procedure InitGrid;
+//    procedure RefreshData;
     procedure RefreshSummaryPanel (Sender : TObject);
     procedure SetSummaryManager(AValue: ISummaryDatasetManager);
     procedure SetSummaryPanel(AValue: ISummaryPanel);
@@ -78,7 +78,7 @@ type
     // interface ImGrid:
     procedure ReadSettings(aSettings : TmGridColumnsSettings);
     procedure ApplySettings(aSettings : TmGridColumnsSettings);
-    procedure RefreshDataProvider(const aReloadFields: boolean);
+//    procedure RefreshDataProvider(const aReloadFields: boolean);
     function GetSummaryManager : ISummaryDatasetManager;
     procedure GetFields(aFields : TmFields);
     function GetDataCursor : ImGridCursor;
@@ -217,6 +217,7 @@ begin
     aColumn.Index := min(aSettings.SortOrder.Value, Self.Columns.Count - 1);
 end;
 
+(*
 procedure TmDrawGrid.InitGrid;
 var
   i : integer;
@@ -248,12 +249,15 @@ begin
 
   RefreshData;
 end;
+*)
 
+(*
 procedure TmDrawGrid.RefreshData;
 begin
   Self.RowCount:= FDataProvider.Count;
   Self.Invalidate;
 end;
+*)
 
 procedure TmDrawGrid.RefreshSummaryPanel(Sender: TObject);
 begin
@@ -346,10 +350,10 @@ begin
   end;
 end;
 
-procedure TmDrawGrid.RefreshDataProvider(const aReloadFields: boolean);
-begin
-  Self.RefreshData;
-end;
+//procedure TmDrawGrid.RefreshDataProvider(const aReloadFields: boolean);
+//begin
+//  Self.RefreshData;
+//end;
 
 function TmDrawGrid.GetSummaryManager: ISummaryDatasetManager;
 begin

@@ -574,11 +574,13 @@ begin
   FSortedVisibleCols.Clear;
 
   FProvider.FillFields(FFields);
-  ApplyStandardSettingsToFields(FFields, '#,##0.00');
+  ApplyStandardSettingsToFields(FFields, '#,##0.00', true);
 
   for i := 0 to FFields.Count - 1 do
+  begin
     if FFields.Get(i).Visible and (not IsSystemField(FFields.Get(i).FieldName)) then
       FSortedVisibleCols.Add(FFields.Get(i));
+  end;
 end;
 
 procedure TmDrawGridHelper.UpdateFields;
@@ -590,7 +592,7 @@ begin
   tmpFields := TmFields.Create;
   try
     FProvider.FillFields(tmpFields);
-    ApplyStandardSettingsToFields(tmpFields, '#,##0.00');
+    ApplyStandardSettingsToFields(tmpFields, '#,##0.00', true);
 
     for i := 0 to tmpFields.Count - 1 do
     begin

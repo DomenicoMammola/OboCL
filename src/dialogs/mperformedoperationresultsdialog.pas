@@ -65,8 +65,8 @@ type
     FErrorsColor : TColor;
 
     procedure OnTabClick (Sender: TObject);
-    procedure OnDrawLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
-    procedure OnDrawSingleListLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+    procedure OnDrawLBItem(Sender: TObject; C: TCanvas; AIndex: integer; const ARect: TRect);
+    procedure OnDrawSingleListLBItem(Sender: TObject; C: TCanvas; AIndex: integer; const ARect: TRect);
     procedure OnDblClickLB (Sender : TObject);
     procedure OnCopyToClipboard (Sender : TObject);
     procedure OnSaveToFile (Sender : TObject);
@@ -84,7 +84,8 @@ type
 implementation
 
 uses
-  LCLType, Menus, Clipbrd,
+  LCLType, Menus, Clipbrd, Math,
+  ATListbox, ATFlatThemes,
   mFormSetup, mMagnificationFactor, mGraphicsUtility, mBaseClassesAsObjects, mToast;
 
 {$R *.lfm}
@@ -154,61 +155,75 @@ begin
   FNotebook.PageIndex := FTabs.TabIndex;
 end;
 
-procedure TPerformedOperationResultsDlg.OnDrawLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+procedure TPerformedOperationResultsDlg.OnDrawLBItem(Sender: TObject; C: TCanvas; AIndex: integer; const ARect: TRect);
 var
-  tmpColor: TColor;                       //Background color
+  tmpColor: TColor;
 begin
-  if odSelected in State then
-    tmpColor := clHighlight
+  if (Sender as TATListbox).ItemIndex = AIndex then
+  begin
+    tmpColor := ColorToRGB((Sender as TATListbox).Theme^.ColorBgListboxSel);
+    C.Font.Color:= ColorToRGB((Sender as TATListbox).Theme^.ColorFontListboxSel);
+  end
   else
-    tmpColor:= clWhite;
+  begin
+    tmpColor:= ColorToRGB((Sender as TATListbox).Theme^.ColorBgListbox);
+    C.Font.Color:= ColorToRGB((Sender as TATListbox).Theme^.ColorFontListbox);
+  end;
 
-  if Assigned((Control as TListBox).Items.Objects[Index]) and ((Control as TListBox).Items.Objects[Index] is TBooleanObject) then
-    if ((Control as TListBox).Items.Objects[Index] as TBooleanObject).Value then
+  if Assigned((Sender as TATListbox).Items.Objects[AIndex]) and ((Sender as TATListbox).Items.Objects[AIndex] is TBooleanObject) then
+    if ((Sender as TATListbox).Items.Objects[AIndex] as TBooleanObject).Value then
     begin
-      if odSelected in State then
+      C.Font.Color:= ColorToRGB(clBlack);
+      if (Sender as TATListbox).ItemIndex = AIndex then
         tmpColor := DarkerColor(clYellow, 20)
       else
         tmpColor := clYellow;
     end;
-  (Control as TListBox).Canvas.Brush.Color:=tmpColor;  //Set background color
-  (Control as TListBox).Canvas.FillRect(ARect);      //Draw a filled rectangle
-  (Control as TListBox).Canvas.TextRect(ARect, 2, ARect.Top, (Control as TListBox).Items[Index]);  //Draw Itemtext
+  C.Brush.Color:=tmpColor;
+  C.FillRect(ARect);
+  C.TextOut(ARect.Left + (Sender as TATListbox).IndentLeft + 2 - (Sender as TATListbox).ScrollHorz, ARect.Top, (Sender as TATListbox).Items[AIndex]);
 end;
 
-procedure TPerformedOperationResultsDlg.OnDrawSingleListLBItem(Control: TWinControl; Index: Integer; ARect: TRect; State: TOwnerDrawState);
+procedure TPerformedOperationResultsDlg.OnDrawSingleListLBItem(Sender: TObject; C: TCanvas; AIndex: integer; const ARect: TRect);
 var
-  tmpColor: TColor;                       //Background color
+  tmpColor: TColor;
   prefix : string;
 begin
-  if odSelected in State then
-    tmpColor := clHighlight
+  if (Sender as TATListbox).ItemIndex = AIndex then
+  begin
+    tmpColor := ColorToRGB((Sender as TATListbox).Theme^.ColorBgListboxSel);
+    C.Font.Color:= ColorToRGB((Sender as TATListbox).Theme^.ColorFontListboxSel);
+  end
   else
-    tmpColor:= clWhite;
+  begin
+    tmpColor:= ColorToRGB((Sender as TATListbox).Theme^.ColorBgListbox);
+    C.Font.Color:= ColorToRGB((Sender as TATListbox).Theme^.ColorFontListbox);
+  end;
 
   prefix := '';
-  if Assigned((Control as TListBox).Items.Objects[Index]) and ((Control as TListBox).Items.Objects[Index] is TPerformedOperation) then
+  if Assigned((Sender as TATListbox).Items.Objects[AIndex]) and ((Sender as TATListbox).Items.Objects[AIndex] is TPerformedOperation) then
   begin
-    if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level <> '' then
-      prefix := '[' + ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level + '] ';
-    if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level = TPerformedOperation.ERROR then
+    if ((Sender as TATListbox).Items.Objects[AIndex] as TPerformedOperation).Level <> '' then
+      prefix := '[' + ((Sender as TATListbox).Items.Objects[AIndex] as TPerformedOperation).Level + '] ';
+    if ((Sender as TATListbox).Items.Objects[AIndex] as TPerformedOperation).Level = TPerformedOperation.ERROR then
       tmpColor := FErrorsColor
-    else if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level = TPerformedOperation.WARNING then
+    else if ((Sender as TATListbox).Items.Objects[AIndex] as TPerformedOperation).Level = TPerformedOperation.WARNING then
       tmpColor := FWarningsColor
-    else if ((Control as TListBox).Items.Objects[Index] as TPerformedOperation).Level = TPerformedOperation.RESULT then
+    else if ((Sender as TATListbox).Items.Objects[AIndex] as TPerformedOperation).Level = TPerformedOperation.RESULT then
       tmpColor := FResultsColor;
   end;
-  (Control as TListBox).Canvas.Brush.Color:=tmpColor;  //Set background color
-  (Control as TListBox).Canvas.FillRect(ARect);      //Draw a filled rectangle
-  (Control as TListBox).Canvas.TextRect(ARect, 2, ARect.Top, prefix + (Control as TListBox).Items[Index]);  //Draw Itemtext
+
+  C.Brush.Color:=tmpColor;
+  C.FillRect(ARect);
+  C.TextOut(ARect.Left + (Sender as TATListbox).IndentLeft + 2 - (Sender as TATListbox).ScrollHorz, ARect.Top, (Sender as TATListbox).Items[AIndex]);
 end;
 
 procedure TPerformedOperationResultsDlg.OnDblClickLB(Sender: TObject);
 var
   i : integer;
-  lb : TListBox;
+  lb : TATListbox;
 begin
-  lb := (Sender as TListBox);
+  lb := (Sender as TATListbox);
   i := lb.ItemIndex;
   if i >= 0 then
   begin
@@ -224,24 +239,28 @@ end;
 
 procedure TPerformedOperationResultsDlg.OnCopyToClipboard(Sender: TObject);
 var
-  lb : TListBox;
+  lb : TATListbox;
   i : integer;
   str, sep : String;
 begin
   if (Sender is TMenuItem) and ((Sender as TMenuItem).Tag > 0) then
   begin
-    lb := TListBox((Sender as TMenuItem).Tag);
+    str := '';
+    sep := '';
+
+    lb := TATListbox((Sender as TMenuItem).Tag);
 
     if lb.Items.Count > 0 then
     begin
-      str := '';
-      sep := '';
       for i := 0 to lb.Items.Count - 1 do
       begin
         str := str + sep + lb.Items.Strings[i];
         sep := sLineBreak;
       end;
+    end;
 
+    if str <> '' then
+    begin
       CopyTextToClipboard(str);
       TmToast.ShowText(rsTextCopiedMsg);
     end;
@@ -251,11 +270,11 @@ end;
 procedure TPerformedOperationResultsDlg.OnSaveToFile(Sender: TObject);
 var
   dlg : TSaveDialog;
-  lb : TListBox;
+  lb : TATListbox;
 begin
   if (Sender is TMenuItem) and ((Sender as TMenuItem).Tag > 0) then
   begin
-    lb := TListBox((Sender as TMenuItem).Tag);
+    lb := TATListbox((Sender as TMenuItem).Tag);
 
     if lb.Items.Count > 0 then
     begin
@@ -292,21 +311,21 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
 
   procedure AddListBoxOperations (aIndex : integer; aOperations : TPerformedOperations);
   var
-    lb : TListBox;
-    i, maxWidth : integer;
+    lb : TATListbox;
+    i : integer;
     shell : TBooleanObject;
     pm : TPopupMenu;
     mi : TMenuItem;
   begin
-    lb := TListBox.Create(FNotebook.Page[aIndex]);
-    lb.Style := lbOwnerDrawFixed;
-    lb.OnDrawItem:= @OnDrawLBItem;
-    lb.OnDblClick:= @OnDblClickLB;
+    lb := TATListbox.Create(FNotebook.Page[aIndex]);
     lb.Parent := FNotebook.Page[aIndex];
     lb.Align := alClient;
+    lb.VirtualMode:= false;
+    lb.OwnerDrawn:= false;
+    lb.ThemedFont:= false;
+    lb.OnDrawItem:= @OnDrawLBItem;
+    lb.OnDblClick:= @OnDblClickLB;
     lb.Font.Size:= 12;
-    ScaleFontForMagnification(lb.Font);
-    maxWidth:= lb.Width;
     for i := 0 to aOperations.Count - 1 do
     begin
       if aOperations.Get(i).MustBeValidated then
@@ -314,13 +333,13 @@ procedure TPerformedOperationResultsDlg.Init(const aMessage: string; const aLog:
         inc(FClicks);
         shell := TBooleanObject.Create(true);
         FGarbage.Add(shell);
-        lb.AddItem(aOperations.Get(i).Message, shell);
+        lb.Items.AddObject(aOperations.Get(i).Message, shell);
+        lb.OwnerDrawn:= true;
       end
       else
-        lb.AddItem(aOperations.Get(i).Message, nil);
-      maxWidth := max(maxWidth, lb.Canvas.TextWidth(aOperations.Get(i).Message));
+        lb.Items.Add(aOperations.Get(i).Message);
     end;
-    lb.ScrollWidth:= trunc(maxWidth * 1.1);
+    ScaleFontForMagnification(lb.Font);
 
     pm := TPopupMenu.Create(lb);
     lb.PopupMenu := pm;
@@ -431,7 +450,7 @@ end;
 
 procedure TPerformedOperationResultsDlg.InitWithSingleList(const aMessage: string; const aLog: TPerformedOperationResultsAsLog);
 var
-  lb : TListBox;
+  lb : TATListbox;
   i : integer;
   pm : TPopupMenu;
   mi : TMenuItem;
@@ -439,15 +458,17 @@ begin
   MainLabel.Caption:= sLineBreak + aMessage;
   FNotebook.Visible:= false;
   FTabs.Visible:= false;
-  lb := TListBox.Create(BodyPanel);
+  lb := TATListbox.Create(BodyPanel);
   lb.Parent := BodyPanel;
   lb.Align := alClient;
-  lb.Style := lbOwnerDrawFixed;
+  lb.VirtualMode:= false;
+  lb.OwnerDrawn:= true;
+  lb.ThemedFont:= false;
   lb.OnDrawItem:= @OnDrawSingleListLBItem;
   lb.Font.Size:= 12;
   ScaleFontForMagnification(lb.Font);
   for i := 0 to aLog.PerformedOperations.Count - 1 do
-    lb.AddItem(aLog.PerformedOperations.Get(i).Message, aLog.PerformedOperations.Get(i));
+    lb.Items.AddObject(aLog.PerformedOperations.Get(i).Message, aLog.PerformedOperations.Get(i));
 
   pm := TPopupMenu.Create(lb);
   lb.PopupMenu := pm;

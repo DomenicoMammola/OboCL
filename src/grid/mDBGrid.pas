@@ -132,6 +132,7 @@ type
     property SummaryManager : ISummaryDatasetManager read FSummaryManager write SetSummaryManager;
     property CellDecorations : TmCellDecorations read FCellDecorations;
     property SummaryPanel : ISummaryPanel read FSummaryPanel write SetSummaryPanel;
+    property Col;
   end;
 
 implementation

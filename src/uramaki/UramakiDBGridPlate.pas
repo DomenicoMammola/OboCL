@@ -43,6 +43,7 @@ type
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
     procedure DoCopyKeyOfCurrentRowToClipboard(Sender : TObject); override;
+    procedure DoCopyValueOfCurrentCellToClipboard(Sender : TObject); override;
     function GetUramakiGridHelper : IUramakiGridHelper; override;
     function GetGridHelper : TmAbstractGridHelper; override;
     function GetValueFromDatasetRow (const aFieldName : String) : variant;
@@ -213,6 +214,19 @@ begin
   if FDataset.RecordCount > 0 then
   begin
     tmpValue := FDataset.FieldByName(FProvider.GetKeyFieldName).Value;
+    CopyTextToClipboard(VarToStr(tmpValue));
+  end
+  else
+    CopyTextToClipboard('');
+end;
+
+procedure TUramakiDBGridPlate.DoCopyValueOfCurrentCellToClipboard(Sender: TObject);
+var
+  tmpValue : Variant;
+begin
+  if (FDataset.RecordCount > 0) and (FGrid.Col > 0) then
+  begin
+    tmpValue := FDataset.FieldByName(FGrid.Columns[FGrid.Col - 1].FieldName).Value;
     CopyTextToClipboard(VarToStr(tmpValue));
   end
   else

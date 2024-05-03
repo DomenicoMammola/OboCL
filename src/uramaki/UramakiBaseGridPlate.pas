@@ -41,6 +41,8 @@ resourcestring
   SSelectAllMenuCaption = 'Select all rows';
   SAutoAdjustColumnsMenuCaption = 'Auto-size columns';
   SAutoAdjustColumnsMenuHint = 'Set optimal width to columns';
+  SCopyValueToClipboardMenuCaption = 'Copy value to clipboard';
+  SCopyValueToClipboardMenuHint = 'Copy the value of the current cell to clipboard';
   SCopyKeyValueToClipboardMenuCaption = 'Copy key value to clipboard';
   SCopyKeyValueToClipboardMenuHint = 'Copy the value of the key of the current row to clipboard';
   SGridActionsHint = 'Grid actions...';
@@ -153,6 +155,7 @@ type
     procedure DoSelectAll (Sender : TObject); virtual; abstract;
     procedure DoAutoAdjustColumns(Sender : TObject); virtual; abstract;
     procedure DoCopyKeyOfCurrentRowToClipboard(Sender : TObject); virtual; abstract;
+    procedure DoCopyValueOfCurrentCellToClipboard(Sender : TObject); virtual; abstract;
     function GetUramakiGridHelper : IUramakiGridHelper; virtual; abstract;
     function GetGridHelper : TmAbstractGridHelper; virtual; abstract;
     procedure DoProcessRefreshChilds; virtual; abstract;
@@ -670,6 +673,12 @@ begin
   mItm.OnClick:= Self.DoAutoAdjustColumns;
   mItm.Hint:= SAutoAdjustColumnsMenuHint;
   mItm.Caption:= SAutoAdjustColumnsMenuCaption;
+
+  mItm := TMenuItem.Create(FGridCommandsPopupMenu);
+  FGridCommandsPopupMenu.Items.Add(mItm);
+  mItm.OnClick:= Self.DoCopyValueOfCurrentCellToClipboard;
+  mItm.Hint:= SCopyValueToClipboardMenuHint;
+  mItm.Caption:= SCopyValueToClipboardMenuCaption;
 
   mItm := TMenuItem.Create(FGridCommandsPopupMenu);
   FGridCommandsPopupMenu.Items.Add(mItm);

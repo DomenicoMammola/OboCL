@@ -52,6 +52,7 @@ type
     procedure DoSelectAll (Sender : TObject); override;
     procedure DoAutoAdjustColumns(Sender : TObject); override;
     procedure DoCopyKeyOfCurrentRowToClipboard(Sender : TObject); override;
+    procedure DoCopyValueOfCurrentCellToClipboard(Sender : TObject); override;
     function GetUramakiGridHelper : IUramakiGridHelper; override;
     function GetGridHelper : TmAbstractGridHelper; override;
     procedure ConvertSelectionToUramakiRoll (aUramakiRoll : TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow); override;
@@ -78,7 +79,7 @@ implementation
 
 uses
   Variants,
-  mIntList, mFilter, mWaitCursor, mFields, mGraphicsUtility;
+  mIntList, mFilter, mWaitCursor, mFields, mGraphicsUtility, mGrids;
 
 {$IFDEF DEBUG}
 var
@@ -194,6 +195,30 @@ begin
   tmpValue := null;
   if (FProvider.GetRecordCount > 0) and (FGrid.Row >= FGrid.FixedRows) then
     FProvider.GetFieldValue(FProvider.GetKeyFieldName, FGrid.Row - FGrid.FixedRows, tmpValue);
+  if VarIsNull(tmpValue) then
+    CopyTextToClipboard('')
+  else
+    CopyTextToClipboard(VarToStr(tmpValue));
+end;
+
+procedure TUramakiDrawGridPlate.DoCopyValueOfCurrentCellToClipboard(Sender: TObject);
+var
+  tmpValue : variant;
+  cols: TmGridColumns;
+begin
+  tmpValue := null;
+
+  if (FProvider.GetRecordCount > 0) and (FGrid.Row >= FGrid.FixedRows) and (FGrid.Col  >= FGrid.FixedCols) then
+  begin
+    cols := TmGridColumns.Create;
+    try
+      FGridHelper.GetColumns(cols);
+      FProvider.GetFieldValue(cols.Get(FGrid.Col - FGrid.FixedCols).FieldName, FGrid.Row - FGrid.FixedRows, tmpValue);
+    finally
+      cols.Free;
+    end;
+
+  end;
   if VarIsNull(tmpValue) then
     CopyTextToClipboard('')
   else

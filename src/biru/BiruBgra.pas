@@ -110,9 +110,11 @@ end;
 procedure TBiru.Init;
 var
   R: TRect;
+  stretched, buddy : TBGRABitmap;
 begin
   Self.Height:= FFixedBackground.Height;
   Self.Width:= FFixedBackground.Width;
+
 
   Self.ImageIndex:= 0;
 
@@ -122,10 +124,29 @@ begin
   BiruDefaultY := (FFixedBackground.Height - FBiruImage.Height) div 2;
   XPos := (FFixedBackground.Width - FBiruImage.Width) div 2;
 
-  FDefImage := TBGRABitmap.Create(FFixedBackground.Width, FFixedBackground.Height, BGRAWhite);
+  FDefImage := TBGRABitmap.Create(Scale96ToScreen(FFixedBackground.Width), Scale96ToScreen(FFixedBackground.Height), BGRAWhite);
 
-  FDefFixedBackground := TBGRABitmap.Create(FFixedBackground);
-  FDefScrollingBackground := TBGRABitmap.Create(FScrollingBackground);
+  if Scale96ToScreen(FFixedBackground.Width) <> FFixedBackground.Width then
+  begin
+    FDefFixedBackground := TBGRABitmap.Create(FFixedBackground);
+    FDefScrollingBackground := TBGRABitmap.Create(FScrollingBackground);
+  end
+  else
+  begin
+    buddy := TBGRABitmap.Create(FFixedBackground);
+    try
+      FDefFixedBackground := buddy.Resample(Scale96ToScreen(FFixedBackground.Width), Scale96ToScreen(FFixedBackground.Height)) as TBGRABitmap;
+    finally
+      buddy.Free;
+    end;
+
+    buddy := TBGRABitmap.Create(FScrollingBackground);
+    try
+      FDefScrollingBackground := buddy.Resample(Scale96ToScreen(FScrollingBackground.Width), Scale96ToScreen(FScrollingBackground.Height)) as TBGRABitmap;
+    finally
+      buddy.Free;
+    end;
+  end;
 
   FInitDone:= true;
 end;
@@ -146,7 +167,7 @@ begin
   case FAnimation of
     tatBouncing:
     begin
-      if ((XPos + FBiruImage.Width) = FFixedBackground.Width) then
+      if ((XPos + FBiruImage.Width) = FDefFixedBackground.Width) then
         ShiftX := -1
       else
       if (XPos = 0) then
@@ -154,7 +175,7 @@ begin
       if (YPos = 0) then
         ShiftY := 1
       else
-      if ((YPos + FBiruImage.Height) = FFixedBackground.Height) then
+      if ((YPos + FBiruImage.Height) = FDefFixedBackground.Height) then
         ShiftY := -1;
       XPos := XPos + ShiftX;
       YPos := YPos + ShiftY;
@@ -200,7 +221,7 @@ begin
       Canvas.Draw(0, 0, DefImage);
       *)
       Inc(FRollingX);
-      if (FRollingX > FFixedBackground.Width) then
+      if (FRollingX > FDefFixedBackground.Width) then
         FRollingX := 0;
     end;
     tatPsychedelic:
@@ -228,7 +249,7 @@ begin
       FDefImage.CanvasBGRA.Draw(BiruDefaultX, BiruDefaultY, FBiruImage);
       FDefImage.Draw(Canvas, 0, 0);
       Inc(FRollingX);
-      if (FRollingX > FFixedBackground.Width) then
+      if (FRollingX > FDefFixedBackground.Width) then
         FRollingX := 0;
     end;
     tatSizing:
@@ -246,7 +267,7 @@ begin
 
       if ((FStretchingX = 2) or (FStretchingY = 2)) then
         FStretchingDirection := 1;
-      if ((FStretchingX = FFixedBackground.Width) or (FStretchingY = FFixedBackground.Height)) then
+      if ((FStretchingX = FDefFixedBackground.Width) or (FStretchingY = FDefFixedBackground.Height)) then
         FStretchingDirection := -1;
       FDefImage.Draw(Canvas, 0, 0);
     end;

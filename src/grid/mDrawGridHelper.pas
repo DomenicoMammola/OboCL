@@ -282,6 +282,7 @@ procedure TmDrawGridHelper.OnFilterValues(Sender: TObject);
 var
   dlg: TFilterValuesDlg;
   values: TStringList;
+  occurrences : TIntegerList;
   checkedValues: TStringList;
   i: integer;
   tmpFilter: TmFilter;
@@ -292,12 +293,13 @@ begin
   begin
     currentField := ColToField(FCurrentCol);
     values := TStringList.Create;
+    occurrences := TIntegerList.Create;
     dlg := TFilterValuesDlg.Create(FGrid);
     try
       try
         TWaitCursor.ShowWaitCursor('TmDrawGridHelper.OnFilterValues');
-        FProvider.GetUniqueStringValuesForField(currentField.FieldName, values);
-        dlg.Init(values);
+        FProvider.GetUniqueStringValuesForField(currentField.FieldName, values, occurrences);
+        dlg.Init(values, occurrences);
       finally
         TWaitCursor.UndoWaitCursor('TmDrawGridHelper.OnFilterValues');
       end;
@@ -342,6 +344,7 @@ begin
     finally
       dlg.Free;
       values.Free;
+      occurrences.Free;
     end;
   end;
 end;

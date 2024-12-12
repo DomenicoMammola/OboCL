@@ -15,7 +15,8 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, ButtonPanel,
-  CheckLst, ExtCtrls, ComCtrls, StdCtrls, Menus, ListFilterEdit, EditBtn;
+  CheckLst, ExtCtrls, ComCtrls, StdCtrls, Menus, ListFilterEdit, EditBtn, Contnrs,
+  mIntList;
 
 resourcestring
   SExportValuesMenuCaption = 'Export values...';
@@ -53,18 +54,21 @@ type
     procedure BtnAddAllClick(Sender: TObject);
     procedure BtnClearClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ListBoxFilterClick(Sender: TObject);
     procedure ListBoxToBeFilteredClick(Sender: TObject);
     function ListFilterEditAdvancedFilterItemEx(const ACaption: string; ItemData: Pointer; out Done: Boolean): Boolean;
+    function ListFilterEditFilterItemEx(const ACaption: string; ItemData: Pointer; out Done: Boolean): Boolean;
     procedure MI_AdvancedSearchContainsClick(Sender: TObject);
     procedure MI_AdvancedSearchStartsWithClick(Sender: TObject);
     procedure MI_AdvancesSearhEndsWithClick(Sender: TObject);
     procedure MI_ExportValuesClick(Sender: TObject);
   private
+    FGarbage : TObjectList;
   public
     constructor CreateNew(AOwner: TComponent; Num: Integer = 0); override;
-    procedure Init (const aList : TStringList);
+    procedure Init (const aList : TStringList; const aOccurrences : TIntegerList);
     procedure GetCheckedValues (aList : TStringList);
   end;
 
@@ -72,7 +76,7 @@ implementation
 
 uses
   StrUtils,
-  mWaitCursor, mFormSetup, mMaps;
+  mWaitCursor, mFormSetup, mMaps, mBaseClassesAsObjects;
 
 {$R *.lfm}
 
@@ -85,10 +89,16 @@ end;
 
 procedure TFilterValuesDlg.FormCreate(Sender: TObject);
 begin
+  FGarbage := TObjectList.Create(true);
   MI_ExportValues.Caption:= SExportValuesMenuCaption;
   MI_AdvancedSearchContains.Caption:= SFilterModeContains;
   MI_AdvancedSearchStartsWith.Caption:= SFilterModeStartsWith;
   MI_AdvancesSearhEndsWith.Caption:= SFilterModeEndsWith;
+end;
+
+procedure TFilterValuesDlg.FormDestroy(Sender: TObject);
+begin
+  FGarbage.Free;
 end;
 
 procedure TFilterValuesDlg.FormShow(Sender: TObject);
@@ -137,6 +147,31 @@ begin
       Result := EndsText(ListFilterEditAdvanced.Filter, ACaption);
     Done := true;
   end;
+end;
+
+function TFilterValuesDlg.ListFilterEditFilterItemEx(const ACaption: string; ItemData: Pointer; out Done: Boolean): Boolean;
+var
+  tmp : TStringObject;
+  NPos: integer;
+begin
+  tmp := TStringObject(ItemData);
+  if Assigned(tmp) then
+  begin
+    if ListFilterEdit.Filter='' then
+      exit(True);
+
+    if fsoCaseSensitive in ListFilterEdit.FilterOptions then
+      NPos := Pos(ListFilterEdit.Filter, tmp.Value)
+    else
+      NPos := Pos(ListFilterEdit.FilterLowercase, LowerCase(tmp.Value));
+
+    if fsoMatchOnlyAtStart in ListFilterEdit.FilterOptions then
+      Result := NPos=1
+    else
+      Result := NPos>0;
+  end
+  else
+    Result := false;
 end;
 
 procedure TFilterValuesDlg.MI_AdvancedSearchContainsClick(Sender: TObject);
@@ -250,14 +285,22 @@ begin
   end;
 end;
 
-procedure TFilterValuesDlg.Init(const aList: TStringList);
+procedure TFilterValuesDlg.Init(const aList: TStringList; const aOccurrences : TIntegerList);
+var
+  i : integer;
+  tmp : TStringObject;
 begin
   try
     TWaitCursor.ShowWaitCursor('TFilterValuesDlg.Init');
     ListFilterEdit.FilteredListbox := ValuesListBox;
     ValuesListBox.Items.BeginUpdate;
     try
-      ListFilterEdit.Items.AddStrings(aList);
+      for i := 0 to aList.Count - 1 do
+      begin
+        tmp := TStringObject.Create(aList.Strings[i]);
+        ListFilterEdit.Items.AddObject(aList.Strings[i] + ' (' + IntToStr(aOccurrences.Items[i]) + ')', tmp);
+        FGarbage.Add(tmp);
+      end;
     finally
       ValuesListBox.Items.EndUpdate;
     end;
@@ -283,7 +326,9 @@ begin
     for i := 0 to ValuesListBox.Count - 1 do
     begin
       if ValuesListBox.Checked[i] then
-        aList.Append(ValuesListBox.Items[i]);
+      begin
+        aList.Append((ValuesListBox.Items.Objects[i] as TStringObject).Value);
+      end;
     end;
   end
   else

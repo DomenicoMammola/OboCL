@@ -140,7 +140,7 @@ implementation
 uses
   LResources, sysutils, md5,
   mGridFilterValuesDlg, mGridFiltersEditDlg, mMagnificationFactor, mDataProviderUtility,
-  mGraphicsUtility, mWaitCursor;
+  mGraphicsUtility, mWaitCursor, mIntList;
 
 { TmDBGridCursor }
 
@@ -508,6 +508,7 @@ procedure TmDBGrid.OnFilterValues(Sender: TObject);
 var
   dlg : TFilterValuesDlg;
   values : TStringList;
+  occurrences : TIntegerList;
   checkedValues : TStringList;
   i : integer;
   tmpFilter : TmFilter;
@@ -519,13 +520,14 @@ begin
     if FCurrentGridCol > 0 then
     begin
       currentColumn := Columns[FCurrentGridCol-1];
+      occurrences := TIntegerList.Create;
       values := TStringList.Create;
       dlg := TFilterValuesDlg.Create(Self);
       try
         try
           TWaitCursor.ShowWaitCursor('TmDBGrid.OnFilterValues');
-          FFilterManager.GetUniqueStringValuesForField(currentColumn.FieldName, values);
-          dlg.Init(values);
+          FFilterManager.GetUniqueStringValuesForField(currentColumn.FieldName, values, occurrences);
+          dlg.Init(values, occurrences);
         finally
           TWaitCursor.UndoWaitCursor('TmDBGrid.OnFilterValues');
         end;
@@ -569,6 +571,7 @@ begin
       finally
         dlg.Free;
         values.Free;
+        occurrences.Free;
       end;
     end;
   end;

@@ -664,6 +664,7 @@ procedure TmKGridHelper.OnFilterValues(Sender: TObject);
 var
   dlg: TFilterValuesDlg;
   values: TStringList;
+  occurrences : TIntegerList;
   checkedValues: TStringList;
   i: integer;
   tmpFilter: TmFilter;
@@ -673,13 +674,14 @@ begin
   if FCurrentCol >= 0 then
   begin
     currentField := ColToField(FCurrentCol);
+    occurrences := TIntegerList.Create;
     values := TStringList.Create;
     dlg := TFilterValuesDlg.Create(FGrid);
     try
       try
         TWaitCursor.ShowWaitCursor('TmKGridHelper.OnFilterValues');
-        FProvider.GetUniqueStringValuesForField(currentField.FieldName, values);
-        dlg.Init(values);
+        FProvider.GetUniqueStringValuesForField(currentField.FieldName, values, occurrences);
+        dlg.Init(values, occurrences);
       finally
         TWaitCursor.UndoWaitCursor('TmKGridHelper.OnFilterValues');
       end;
@@ -724,6 +726,7 @@ begin
     finally
       dlg.Free;
       values.Free;
+      occurrences.Free;
     end;
   end;
 end;

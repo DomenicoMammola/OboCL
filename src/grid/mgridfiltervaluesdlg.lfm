@@ -7,9 +7,10 @@ object FilterValuesDlg: TFilterValuesDlg
   ClientHeight = 240
   ClientWidth = 477
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   Position = poOwnerFormCenter
-  LCLVersion = '2.2.0.4'
+  LCLVersion = '3.6.0.0'
   object ButtonPanel1: TButtonPanel
     Left = 6
     Height = 26
@@ -45,6 +46,7 @@ object FilterValuesDlg: TFilterValuesDlg
         Height = 23
         Top = 0
         Width = 469
+        OnFilterItemEx = ListFilterEditFilterItemEx
         ButtonWidth = 23
         Align = alTop
         NumGlyphs = 1
@@ -96,9 +98,9 @@ object FilterValuesDlg: TFilterValuesDlg
           Width = 240
           Align = alClient
           ItemHeight = 0
-          OnClick = ListBoxToBeFilteredClick
           PopupMenu = PopupMenuValues
           TabOrder = 1
+          OnClick = ListBoxToBeFilteredClick
         end
       end
       object Splitter1: TSplitter
@@ -134,8 +136,8 @@ object FilterValuesDlg: TFilterValuesDlg
             Width = 75
             Align = alLeft
             Caption = 'Add all'
-            OnClick = BtnAddAllClick
             TabOrder = 0
+            OnClick = BtnAddAllClick
           end
           object BtnClear: TButton
             Left = 75
@@ -144,8 +146,8 @@ object FilterValuesDlg: TFilterValuesDlg
             Width = 75
             Align = alLeft
             Caption = 'Clear'
-            OnClick = BtnClearClick
             TabOrder = 1
+            OnClick = BtnClearClick
           end
         end
         object ListBoxFilter: TListBox
@@ -155,8 +157,8 @@ object FilterValuesDlg: TFilterValuesDlg
           Width = 224
           Align = alClient
           ItemHeight = 0
-          OnClick = ListBoxFilterClick
           TabOrder = 1
+          OnClick = ListBoxFilterClick
         end
       end
     end

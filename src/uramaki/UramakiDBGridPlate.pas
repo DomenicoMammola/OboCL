@@ -253,7 +253,7 @@ begin
   FLastSelectedRow:= nil;
   FLastSelectedRowsCount:= 0;
   if Assigned(Self.Parent) then
-    InvokeChildsRefresh;
+    UpdateChildsIfNeeded(false); //InvokeChildsRefresh;
 end;
 
 procedure TUramakiDBGridPlate.ConvertSelectionToUramakiRoll(aUramakiRoll: TUramakiRoll; aDoFillRollFromDatasetRow : TDoFillRollFromDatasetRow);

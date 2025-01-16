@@ -188,6 +188,7 @@ type
     FGridHelper : TmAbstractGridHelper;
     procedure OnEnableAutomaticChildsUpdate(Sender : TObject);
     procedure OnDisableAutomaticChildsUpdate(Sender : TObject);
+    procedure OnPopupMenu(Sender : TObject);
   public
     constructor Create(aPlate : TUramakiBaseGridPlate; aGridHelper: TmAbstractGridHelper);
     procedure CreateConfigureMenu(aToolbar : TUramakiToolbar; const aConfigureImageIndex : integer);
@@ -536,6 +537,7 @@ var
   itm : TMenuItem;
 begin
   FConfigurePopupMenu := TPopupMenu.Create(aToolbar);
+  FConfigurePopupMenu.OnPopup:= OnPopupMenu;
 
   with aToolbar.AddDropDownButton(FConfigurePopupMenu) do
   begin
@@ -601,13 +603,13 @@ begin
   FEnableAutomaticChildsUpdateMI := TMenuItem.Create(itm);
   itm.Add(FEnableAutomaticChildsUpdateMI);
   FEnableAutomaticChildsUpdateMI.Caption := SEnableAutomaticChildsUpdateCaption;
-  FEnableAutomaticChildsUpdateMI.Checked:= true;
+  FEnableAutomaticChildsUpdateMI.Checked:= (FGridPlate.AutomaticChildsUpdateMode = cuOnChangeSelection);
   FEnableAutomaticChildsUpdateMI.OnClick:= Self.OnEnableAutomaticChildsUpdate;
 
   FDisableAutomaticChildsUpdateMI := TMenuItem.Create(itm);
   itm.Add(FDisableAutomaticChildsUpdateMI);
   FDisableAutomaticChildsUpdateMI.Caption := SDisableAutomaticChildsUpdateCaption;
-  FDisableAutomaticChildsUpdateMI.Checked:= false;
+  FDisableAutomaticChildsUpdateMI.Checked:= (FGridPlate.AutomaticChildsUpdateMode = cuDisabled);
   FDisableAutomaticChildsUpdateMI.OnClick:= Self.OnDisableAutomaticChildsUpdate;
 end;
 
@@ -624,6 +626,12 @@ begin
   FEnableAutomaticChildsUpdateMI.Checked:= false;
   FDisableAutomaticChildsUpdateMI.Checked:= true;
   FGridPlate.AutomaticChildsUpdateMode:= cuDisabled;
+end;
+
+procedure TUramakiGridHelper.OnPopupMenu(Sender: TObject);
+begin
+  FEnableAutomaticChildsUpdateMI.Checked:= (FGridPlate.AutomaticChildsUpdateMode = cuOnChangeSelection);
+  FDisableAutomaticChildsUpdateMI.Checked:= (FGridPlate.AutomaticChildsUpdateMode = cuDisabled);
 end;
 
 

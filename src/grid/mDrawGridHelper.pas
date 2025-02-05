@@ -1156,12 +1156,13 @@ end;
 procedure TmDrawGridHelper.GetSelectedRows(aRows: TIntegerList);
 var
   grid : TmDrawGrid;
-  i, k, value : integer;
+  i, k, value, rc : integer;
   index : TmIntegerDictionary;
 begin
   aRows.Clear;
 
-  if FProvider.GetRecordCount = 0 then
+  rc := FProvider.GetRecordCount;
+  if rc = 0 then
     exit;
 
   grid := (FGrid as TmDrawGrid);
@@ -1172,7 +1173,7 @@ begin
       for k := grid.SelectedRange[i].Top to grid.SelectedRange[i].Bottom do
       begin
         value := k - grid.FixedRows;
-        if not index.Contains(value) then
+        if (value < rc) and (not index.Contains(value)) then
         begin
           aRows.Add(value);
           index.Add(value, index);

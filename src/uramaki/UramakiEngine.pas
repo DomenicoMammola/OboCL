@@ -72,12 +72,17 @@ type
   TUramakiEngineMediator = class (TUramakiAbstractEngineMediator)
   strict private
     FEngine : TUramakiEngine;
+    FDropFileEventHandlers : TObjectList;
+    procedure OnDropFiles (Sender: TObject; const FileNames: array of string);
   public
     constructor Create (aEngine : TUramakiEngine);
+    destructor Destroy; override;
+
     procedure PleaseAskMyFatherToRefreshItsChilds(aPlate : TUramakiPlate); override;
     procedure PleaseRefreshMyChilds (aPlate : TUramakiPlate); override;
     procedure PleaseClearMyChilds (aPlate : TUramakiPlate); override;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; override;
+    procedure RegisterDropFileEventHandler(aPlate : TUramakiPlate; aEvent : TDropFilesEvent); override;
   end;
 
 
@@ -130,7 +135,14 @@ type
 implementation
 
 uses
-  SysUtils;
+  SysUtils, Controls;
+
+type
+  TDropFilesEventHandler = class
+  public
+    plate : TUramakiPlate;
+    event : TDropFilesEvent;
+  end;
 
 { TUramakiEngineMessagesThread }
 
@@ -232,9 +244,39 @@ end;
 
 { TUramakiEngineMediator }
 
+procedure TUramakiEngineMediator.OnDropFiles(Sender: TObject; const FileNames: array of string);
+var
+  c : TControl;
+  i : integer;
+  hdl : TDropFilesEventHandler;
+begin
+  c := FindControlAtPosition(Mouse.CursorPos, false);
+  while (not (c is TUramakiPlate)) and Assigned(c.Parent) do
+    c := c.Parent;
+  if c is TUramakiPlate then
+  begin
+    for i := 0 to FDropFileEventHandlers.Count -1 do
+    begin
+      hdl := FDropFileEventHandlers.Items[i] as TDropFilesEventHandler;
+      if hdl.plate = (c as TUramakiPlate) then
+      begin
+        hdl.event(Sender, FileNames);
+        break;
+      end;
+    end;
+  end;
+end;
+
 constructor TUramakiEngineMediator.Create(aEngine: TUramakiEngine);
 begin
   FEngine := aEngine;
+  FDropFileEventHandlers := TObjectList.Create(true);
+end;
+
+destructor TUramakiEngineMediator.Destroy;
+begin
+  FDropFileEventHandlers.Free;
+  inherited Destroy;
 end;
 
 procedure TUramakiEngineMediator.PleaseAskMyFatherToRefreshItsChilds(aPlate: TUramakiPlate);
@@ -294,6 +336,26 @@ begin
   tmpLivingPlate := FEngine.FindLivingPlateByPlate(aPlate);
   if Assigned(tmpLivingPlate) then
     Result := tmpLivingPlate.InstanceIdentifier;
+end;
+
+procedure TUramakiEngineMediator.RegisterDropFileEventHandler(aPlate: TUramakiPlate; aEvent: TDropFilesEvent);
+var
+  frm : TForm;
+  hdl : TDropFilesEventHandler;
+begin
+  if FDropFileEventHandlers.Count = 0 then
+  begin
+    frm := aPlate.GetParentForm;
+    if Assigned(frm) then
+    begin
+      frm.AllowDropFiles:= true;
+      frm.OnDropFiles:= Self.OnDropFiles;
+    end;
+  end;
+  hdl := TDropFilesEventHandler.Create;
+  hdl.plate := aPlate;
+  hdl.event := aEvent;
+  FDropFileEventHandlers.Add(hdl);
 end;
 
 { TUramakiEngine }

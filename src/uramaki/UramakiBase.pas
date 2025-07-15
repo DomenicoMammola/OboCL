@@ -45,6 +45,7 @@ type
     procedure PleaseClearMyChilds (aPlate : TUramakiPlate); virtual; abstract;
     procedure PleaseAskMyFatherToRefreshItsChilds(aPlate : TUramakiPlate); virtual; abstract;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; virtual; abstract;
+    procedure RegisterDropFileEventHandler(aPlate : TUramakiPlate; aEvent : TDropFilesEvent); virtual; abstract;
   end;
 
   { TUramakiPlate }

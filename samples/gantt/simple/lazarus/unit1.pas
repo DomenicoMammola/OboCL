@@ -57,7 +57,7 @@ begin
   tmp.Color:= clSkyBlue;
   tmp.Flex:=4;
   tmp := FGanttChart.TimeRuler.AddTimeline(TmScaleWeek);
-  tmp.Scale.DisplayFormat:= '<UPPERCASE>Week <xx>';
+  tmp.Scale.DisplayFormat:= '<UPPERCASE>"Week" <xx>';
   tmp.Color:= clMedGray;
   tmp.Flex:=4;
   tmp := FGanttChart.TimeRuler.AddTimeline(TmScaleDay);

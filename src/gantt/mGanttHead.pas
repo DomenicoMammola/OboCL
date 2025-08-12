@@ -23,6 +23,7 @@ uses
   LclType,
   LclProc,
   LResources,
+  LMessages,
   {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ELSE}
   Types,
@@ -55,6 +56,11 @@ type
     procedure NotifySubscribers(EventKind: TmGanttHeadEventKind);
     procedure NotifyLayoutChanged(const AMustInvalidateHead : boolean);
     procedure SaveMouseMoveData(X, Y: integer);
+    {$ifdef fpc}
+    procedure CMMouseWheel(var Message: TLMMouseEvent); message LM_MOUSEWHEEL;
+    {$else}
+    procedure WMMouseWheel(var Message: TWMMouseWheel); message WM_MOUSEWHEEL;
+    {$endif}
   protected
     procedure Paint; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: integer); override;
@@ -146,9 +152,15 @@ begin
 end;
 
 procedure TmGanttHead.SetTopRow(AValue: integer);
+var
+  tmpValue : integer;
 begin
-  if FTopRow=AValue then Exit;
-  FTopRow:= max(0,AValue);
+  if not Assigned(FDataProvider) then
+    exit;
+
+  tmpValue := min(max(0,AValue), FDataProvider.RowCount - 1);
+  if FTopRow=tmpValue then Exit;
+  FTopRow:= tmpValue;
   NotifyScrolled(true);
 end;
 
@@ -235,6 +247,20 @@ begin
     end;
   end;
 end;
+
+{$ifdef fpc}
+procedure TmGanttHead.CMMouseWheel(var Message: TLMMouseEvent);
+{$else}
+procedure TmGanttHead.WMMouseWheel(var Message: TWMMouseWheel); //message WM_MOUSEWHEEL;
+{$endif}
+var
+  ScrollCount, ScrollLines: integer;
+begin
+  SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, @ScrollLines, 0);
+  ScrollCount := -ScrollLines * Message.WheelDelta div {$ifdef fpc}120{$else}WHEEL_DELTA{$endif}; // http://forum.lazarus.freepascal.org/index.php?topic=22722.0
+  SetTopRow(Self.TopRow + ScrollCount);
+end;
+
 
 procedure TmGanttHead.Paint;
 var

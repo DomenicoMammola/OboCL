@@ -22,6 +22,7 @@ type
     destructor Destroy; override;
 
     function RowCount : integer; override;
+    function GetRowFlex (const aRowIndex : integer): integer; override;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); override;
     function GetHeadText (const aRowIndex : integer): String; override;
   end;
@@ -86,6 +87,14 @@ uses
   begin
     Result := FBars.Count;
   end;
+
+function TTestDataProvider.GetRowFlex(const aRowIndex: integer): integer;
+begin
+  if aRowIndex = 2 then
+    Result := 4
+  else
+    Result := 1;
+end;
 
   procedure TTestDataProvider.GetGanttBars(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aGanttBars: TmGanttBarDataList);
   var

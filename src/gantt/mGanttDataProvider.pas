@@ -103,6 +103,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     function RowCount : integer; virtual; abstract;
+    function GetRowFlex (const aRowIndex : integer): integer; virtual;
     procedure GetGanttBars (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aGanttBars : TmGanttBarDataList); virtual; abstract;
     procedure GetHatches (const aRowIndex : integer; const aStartDate, aEndDate : TDateTime; aHatches : TmGanttHatchDataList); virtual;
     function GetHeadText (const aRowIndex : integer): String; virtual;
@@ -213,6 +214,11 @@ destructor TmGanttDataProvider.Destroy;
 begin
   FEventsSubscriptions.Destroy;
   inherited Destroy;
+end;
+
+function TmGanttDataProvider.GetRowFlex(const aRowIndex: integer): integer;
+begin
+  Result := 1;
 end;
 
 procedure TmGanttDataProvider.GetHatches(const aRowIndex: integer; const aStartDate, aEndDate: TDateTime; aHatches: TmGanttHatchDataList);

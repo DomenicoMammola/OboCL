@@ -13,8 +13,6 @@ unit mGantt;
   {$MODE DELPHI}
 {$ENDIF}
 
-{$I mDefines.inc}
-
 interface
 
 uses
@@ -286,15 +284,15 @@ begin
   limit := FHead.DataProvider.RowCount - FHead.TopRow;
 
   rowRect := aDrawingRect;
-  rowRect.Bottom:= aDrawingRect.Top + FHead.RowHeight -1;
+  rowRect.Bottom:= aDrawingRect.Top + (FHead.RowHeight * FHead.DataProvider.GetRowFlex(FHead.TopRow)) -1;
   k := 0;
   while (rowRect.Bottom < aDrawingRect.Bottom) and (k < limit) do
   begin
     aDrawingAction(aCanvas, rowRect, FHead.TopRow + k);
 
-    rowRect.Top := rowRect.Bottom + 1;
-    rowRect.Bottom := rowRect.Bottom + FHead.RowHeight;
     inc(k);
+    rowRect.Top := rowRect.Bottom + 1;
+    rowRect.Bottom := rowRect.Bottom + (FHead.RowHeight * FHead.DataProvider.GetRowFlex(FHead.TopRow + k));
   end;
 end;
 

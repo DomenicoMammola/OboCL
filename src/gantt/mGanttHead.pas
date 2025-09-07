@@ -13,8 +13,6 @@ unit mGanttHead;
   {$MODE DELPHI}
 {$ENDIF}
 
-{$I mDefines.inc}
-
 interface
 uses
   Classes, Controls, Graphics, contnrs,
@@ -129,7 +127,7 @@ begin
       while (RowRect.Top < EndPos) and (CurrentRow < DataProvider.RowCount) do
       begin
         aCanvas.Brush.Color:= FCellsColor;
-        RowRect.Bottom:= RowRect.Top + RowHeight;
+        RowRect.Bottom:= RowRect.Top + (RowHeight * DataProvider.GetRowFlex(CurrentRow));
         //if RowRect.Top = RowRect.Bottom then
         //  continue;
 
@@ -195,8 +193,8 @@ end;
 
 procedure TmGanttHead.SaveMouseMoveData(X, Y: integer);
 var
-  tempHeight, timerulHeight : integer;
-  CurrentPixelTop, CurrentPixelBottom : integer;
+  timerulHeight : integer;
+  r, CellTop, CellBottom : integer;
 begin
   FMouseMoveData.Clear;
   if not PtInRect(ClientRect, Classes.Point(X, Y)) then
@@ -208,42 +206,58 @@ begin
     else
       timerulHeight:= 0;
 
-    tempHeight:= (FDataProvider.RowCount - FTopRow + 1) * RowHeight;
-
-    if (Y >= timerulHeight) and ( Y <= tempHeight) then
+    if (Y >= timerulHeight) and (Y <= Self.Height) then
     begin
-      FMouseMoveData.ClickOnCell:= true;
-      FMouseMoveData.RowIndex := max(0,(Y - timerulHeight - DELIMITER_CLICKING_AREA))  div RowHeight;
-      {$IFDEF FPC}{$IFDEF DEBUG}
-      DebugLn('Y:' + IntToStr(Y));
-      DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
-      {$ENDIF}{$ENDIF}
+      CellTop := timerulHeight;
+      r := FTopRow;
+      CellBottom := CellTop + (DataProvider.GetRowFlex(r) * RowHeight);
+      while (Y > CellBottom) do
+      begin
+        if (r < DataProvider.RowCount) then
+        begin
+          inc(r);
+          CellTop := CellBottom;
+          CellBottom := CellBottom + (DataProvider.GetRowFlex(r) * RowHeight);
+        end
+        else
+        begin
+          r := -1;
+          break;
+        end;
+      end;
+
+      if r >= 0 then
+      begin
+        FMouseMoveData.ClickOnCell:= true;
+        FMouseMoveData.RowIndex := r;
+        {$IFDEF FPC}{$IFDEF DEBUG}
+        DebugLn('Y:' + IntToStr(Y));
+        DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
+        {$ENDIF}{$ENDIF}
+      end;
     end;
 
     if (FMouseMoveData.ClickOnCell) then
     begin
-      CurrentPixelTop := timerulHeight + (FMouseMoveData.RowIndex * RowHeight);
-      CurrentPixelBottom:= CurrentPixelTop + RowHeight - 1;
-      if (abs (Y - CurrentPixelBottom) <= DELIMITER_CLICKING_AREA) then
+      if (abs (Y - CellBottom) <= DELIMITER_CLICKING_AREA) then
       begin
         FMouseMoveData.ClickOnCellDelimiter:= true;
-        FMouseMoveData.Distance:= Y - CurrentPixelBottom;
-        FMouseMoveData.Origin := CurrentPixelBottom;
+        FMouseMoveData.Distance:= Y - CellBottom;
+        FMouseMoveData.Origin := CellBottom;
         {$IFDEF FPC}{$IFDEF DEBUG}
         DebugLn('SaveMouseMoveData - Distance [REDUCE]:' + IntToStr(FMouseMoveData.Distance));
         {$ENDIF}{$ENDIF}
       end
       else
-      if ((FMouseMoveData.RowIndex <> 0) or (TopRow > 0)) and (abs (Y - CurrentPixelTop) <= DELIMITER_CLICKING_AREA) then
+      if (FMouseMoveData.RowIndex <> FTopRow) and (abs (Y - CellTop ) <= DELIMITER_CLICKING_AREA) then
       begin
         FMouseMoveData.ClickOnCellDelimiter:= true;
-        FMouseMoveData.Distance:= Y - CurrentPixelTop;
-        FMouseMoveData.Origin:= CurrentPixelTop;
+        FMouseMoveData.Distance:= Y - CellTop;
+        FMouseMoveData.Origin:= CellTop;
         {$IFDEF FPC}{$IFDEF DEBUG}
         DebugLn('SaveMouseMoveData - Distance [INCREASE]:' + IntToStr(FMouseMoveData.Distance));
         {$ENDIF}{$ENDIF}
       end;
-
     end;
   end;
 end;
@@ -314,14 +328,21 @@ begin
 end;
 
 procedure TmGanttHead.MouseMove(Shift: TShiftState; X, Y: integer);
+var
+  i, k : integer;
 begin
   if FResizingRows and ({$ifdef windows}GetAsyncKeyState{$else}GetKeyState{$endif}(VK_LBUTTON) and $8000 <> 0) then
   begin
     if (FMouseMoveData.OriginalRowHeight = 0) then
-      FMouseMoveData.OriginalRowHeight := RowHeight;
+      FMouseMoveData.OriginalRowHeight := FDataProvider.GetRowFlex(FMouseMoveData.RowIndex) * Self.RowHeight;
     if (FMouseMoveData.CalculatedIncrement = 0) then
     begin
-      FMouseMoveData.CalculatedIncrement:= 1 / (FMouseMoveData.RowIndex + 1);
+      k := 0;
+      for i := FTopRow to FMouseMoveData.RowIndex do
+        inc(k, DataProvider.GetRowFlex(i));
+      if FMouseMoveData.Distance > 0 then
+        dec(k);
+      FMouseMoveData.CalculatedIncrement:= 1 / k;
       {$IFDEF FPC}{$IFDEF DEBUG}
       DebugLn('Calculated increment:' + FloatToStr(FMouseMoveData.CalculatedIncrement));
       {$ENDIF}{$ENDIF}

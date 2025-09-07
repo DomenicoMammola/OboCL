@@ -13,8 +13,6 @@ unit mTimeruler;
   {$MODE DELPHI}
 {$ENDIF}
 
-{$I mDefines.inc}
-
 interface
 
 uses

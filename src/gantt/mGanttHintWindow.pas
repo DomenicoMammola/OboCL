@@ -13,8 +13,6 @@ unit mGanttHintWindow;
   {$MODE DELPHI}
 {$ENDIF}
 
-{$I mDefines.inc}
-
 interface
 
 uses

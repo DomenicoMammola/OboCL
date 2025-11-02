@@ -646,6 +646,7 @@ var
   isInt, isFloat, isDate: boolean;
 begin
   aOutOfIndex:= false;
+  Result := '-';
   if (aRow < FProvider.GetRecordCount) and (aCol < FSortedVisibleCols.Count) then
   begin
     curField := ColToField(aCol);

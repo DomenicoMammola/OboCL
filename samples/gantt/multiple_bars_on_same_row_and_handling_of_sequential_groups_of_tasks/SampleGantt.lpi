@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <General>
+      <Flags>
+        <CompatibilityMode Value="True"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="SampleGantt"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
@@ -23,8 +25,8 @@
             <Filename Value="SampleGantt"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../src;../../src/gantt;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
+            <IncludeFiles Value="$(ProjOutDir);../../../thirdparties/Mommon/src"/>
+            <OtherUnitFiles Value="../../../src;../../../src/gantt;../../../thirdparties/Mommon/src;../../../thirdparties/ATFlatControls/atflatcontrols;.."/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -56,9 +58,6 @@
           </Linking>
           <Other>
             <CustomOptions Value="-dDEBUG"/>
-            <OtherDefines Count="1">
-              <Define0 Value="-dDEBUG"/>
-            </OtherDefines>
           </Other>
         </CompilerOptions>
       </Item2>
@@ -69,8 +68,8 @@
             <Filename Value="SampleGantt"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir)"/>
-            <OtherUnitFiles Value="../../src;../../src/gantt;../../thirdparties/Mommon/src;../../thirdparties/ATFlatControls/atflatcontrols"/>
+            <IncludeFiles Value="$(ProjOutDir);../../../thirdparties/Mommon/src"/>
+            <OtherUnitFiles Value="../../../src;../../../src/gantt;../../../thirdparties/Mommon/src;../../../thirdparties/ATFlatControls/atflatcontrols"/>
             <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -144,6 +143,7 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
+        <DebugInfoType Value="dsDwarf3"/>
         <UseHeaptrc Value="True"/>
       </Debugging>
       <Options>

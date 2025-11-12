@@ -37,11 +37,17 @@ implementation
 
 uses
   dateutils,
+  {$IFDEF FPC}
+  {$IFDEF DEBUG}
+  LazLoggerBase,
+  {$ELSE}
+  LazLoggerDummy,
+  {$ENDIF}
+  {$ENDIF}
   mGanttGraphics, mDateTimeUtility;
 
 {$R *.lfm}
 
-{$IFDEF FPC}{$IFDEF DEBUG}uses LazLogger;{$ENDIF}{$ENDIF}
 
 { TForm1 }
 
@@ -63,7 +69,7 @@ begin
   tmp.Color:= clTeal;
   tmp.Flex:=4;
   tmp := FGanttChart.TimeRuler.AddTimeline(TmScaleWeek);
-  tmp.Scale.DisplayFormat:= '<UPPERCASE>Week <xx>';
+  tmp.Scale.DisplayFormat:= '<UPPERCASE>"Week" <xx>';
   tmp.Color:= clLtGray;
   tmp.Flex:=4;
   tmp := FGanttChart.TimeRuler.AddTimeline(TmScaleDay);

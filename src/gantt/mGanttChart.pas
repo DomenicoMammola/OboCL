@@ -17,9 +17,6 @@ interface
 uses
   Controls, ExtCtrls, Classes,
   ATScrollBar,
-  {$IFDEF FPC}
-  {$IFDEF DEBUG}LazLogger,{$ENDIF}
-  {$ENDIF}
   mGantt, mGanttHead,
   mTimeruler, mGanttDataProvider;
 
@@ -58,7 +55,15 @@ type
 implementation
 
 uses
-  Forms, Math, sysutils;
+  Forms,
+  {$IFDEF FPC}
+  {$IFDEF DEBUG}
+  LazLoggerBase,
+  {$ELSE}
+  LazLoggerDummy,
+  {$ENDIF}
+  {$ENDIF}
+  sysutils;
 
 { TmGanttChart }
 
@@ -66,9 +71,9 @@ procedure TmGanttChart.OnChangeHorizonalScrollbar(Sender: TObject);
 begin
   FTimeruler.OnDateChanged:= nil;
   try
-    {$IFDEF FPC}{$IFDEF DEBUG}
+    {$IFDEF FPC}
     DebugLn('OnChangeHorizontalScrollbar - position:' + IntToStr((Sender as TATScrollbar).Position));
-    {$ENDIF}{$ENDIF}
+    {$ENDIF}
     FTimeRuler.CurrentDate:= FTimeruler.MinDate + (Sender as TATScrollbar).Position * FHorizontalScrollbarRelativeIncrement;
   finally
     FTimeruler.OnDateChanged:= Self.OnTimerulerDateChanged;

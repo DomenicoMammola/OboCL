@@ -32,6 +32,13 @@ implementation
 
 uses
   sysutils, dateutils, Graphics,
+  {$IFDEF FPC}
+  {$IFDEF DEBUG}
+  LazLoggerBase,
+  {$ELSE}
+  LazLoggerDummy,
+  {$ENDIF}
+  {$ENDIF}
   mGraphicsUtility, mGanttGraphics, mDateTimeUtility;
 
 { TTestDataProvider }
@@ -89,10 +96,8 @@ begin
     begin
       aGanttBars.Add(curBar);
       {$ifdef fpc}
-      {$IFDEF DEBUG}
       DebugLn('Intersect OK - curBar.StartTime:' + DateTimeToStr(curBar.StartTime) + ' curBar.EndTime:' + DateTimeToStr(curBar.EndTime) +
        ' aStartDate:' + DateTimeToStr(aStartDate) + ' aEndDate:' + DateTimeToStr(aEndDate));
-     {$ENDIF}
      {$endif}
     end;
   end;

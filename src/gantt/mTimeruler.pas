@@ -23,12 +23,10 @@ uses
   InterfaceBase,
   LCLIntf,
   LclType,
-  LclProc,
   LResources,
   LMessages,
-  {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ELSE}
-  Types,
+  Messages, Types,
   {$ENDIF}
 
   mDateTimeUtility,
@@ -36,7 +34,7 @@ uses
   mTimerulerScales, mTimerulerTimelines,
   mGanttGraphics, mGanttGUIClasses, mGanttEvents,
 
-  Dialogs, Messages;
+  Dialogs;
 type
   TmTimeruler = class;
 
@@ -122,7 +120,15 @@ type
 
 implementation
 
-uses Math, SysUtils, Forms;
+uses Math,
+  {$IFDEF fpc}
+  {$IFDEF DEBUG}
+  LazLoggerBase,
+  {$ELSE}
+  LazLoggerDummy,
+  {$ENDIF}
+  {$ENDIF}
+  SysUtils, Forms;
 
 const
   DELIMITER_CLICKING_AREA : integer = 4;
@@ -433,7 +439,7 @@ begin
       tmpCanvas := FDoubleBufferedBitmap.Canvas
     else
       tmpCanvas := Self.Canvas;
-    drawingRect:= ClientRect; // ClientRect; //  FullRect:= Canvas.ClipRect;
+    drawingRect:= ClientRect;
     //DebugLn(IntToStr(FullRect.Left) + ' ' + IntToStr(FullRect.Width));
     tmpCanvas.Lock;
     try

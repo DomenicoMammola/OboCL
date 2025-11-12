@@ -91,7 +91,6 @@ begin
   MaxLength:= le * 1.2;
 end;
 
-{$IFDEF FPC}{$IFDEF DEBUG}uses LazLogger;{$ENDIF}{$ENDIF}
 
 { TTestExperimentsDataProvider }
 

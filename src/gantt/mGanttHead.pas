@@ -19,10 +19,8 @@ uses
   {$IFDEF FPC}
   LCLIntf,
   LclType,
-  LclProc,
   LResources,
   LMessages,
-  {$IFDEF DEBUG}LazLogger,{$ENDIF}
   {$ELSE}
   Types,
   {$ENDIF}
@@ -84,6 +82,13 @@ implementation
 
 uses
   math, Forms, sysutils,
+  {$IFDEF FPC}
+  {$IFDEF DEBUG}
+  LazLoggerBase,
+  {$ELSE}
+  LazLoggerDummy,
+  {$ENDIF}
+  {$ENDIF}
   mGanttGraphics;
 
 { TmGanttHead }
@@ -230,10 +235,10 @@ begin
       begin
         FMouseMoveData.ClickOnCell:= true;
         FMouseMoveData.RowIndex := r;
-        {$IFDEF FPC}{$IFDEF DEBUG}
+        {$IFDEF FPC}
         DebugLn('Y:' + IntToStr(Y));
         DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
-        {$ENDIF}{$ENDIF}
+        {$ENDIF}
       end;
     end;
 
@@ -244,9 +249,9 @@ begin
         FMouseMoveData.ClickOnCellDelimiter:= true;
         FMouseMoveData.Distance:= Y - CellBottom;
         FMouseMoveData.Origin := CellBottom;
-        {$IFDEF FPC}{$IFDEF DEBUG}
+        {$IFDEF FPC}
         DebugLn('SaveMouseMoveData - Distance [REDUCE]:' + IntToStr(FMouseMoveData.Distance));
-        {$ENDIF}{$ENDIF}
+        {$ENDIF}
       end
       else
       if (FMouseMoveData.RowIndex <> FTopRow) and (abs (Y - CellTop ) <= DELIMITER_CLICKING_AREA) then
@@ -254,9 +259,9 @@ begin
         FMouseMoveData.ClickOnCellDelimiter:= true;
         FMouseMoveData.Distance:= Y - CellTop;
         FMouseMoveData.Origin:= CellTop;
-        {$IFDEF FPC}{$IFDEF DEBUG}
+        {$IFDEF FPC}
         DebugLn('SaveMouseMoveData - Distance [INCREASE]:' + IntToStr(FMouseMoveData.Distance));
-        {$ENDIF}{$ENDIF}
+        {$ENDIF}
       end;
     end;
   end;
@@ -343,9 +348,9 @@ begin
       if FMouseMoveData.Distance > 0 then
         dec(k);
       FMouseMoveData.CalculatedIncrement:= 1 / k;
-      {$IFDEF FPC}{$IFDEF DEBUG}
+      {$IFDEF FPC}
       DebugLn('Calculated increment:' + FloatToStr(FMouseMoveData.CalculatedIncrement));
-      {$ENDIF}{$ENDIF}
+      {$ENDIF}
     end;
     RowHeight:= max(5, FMouseMoveData.OriginalRowHeight + trunc((Y - FMouseMoveData.Origin) * FMouseMoveData.CalculatedIncrement));
     NotifyLayoutChanged(true);

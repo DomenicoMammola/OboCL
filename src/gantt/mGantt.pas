@@ -21,9 +21,7 @@ uses
   InterfaceBase,
   LCLIntf,
   LclType,
-  LclProc,
   LResources,
-  LMessages,
   {$ELSE}
   Types,
   {$ENDIF}
@@ -133,6 +131,13 @@ implementation
 
 uses
   math, Forms, sysutils,
+  {$IFDEF FPC}
+  {$IFDEF DEBUG}
+  LazLoggerBase,
+  {$ELSE}
+  LazLoggerDummy,
+  {$ENDIF}
+  {$ENDIF}
   mGanttEvents, mGanttGraphics, mGanttHintWindow;
 
 type
@@ -286,7 +291,10 @@ begin
   rowRect := aDrawingRect;
   rowRect.Bottom:= aDrawingRect.Top + (FHead.RowHeight * FHead.DataProvider.GetRowFlex(FHead.TopRow)) -1;
   k := 0;
-  while (rowRect.Bottom < aDrawingRect.Bottom) and (k < limit) do
+  {$IFDEF FPC}
+  DebugLn('rowRect.Top:' + IntToStr(rowRect.Top) + ' aDrawingRect.Bottom:' + IntToStr(aDrawingRect.Bottom));
+  {$ENDIF}
+  while (rowRect.Top < aDrawingRect.Bottom) and (k < limit) do
   begin
     aDrawingAction(aCanvas, rowRect, FHead.TopRow + k);
 
@@ -383,10 +391,10 @@ begin
     if (Y >= 0) and ( Y <= tempHeight) then
     begin
       FMouseMoveData.RowIndex := Y  div FHead.RowHeight;
-      {$IFDEF FPC}{$IFDEF DEBUG}
+      {$IFDEF FPC}
       DebugLn('Y:' + IntToStr(Y));
       DebugLn('Row index:' + IntToStr(FMouseMoveData.RowIndex));
-      {$ENDIF}{$ENDIF}
+      {$ENDIF}
     end;
 
     if FMouseMoveData.RowIndex < FHead.DataProvider.RowCount then
@@ -409,9 +417,9 @@ begin
             FMouseMoveData.MouseOnBarDelimiter:= true;
             FMouseMoveData.MouseOnBar:= false;
           end;
-          {$IFDEF FPC}{$IFDEF DEBUG}
+          {$IFDEF FPC}
           DebugLn('Click on bar');
-          {$ENDIF}{$ENDIF}
+          {$ENDIF}
         end;
       finally
         bars.Free;

@@ -217,6 +217,7 @@ var
   fields : TStringList;
   i, q : integer;
   tmpCheckBox: TCheckBox;
+  tmpLabel : TLabel;
 begin
   fields := TStringList.Create;
   try
@@ -229,13 +230,24 @@ begin
       FBottomPanel.Visible:= true;
       for i := FInstantQueryManagerAdditionalOptions.Count - 1 downto 0 do
       begin
-        tmpCheckBox := TCheckBox.Create(FBottomPanel);
-        tmpCheckBox.Parent := FBottomPanel;
-        tmpCheckBox.Caption := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).Caption + '  ';
-        tmpCheckBox.Checked := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).DefaultValue;
-        tmpCheckBox.Tag:= i;
-        tmpCheckBox.OnChange := OnChangeOption;
-        tmpCheckBox.Align:= alLeft;
+        if TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).OnlyLabel then
+        begin
+          tmpLabel := TLabel.Create(FBottomPanel);
+          tmpLabel.Parent := FBottomPanel;
+          tmpLabel.Caption := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).Caption + '  ';
+          tmpLabel.Align:= alLeft;
+          tmpLabel.AutoSize:= true;
+        end
+        else
+        begin
+          tmpCheckBox := TCheckBox.Create(FBottomPanel);
+          tmpCheckBox.Parent := FBottomPanel;
+          tmpCheckBox.Caption := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).Caption + '  ';
+          tmpCheckBox.Checked := TInstantQueryManagerAdditionalOption(FInstantQueryManagerAdditionalOptions.Items[i]).DefaultValue;
+          tmpCheckBox.Tag:= i;
+          tmpCheckBox.OnChange := OnChangeOption;
+          tmpCheckBox.Align:= alLeft;
+        end;
       end;
     end;
 

@@ -225,18 +225,12 @@ end;
 procedure TmToast.ShowAtPos(x: Integer; y: Integer);
 begin
   if x + FNotifierForm.Width > FNotifierForm.Monitor.Width then
-  begin
-    FNotifierForm.left := x - FNotifierForm.Width;
-    if FNotifierForm.Left < 0 then FNotifierForm.Left := 0;
-  end
+    FNotifierForm.left := max(0, x - FNotifierForm.Width)
   else
     FNotifierForm.left := x;
 
   if y + FNotifierForm.Height > FNotifierForm.Monitor.Height then
-  begin
-    FNotifierForm.top := y - FNotifierForm.Height;
-    if FNotifierForm.top < 0 then FNotifierForm.top := 0;
-  end
+    FNotifierForm.top := max(0, y - FNotifierForm.Height)
   else
     FNotifierForm.top := y;
 

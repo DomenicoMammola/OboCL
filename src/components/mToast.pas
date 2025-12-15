@@ -73,7 +73,7 @@ type
 implementation
 
 uses
-  sysutils, Controls,
+  sysutils, Controls, Math,
   mMagnificationFactor;
 
 const

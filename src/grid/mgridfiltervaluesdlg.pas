@@ -230,7 +230,7 @@ begin
           if PageControlFilter.ActivePageIndex = 0 then
           begin
             for i := 0 to ValuesListBox.Count - 1 do
-              tmpList.Append(ValuesListBox.Items[i]);
+              tmpList.Append((ValuesListBox.Items.Objects[i] as TStringObject).Value);
           end
           else
             tmpList.AddStrings(ListBoxToBeFiltered.Items);

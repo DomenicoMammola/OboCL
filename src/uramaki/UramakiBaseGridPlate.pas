@@ -198,7 +198,7 @@ implementation
 
 uses
   variants,
-  mGraphicsUtility, mMagnificationFactor
+  mGraphicsUtility, mMagnificationFactor, mFilterToXML
   {$IFDEF DEBUG}, mLog, mUtility{$ENDIF}
   ;
 
@@ -790,6 +790,9 @@ end;
 procedure TUramakiBaseGridPlate.LoadConfigurationFromXML(aXMLElement: TmXmlElement);
 var
   Cursor : TmXmlElementCursor;
+  i : integer;
+  curFilter : TmFilter;
+  pnl : TmFilterConditionPanel;
 begin
   Cursor := TmXmlElementCursor.Create(aXMLElement, 'gridConfiguration');
   try
@@ -810,15 +813,45 @@ begin
   finally
     Cursor.Free;
   end;
+  if Assigned(FFilterPanel) then
+  begin
+    Cursor := TmXmlElementCursor.Create(aXMLElement, 'filter');
+    curFilter := TmFilter.Create;
+    try
+      for i := 0 to Cursor.Count - 1 do
+      begin
+        ImportFilterFromXML(curFilter, Cursor.Elements[i]);
+        pnl := FFilterPanel.GetFilterPanelForFieldName(curFilter.FieldName);
+        if Assigned(pnl) then
+          pnl.ImportFromFilter(curFilter);
+      end;
+    finally
+      curFilter.Free;
+      Cursor.Free;
+    end;
+  end;
 end;
 
 procedure TUramakiBaseGridPlate.SaveConfigurationToXML(aXMLElement: TmXmlElement);
 var
   tmpElement : TmXmlElement;
+  tmpFilters : TmFilters;
+  i : integer;
 begin
   GetGridHelper.SaveSettingsToXML(aXMLElement.AddElement('gridConfiguration'));
   tmpElement := aXMLElement.AddElement('refreshChildsConfiguration');
   tmpElement.SetBooleanAttribute('automatic', (Self.AutomaticChildsUpdateMode = cuOnChangeSelection));
+  if Assigned(FFilterPanel) then
+  begin
+    tmpFilters := TmFilters.Create;
+    try
+      FFilterPanel.GetFilters(tmpFilters);
+      for i := 0 to tmpFilters.Count - 1 do
+        ExportFilterToXML(tmpFilters.Get(i), aXMLElement.AddElement('filter'));
+    finally
+      tmpFilters.Free;
+    end;
+  end;
 end;
 
 

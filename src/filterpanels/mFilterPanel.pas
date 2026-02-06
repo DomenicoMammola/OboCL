@@ -266,6 +266,7 @@ type
     procedure AddFilterCondition (aPanel : TmFilterConditionPanel);
     procedure ClearAll();
     procedure GetFilters (aFilters : TmFilters);
+    function GetFilterPanelForFieldName(const aFieldName : String) : TmFilterConditionPanel;
   end;
 
 
@@ -729,6 +730,23 @@ begin
     if not tmp.IsEmpty then
     begin
       tmp.ExportToFilter(aFilters.Add);
+    end;
+  end;
+end;
+
+function TmFilterPanel.GetFilterPanelForFieldName(const aFieldName: String): TmFilterConditionPanel;
+var
+  i : integer;
+  tmp : TmFilterConditionPanel;
+begin
+  Result := nil;
+  for i := 0 to FFilterConditionPanels.Count - 1 do
+  begin
+    tmp := TmFilterConditionPanel(FFilterConditionPanels.Items[i]);
+    if tmp.FieldName = aFieldName then
+    begin
+      Result := tmp;
+      exit;
     end;
   end;
 end;

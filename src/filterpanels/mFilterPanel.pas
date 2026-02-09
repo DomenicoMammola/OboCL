@@ -41,6 +41,7 @@ type
     FOperatorsMenuItems : TList;
     FAllowedOperators : TmFilterOperatorsSet;
     FStandardLabelFontSize : integer;
+    FRestorable : boolean;
     function CreateStandardLabel: TLabel;
     function CreateStandardFilterMenu (aLabel: TLabel; const aAddFilterOperators : boolean) : TPopupMenu;
     procedure ApplyFilterCaption (aLabel : TLabel; const aValue : String; const aShowOperator: boolean= true);
@@ -59,6 +60,7 @@ type
 
     procedure ExportToFilter (aFilter : TmFilter); virtual;
     procedure ImportFromFilter (const aFilter: TmFilter); virtual;
+    function CanBeImported(const aFilter: TmFilter): boolean; virtual;
 
     function IsEmpty : boolean; virtual; abstract;
     procedure Clear; virtual; abstract;
@@ -67,6 +69,7 @@ type
     property FieldName : String read FFieldName write FFieldName;
     property FilterOperator : TmFilterOperator read FFilterOperator write SetFilterOperator;
     property AllowedOperators : TmFilterOperatorsSet read FAllowedOperators write FAllowedOperators;
+    property Restorable : boolean read FRestorable write FRestorable; // its status (operator + value) can be restored by file when loading a report?
   end;
 
   { TmDateFilterConditionPanel }
@@ -134,6 +137,7 @@ type
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
     procedure ImportFromFilter (const aFilter: TmFilter); override;
+    function CanBeImported(const aFilter: TmFilter): boolean; override;
     procedure AddItem (aValue : String); overload;
     procedure AddItem (aLabel : String; aValue : Variant); overload;
     procedure ClearItems;
@@ -163,6 +167,7 @@ type
     procedure SetFilterCaption (aValue : String); override;
     procedure ExportToFilter (aFilter : TmFilter); override;
     procedure ImportFromFilter (const aFilter: TmFilter); override;
+    function CanBeImported(const aFilter: TmFilter): boolean; override;
     procedure AddItem (aValue : String); overload;
     procedure AddItem (aLabel : String; aValue : Variant); overload;
     procedure ClearItems;
@@ -215,6 +220,7 @@ type
   protected
     procedure OnShowLookup (Sender: TObject); override;
   public
+    function CanBeImported(const aFilter: TmFilter): boolean; override;
     property DataProvider : IVDDataProvider read FDataProvider write FDataProvider;
   end;
 
@@ -413,6 +419,40 @@ begin
   FEdit.Text:= aFilter.DisplayValue;
 end;
 
+function TmCheckListFilterConditionPanel.CanBeImported(const aFilter: TmFilter): boolean;
+var
+  i, k, found : integer;
+  tmpList : TStringList;
+begin
+  Result:=inherited CanBeImported(aFilter);
+  if Result then
+  begin
+    if not VarIsNull(aFilter.Value) then
+    begin
+      Result := false;
+      tmpList := TStringList.Create;
+      try
+        mUtility.ConvertVariantToStringList(aFilter.Value, tmpList);
+        found := 0;
+        for i := 0 to tmpList.Count - 1 do
+        begin
+          for k := 0 to FValues.Count -1 do
+          begin
+            if tmpList.Strings[i] = VarToStr((FGarbage.Items[k] as TVariantObject).Value) then
+            begin
+              inc (found);
+              break;
+            end;
+          end;
+        end;
+        Result := (found = tmpList.Count);
+      finally
+        tmpList.Free;
+      end;
+    end;
+  end;
+end;
+
 procedure TmCheckListFilterConditionPanel.AddItem(aValue: String);
 begin
   Self.AddItem(aValue, aValue);
@@ -495,6 +535,37 @@ begin
     end;
   finally
     lookupFrm.Free;
+  end;
+end;
+
+function TmLookupFilterConditionPanel.CanBeImported(const aFilter: TmFilter): boolean;
+var
+  i : integer;
+begin
+  Result:=inherited CanBeImported(aFilter);
+  if Result then
+  begin
+    if not VarIsNull(aFilter.Value) then
+    begin
+      if FDataProvider.Count = 0 then
+        Result := true
+      else
+      begin
+        if Self.KeyFieldName = '' then
+          Result := Assigned(FDataProvider.FindDatumByStringKey(VarToStr(aFilter.Value)))
+        else
+        begin
+          for i := 0 to FDataProvider.Count - 1 do
+          begin
+            if CompareVariants(FDataProvider.GetDatum(i).GetPropertyByFieldName(Self.KeyFieldName), aFilter.Value) = 0 then
+            begin
+              Result := true;
+              exit;
+            end;
+          end;
+        end;
+      end;
+    end;
   end;
 end;
 
@@ -922,7 +993,7 @@ begin
   end;
 end;
 
-procedure TmComboFilterConditionPanel.CustomDrawItem(Control: TWinControl; Index: Integer; ARect: Types.TRect; State: StdCtrls.TOwnerDrawState);
+procedure TmComboFilterConditionPanel.CustomDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: StdCtrls.TOwnerDrawState);
 var
   tmpRect : TRect;
 begin
@@ -994,10 +1065,32 @@ begin
   begin
     for i := 0 to FCombobox.Items.Count - 1 do
     begin
-      if CompareVariants((FComboBox.Items.Objects[i] as TVariantObject).Value, aFilter.Value) = 0 then
+      if (CompareVariants((FComboBox.Items.Objects[i] as TVariantObject).Value, aFilter.Value) = 0) or (VarToStr((FComboBox.Items.Objects[i] as TVariantObject).Value) = VarToStr(aFilter.Value)) then
       begin
         FComboBox.ItemIndex := i;
         break;
+      end;
+    end;
+  end;
+end;
+
+function TmComboFilterConditionPanel.CanBeImported(const aFilter: TmFilter): boolean;
+var
+  i : integer;
+begin
+  Result:=inherited CanBeImported(aFilter);
+  if Result then
+  begin
+    if (not VarIsNull(aFilter.Value)) and (FGarbage.Count > 0) then
+    begin
+      Result := false;
+      for i := 0 to FGarbage.Count - 1 do
+      begin
+        if (CompareVariants((FGarbage.Items[i] as TVariantObject).Value, aFilter.Value) = 0) or (VarToStr((FGarbage.Items[i] as TVariantObject).Value) = VarToStr(aFilter.Value)) then
+        begin
+          Result := true;
+          break;
+        end;
       end;
     end;
   end;
@@ -1437,6 +1530,7 @@ begin
   Self.Height := ScaleForMagnification(DEFAULT_HEIGHT, true);
   Self.FFilterOperator:= foUnknown;
   Self.FAllowedOperators:= [];
+  Self.FRestorable:= true;
   FOperatorsMenuItems := TList.Create;
 end;
 
@@ -1460,6 +1554,11 @@ end;
 procedure TmFilterConditionPanel.ImportFromFilter(const aFilter: TmFilter);
 begin
   Self.FilterOperator := aFilter.FilterOperator;
+end;
+
+function TmFilterConditionPanel.CanBeImported(const aFilter: TmFilter): boolean;
+begin
+  Result := (Self.AllowedOperators = []) or (aFilter.FilterOperator in Self.AllowedOperators);
 end;
 
 end.

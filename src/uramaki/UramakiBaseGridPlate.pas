@@ -822,7 +822,7 @@ begin
       begin
         ImportFilterFromXML(curFilter, Cursor.Elements[i]);
         pnl := FFilterPanel.GetFilterPanelForFieldName(curFilter.FieldName);
-        if Assigned(pnl) then
+        if Assigned(pnl) and pnl.Restorable and pnl.CanBeImported(curFilter) then
           pnl.ImportFromFilter(curFilter);
       end;
     finally

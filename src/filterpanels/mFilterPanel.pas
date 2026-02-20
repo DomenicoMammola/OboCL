@@ -97,6 +97,7 @@ type
 
   TmEditFilterValueType = (efString, efUppercaseString, efInteger, efFloat, efUniqueIdentifier, efDate, efDateTime);
   TmComboCheckLookupFilterValueType = (cfString, cfInteger, cfFloat, cfDate, cfDateTime);
+  TmComboFilterConditionPanelOnChange = procedure (const aSender : TObject) of object;
 
   { TmEditFilterConditionPanel }
 
@@ -128,8 +129,10 @@ type
     FDefaultItemIndex : integer;
     FValueType : TmComboCheckLookupFilterValueType;
     FWidthOptimized : boolean;
+    FExternalOnChange : TmComboFilterConditionPanelOnChange;
     procedure SetDefaultItemIndex(AValue: integer);
     procedure OnDropDown(Sender : TObject);
+    procedure InternalOnChange(Sender : TObject);
     procedure CustomDrawItem (Control: TWinControl; Index: Integer;ARect: TRect; State: StdCtrls.TOwnerDrawState);
   public
     constructor Create(TheOwner: TComponent); override;
@@ -148,6 +151,7 @@ type
 
     property DefaultItemIndex : integer read FDefaultItemIndex write SetDefaultItemIndex;
     property ValueType : TmComboCheckLookupFilterValueType read FValueType write FValueType;
+    property OnChange : TmComboFilterConditionPanelOnChange read FExternalOnChange write FExternalOnChange;
   end;
 
   { TmCheckListFilterConditionPanel }
@@ -993,6 +997,12 @@ begin
   end;
 end;
 
+procedure TmComboFilterConditionPanel.InternalOnChange(Sender: TObject);
+begin
+  if Assigned(FExternalOnChange) then
+    FExternalOnChange(Sender);
+end;
+
 procedure TmComboFilterConditionPanel.CustomDrawItem(Control: TWinControl; Index: Integer; ARect: TRect; State: StdCtrls.TOwnerDrawState);
 var
   tmpRect : TRect;
@@ -1015,6 +1025,7 @@ begin
   {$endif}
   FCombobox.DropDownCount:= 20;
   FCombobox.OnDropDown:= Self.OnDropDown;
+  FCombobox.OnChange:= Self.InternalOnChange;
   ScaleFontForMagnification(FCombobox.Font);
   FCombobox.Height := ScaleForMagnification(FCombobox.Height, true);
   FLabel := Self.CreateStandardLabel;
@@ -1023,6 +1034,7 @@ begin
   CreateStandardFilterMenu(FLabel, false);
   FValueType:= cfString;
   FWidthOptimized := false;
+  FExternalOnChange:= nil;
 end;
 
 destructor TmComboFilterConditionPanel.Destroy;

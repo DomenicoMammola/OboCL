@@ -128,7 +128,7 @@ begin
             begin
               FDBGrid.SelectedRows.CurrentRowSelected:= true;
               if firstSelectedRecNo = -1 then
-                FDBGrid.DataSource.DataSet.RecNo;
+                firstSelectedRecNo := FDBGrid.DataSource.DataSet.RecNo;
             end
             else
               FDBGrid.SelectedRows.CurrentRowSelected:= false;

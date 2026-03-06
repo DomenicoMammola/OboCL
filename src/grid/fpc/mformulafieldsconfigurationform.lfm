@@ -1,14 +1,14 @@
 object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
-  Left = 1861
+  Left = 952
   Height = 389
   Top = 236
   Width = 959
   Caption = 'Formula fields'
   ClientHeight = 389
   ClientWidth = 959
-  OnCreate = FormCreate
   Position = poMainFormCenter
-  LCLVersion = '1.8.4.0'
+  LCLVersion = '4.6.0.0'
+  OnCreate = FormCreate
   object BottomPanel: TPanel
     Left = 0
     Height = 50
@@ -27,8 +27,8 @@ object FormulaFieldsConfigurationForm: TFormulaFieldsConfigurationForm
       Default = True
       DefaultCaption = True
       Kind = bkOK
-      OnClick = OkBtnClick
       TabOrder = 0
+      OnClick = OkBtnClick
     end
     object CancelBtn: TBitBtn
       Left = 871

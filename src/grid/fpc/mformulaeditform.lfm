@@ -1,27 +1,27 @@
 object FormulaEditForm: TFormulaEditForm
-  Left = 1704
-  Height = 217
-  Top = 104
-  Width = 543
+  Left = 502
+  Height = 451
+  Top = 317
+  Width = 771
   Caption = 'Edit formula'
-  ClientHeight = 217
-  ClientWidth = 543
+  ClientHeight = 451
+  ClientWidth = 771
+  Position = poMainFormCenter
+  LCLVersion = '4.6.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
-  Position = poMainFormCenter
-  LCLVersion = '1.8.4.0'
   object BottomPanel: TPanel
     Left = 0
     Height = 50
-    Top = 167
-    Width = 543
+    Top = 401
+    Width = 771
     Align = alBottom
     ClientHeight = 50
-    ClientWidth = 543
+    ClientWidth = 771
     TabOrder = 0
     object OkBtn: TBitBtn
-      Left = 375
+      Left = 603
       Height = 30
       Top = 8
       Width = 75
@@ -29,11 +29,11 @@ object FormulaEditForm: TFormulaEditForm
       Default = True
       DefaultCaption = True
       Kind = bkOK
-      OnClick = OkBtnClick
       TabOrder = 0
+      OnClick = OkBtnClick
     end
     object CancelBtn: TBitBtn
-      Left = 455
+      Left = 683
       Height = 30
       Top = 8
       Width = 75
@@ -47,9 +47,9 @@ object FormulaEditForm: TFormulaEditForm
   end
   object PageControl: TPageControl
     Left = 0
-    Height = 167
+    Height = 260
     Top = 0
-    Width = 543
+    Width = 771
     ActivePage = TSEditFormula
     Align = alClient
     TabIndex = 0
@@ -57,5 +57,26 @@ object FormulaEditForm: TFormulaEditForm
     object TSEditFormula: TTabSheet
       Caption = 'Edit formula'
     end
+  end
+  object LBHelp: TListBox
+    Left = 0
+    Height = 136
+    Top = 265
+    Width = 771
+    Align = alBottom
+    ItemHeight = 0
+    Style = lbOwnerDrawFixed
+    TabOrder = 2
+    OnDblClick = LBHelpDblClick
+    OnDrawItem = LBHelpDrawItem
+  end
+  object Splitter1: TSplitter
+    Cursor = crVSplit
+    Left = 0
+    Height = 5
+    Top = 260
+    Width = 771
+    Align = alBottom
+    ResizeAnchor = akBottom
   end
 end

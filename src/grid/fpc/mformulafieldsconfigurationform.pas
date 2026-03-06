@@ -44,7 +44,6 @@ implementation
 uses
   mFormSetup;
 
-
 {$R *.lfm}
 
 { TFormulaFieldsConfigurationForm }

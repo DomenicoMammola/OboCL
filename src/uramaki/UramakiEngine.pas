@@ -16,8 +16,11 @@ unit UramakiEngine;
 interface
 
 uses
-  Classes, contnrs, syncobjs, Forms,
-  mUtility, mXML,
+  Classes, contnrs, syncobjs, Forms, Controls
+  {$IFDEF MSWINDOWS}
+  ,Windows, ActiveX, ShlObj, ComObj
+  {$ENDIF}
+  , mUtility, mXML,
   UramakiBase, UramakiEngineClasses;
 
 type
@@ -27,12 +30,21 @@ type
   TUramakiEngineMessage = class
   end;
 
+  {$IFDEF MSWINDOWS}
+  TDropFileItem = record
+    FileName: UnicodeString;
+    FullPath: string;
+    Data: TMemoryStream;
+  end;
+  TDropFilesList = array of TDropFileItem;
+  {$ENDIF}
+
   { TUramakiEngineMessageQueue }
 
   TUramakiEngineMessageQueue = class
   private
     FMessages: TObjectList;
-    FCriticalSection: TCriticalSection;
+    FCriticalSection: SyncObjs.TCriticalSection;
     FEvent : TSimpleEvent;
   public
     constructor Create;
@@ -83,6 +95,11 @@ type
     procedure PleaseClearMyChilds (aPlate : TUramakiPlate); override;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; override;
     procedure RegisterDropFileEventHandler(aPlate : TUramakiPlate; aEvent : TDropFilesEvent); override;
+    procedure RemoveHandlerAndFree(aHandler: TObject);
+    {$IFDEF MSWINDOWS}
+    function GetHandlerCountForHandle(aHandle: HWND): Integer;
+    procedure ProcessOLEAndNotify(APlate: TWinControl; const aFiles: TDropFilesList);
+    {$ENDIF}
   end;
 
 
@@ -135,14 +152,250 @@ type
 implementation
 
 uses
-  SysUtils, Controls;
+  SysUtils, FileUtil;
+
+const
+  CFSTR_FILEDESCRIPTORW = 'FileGroupDescriptorW';
+  CFSTR_FILECONTENTS    = 'FileContents';
 
 type
+
+  { TDropFilesEventHandler }
+
   TDropFilesEventHandler = class
+  private
+    FIsFreeing: Boolean;
   public
     plate : TUramakiPlate;
     event : TDropFilesEvent;
+    OldPlateDestroy: TNotifyEvent;
+    OwnerMediator: TUramakiEngineMediator;
+    {$IFDEF MSWINDOWS}
+    RegisteredHandle: HWND;
+    {$ENDIF}
+    procedure HookedDestroy(Sender: TObject);
   end;
+
+  {$IFDEF MSWINDOWS}
+  TFileDescriptorArray = array[0..MaxInt div SizeOf(TFileDescriptor) - 1] of TFileDescriptor;
+  PFileDescriptorArray = ^TFileDescriptorArray;
+
+  { TOLEDropTarget }
+
+  TOLEDropTarget = class(TInterfacedObject, IDropTarget)
+  private
+    FHandle: HWND;
+    FCanHandle: Boolean;
+    FMediator: TObject;
+  public
+    destructor Destroy; override;
+    constructor Create(AHandle: HWND; AMediator: TObject);
+    function DragEnter(const dataObj: IDataObject; grfKeyState: DWORD;
+      pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
+    function DragOver(grfKeyState: DWORD; pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
+    function DragLeave: HResult; stdcall;
+    function Drop(const dataObj: IDataObject; grfKeyState: DWORD;
+      pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
+  end;
+  {$ENDIF}
+
+procedure TDropFilesEventHandler.HookedDestroy(Sender: TObject);
+var
+  LocalOldEvent: TNotifyEvent;
+  LocalMediator: TUramakiEngineMediator;
+  {$IFDEF MSWINDOWS}
+  h: HWND;
+  {$ENDIF}
+begin
+  if FIsFreeing then Exit;
+  FIsFreeing := True;
+
+  LocalOldEvent := OldPlateDestroy;
+  LocalMediator := TUramakiEngineMediator(OwnerMediator);
+  {$IFDEF MSWINDOWS}
+  h := RegisteredHandle;
+  {$ENDIF}
+
+  if Assigned(plate) then
+    plate.OnDestroy := LocalOldEvent;
+
+  if Assigned(LocalMediator) then
+  begin
+    {$IFDEF MSWINDOWS}
+    if LocalMediator.GetHandlerCountForHandle(h) = 1 then
+      RevokeDragDrop(h);
+    {$ENDIF}
+    LocalMediator.RemoveHandlerAndFree(Self);
+  end;
+
+  if Assigned(LocalOldEvent) then
+    LocalOldEvent(Sender);
+end;
+
+{$IFDEF MSWINDOWS}
+{ TOLEDropTarget }
+
+destructor TOLEDropTarget.Destroy;
+begin
+  inherited Destroy;
+end;
+
+constructor TOLEDropTarget.Create(AHandle: HWND; AMediator: TObject);
+begin
+  inherited Create;
+  FHandle := AHandle;
+  FMediator := AMediator;
+end;
+
+function TOLEDropTarget.DragEnter(const dataObj: IDataObject; grfKeyState: DWORD; pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
+var
+  FE: TFormatEtc;
+  CF_HDROP: TClipFormat;
+begin
+  CF_HDROP := 15;
+
+  FE.cfFormat := CF_HDROP;
+  FE.ptd := nil;
+  FE.dwAspect := DVASPECT_CONTENT;
+  FE.lindex := -1;
+  FE.tymed := TYMED_HGLOBAL;
+
+  if dataObj.QueryGetData(FE) = S_OK then
+  begin
+    FCanHandle := False;
+    dwEffect := DROPEFFECT_NONE;
+    Result := S_OK;
+  end
+  else
+  begin
+    FCanHandle := True;
+    dwEffect := DROPEFFECT_COPY;
+    Result := S_OK;
+  end;
+end;
+
+function TOLEDropTarget.DragOver(grfKeyState: DWORD; pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
+begin
+  if not FCanHandle then
+    dwEffect := DROPEFFECT_NONE
+  else
+    dwEffect := DROPEFFECT_COPY;
+
+  Result := S_OK;
+end;
+
+function TOLEDropTarget.DragLeave: HResult; stdcall;
+begin
+  Result := S_OK
+end;
+
+function TOLEDropTarget.Drop(const dataObj: IDataObject; grfKeyState: DWORD; pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
+var
+  FE: TFormatEtc;
+  MediumDesc, MediumCont: TStgMedium;
+  FileGroupDesc: PFileGroupDescriptor;
+  I: Integer;
+  OleStream: TOleStream;
+  CF_CONTENTS, CF_DESCRIPTOR: TClipFormat;
+  PDescriptor: PFileDescriptorW;
+  DroppedFiles: TDropFilesList;
+  c: TControl;
+  ControlP: TPoint;
+  ParentForm: TCustomForm;
+  LocalMediator : TUramakiEngineMediator;
+begin
+  if not FCanHandle then
+  begin
+    dwEffect := DROPEFFECT_NONE;
+    Result := S_FALSE;
+    Exit;
+  end;
+
+  CF_DESCRIPTOR := RegisterClipboardFormat(CFSTR_FILEDESCRIPTORW);
+  CF_CONTENTS := RegisterClipboardFormat(CFSTR_FILECONTENTS);
+
+  FE.cfFormat := CF_DESCRIPTOR;
+  FE.ptd := nil;
+  FE.dwAspect := DVASPECT_CONTENT;
+  FE.lindex := -1;
+  FE.tymed := TYMED_HGLOBAL;
+
+  if dataObj.GetData(FE, MediumDesc) = S_OK then
+  begin
+    FileGroupDesc := GlobalLock(MediumDesc.hGlobal);
+    try
+      SetLength(DroppedFiles, FileGroupDesc^.cItems);
+      PDescriptor := @FileGroupDesc^.fgd[0];
+      for I := 0 to FileGroupDesc^.cItems - 1 do
+      begin
+        DroppedFiles[I].FileName := PDescriptor^.cFileName;
+        DroppedFiles[I].FullPath := '';
+        DroppedFiles[I].Data := TMemoryStream.Create;
+
+        FE.cfFormat := CF_CONTENTS;
+        FE.lindex := I;
+        FE.tymed := TYMED_ISTREAM;
+
+        if dataObj.GetData(FE, MediumCont) = S_OK then
+        begin
+          try
+            OleStream := TOleStream.Create(MediumCont.pstm);
+            try
+              DroppedFiles[I].Data.CopyFrom(OleStream, 0);
+              DroppedFiles[I].Data.Position := 0;
+            finally
+              OleStream.Free;
+            end;
+          finally
+            ReleaseStgMedium(MediumCont);
+          end;
+        end;
+
+        Inc(PDescriptor);
+
+      end;
+
+      ParentForm := GetParentForm(FindControl(FHandle));
+      if Assigned(ParentForm) then
+      begin
+        ControlP := ParentForm.ScreenToClient(pt);
+
+        c := ParentForm.ControlAtPos(ControlP, [capfRecursive, capfAllowWinControls]);
+
+        if not Assigned(c) then
+          c := FindControlAtPosition(pt, False);
+      end;
+
+      while Assigned(c) and (not (c is TUramakiPlate)) and Assigned(c.Parent) do
+        c := c.Parent;
+
+      if Assigned(c) and (c is TUramakiPlate) then
+      begin
+        if Assigned(FMediator) then
+        begin
+          LocalMediator := TUramakiEngineMediator(FMediator);
+          LocalMediator.ProcessOLEAndNotify(TUramakiPlate(c), DroppedFiles);
+
+          dwEffect := DROPEFFECT_COPY;
+          Result := S_OK;
+        end;
+      end
+      else
+      begin
+        dwEffect := DROPEFFECT_NONE;
+        Result := S_FALSE;
+      end;
+
+    finally
+      GlobalUnlock(MediumDesc.hGlobal);
+      ReleaseStgMedium(MediumDesc);
+    end;
+  end
+  else
+    Result := E_FAIL;
+end;
+
+{$ENDIF}
 
 { TUramakiEngineMessagesThread }
 
@@ -203,7 +456,7 @@ end;
 constructor TUramakiEngineMessageQueue.Create;
 begin
   FMessages := TObjectList.Create(false);
-  FCriticalSection:= TCriticalSection.Create;
+  FCriticalSection := SyncObjs.TCriticalSection.Create;
 end;
 
 destructor TUramakiEngineMessageQueue.Destroy;
@@ -270,12 +523,29 @@ end;
 constructor TUramakiEngineMediator.Create(aEngine: TUramakiEngine);
 begin
   FEngine := aEngine;
-  FDropFileEventHandlers := TObjectList.Create(true);
+  FDropFileEventHandlers := TObjectList.Create(false);
 end;
 
 destructor TUramakiEngineMediator.Destroy;
+var
+  hdl: TDropFilesEventHandler;
 begin
-  FDropFileEventHandlers.Free;
+  Application.ProcessMessages;
+  if Assigned(FDropFileEventHandlers) then
+  begin
+    while FDropFileEventHandlers.Count > 0 do
+    begin
+      hdl := TDropFilesEventHandler(FDropFileEventHandlers[FDropFileEventHandlers.Count - 1]);
+
+      if Assigned(hdl.plate) then
+        hdl.plate.OnDestroy := hdl.OldPlateDestroy;
+
+      hdl.Free;
+      FDropFileEventHandlers.Delete(FDropFileEventHandlers.Count - 1);
+    end;
+    FDropFileEventHandlers.Free;
+  end;
+
   inherited Destroy;
 end;
 
@@ -340,23 +610,103 @@ end;
 
 procedure TUramakiEngineMediator.RegisterDropFileEventHandler(aPlate: TUramakiPlate; aEvent: TDropFilesEvent);
 var
-  frm : TForm;
-  hdl : TDropFilesEventHandler;
+  frm: TForm;
+  hdl: TDropFilesEventHandler;
+  LTempTarget: IDropTarget;
 begin
+  frm := aPlate.GetParentForm;
+  if not Assigned(frm) then Exit;
+
   if FDropFileEventHandlers.Count = 0 then
-  begin
-    frm := aPlate.GetParentForm;
-    if Assigned(frm) then
-    begin
-      frm.AllowDropFiles:= true;
-      frm.OnDropFiles:= Self.OnDropFiles;
-    end;
-  end;
+   begin
+     frm.AllowDropFiles := True;
+     frm.OnDropFiles := Self.OnDropFiles;
+
+     {$IFDEF MSWINDOWS}
+     LTempTarget := TOLEDropTarget.Create(frm.Handle, self) as IDropTarget;
+     RegisterDragDrop(frm.Handle, LTempTarget);
+     {$ENDIF}
+   end;
+
   hdl := TDropFilesEventHandler.Create;
   hdl.plate := aPlate;
   hdl.event := aEvent;
+  hdl.OwnerMediator := Self;
+  {$IFDEF MSWINDOWS}
+  hdl.RegisteredHandle := frm.Handle;
+  {$ENDIF}
+
+  hdl.OldPlateDestroy := aPlate.OnDestroy;
+  aPlate.OnDestroy := hdl.HookedDestroy;
+
   FDropFileEventHandlers.Add(hdl);
 end;
+
+procedure TUramakiEngineMediator.RemoveHandlerAndFree(aHandler: TObject);
+begin
+  if Assigned(FDropFileEventHandlers) then
+  begin
+    FDropFileEventHandlers.Remove(aHandler);
+    aHandler.Free;
+  end;
+end;
+{$IFDEF MSWINDOWS}
+function TUramakiEngineMediator.GetHandlerCountForHandle(aHandle: HWND): Integer;
+var
+  i: Integer;
+begin
+  Result := 0;
+  for i := 0 to FDropFileEventHandlers.Count - 1 do
+    if TDropFilesEventHandler(FDropFileEventHandlers[i]).RegisteredHandle = aHandle then
+      Inc(Result);
+end;
+
+procedure TUramakiEngineMediator.ProcessOLEAndNotify(APlate: TWinControl; const aFiles: TDropFilesList);
+var
+  i: Integer;
+  FilePaths: array of string;
+  TempPath, FullFileName: string;
+  hdl: TDropFilesEventHandler;
+begin
+  if (Length(aFiles) = 0) then Exit;
+
+  hdl := nil;
+  for i := 0 to FDropFileEventHandlers.Count - 1 do
+  begin
+    if TDropFilesEventHandler(FDropFileEventHandlers[i]).plate = APlate then
+    begin
+      hdl := TDropFilesEventHandler(FDropFileEventHandlers[i]);
+      Break;
+    end;
+  end;
+
+  try
+    if not Assigned(hdl) or not Assigned(hdl.event) then Exit;
+
+    SetLength(FilePaths, Length(aFiles));
+    TempPath := IncludeTrailingPathDelimiter(GetTempDir + GenerateRandomIdString);
+    if not DirectoryExists(TempPath) then ForceDirectories(TempPath);
+
+    for i := 0 to High(aFiles) do
+    begin
+      FullFileName := TempPath + UTF8Encode(aFiles[i].FileName);
+      aFiles[i].Data.Position := 0;
+      aFiles[i].Data.SaveToFile(FullFileName);
+      FilePaths[i] := FullFileName;
+    end;
+
+    hdl.event(APlate, FilePaths);
+
+  finally
+    for i := 0 to High(aFiles) do
+      if Assigned(aFiles[i].Data) then
+        aFiles[I].Data.Free;
+    if DirectoryExists(TempPath) then
+      DeleteDirectory(TempPath, false);
+  end;
+end;
+
+{$ENDIF}
 
 { TUramakiEngine }
 
@@ -735,5 +1085,15 @@ begin
       aList.Add(FPublishers.Get(i));
   end;
 end;
+
+initialization
+{$IFDEF MSWINDOWS}
+  OleInitialize(nil);
+{$ENDIF}
+
+finalization
+{$IFDEF MSWINDOWS}
+  OleUninitialize;
+{$ENDIF}
 
 end.

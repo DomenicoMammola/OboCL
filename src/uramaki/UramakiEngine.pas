@@ -574,7 +574,9 @@ procedure TUramakiEngineMediator.RegisterDropFileEventHandler(aPlate: TUramakiPl
 var
   frm: TForm;
   hdl: TDropFilesEventHandler;
+  {$IFDEF MSWINDOWS}
   LTempTarget: IDropTarget;
+  {$ENDIF}
 begin
   frm := aPlate.GetParentForm;
   if not Assigned(frm) then Exit;

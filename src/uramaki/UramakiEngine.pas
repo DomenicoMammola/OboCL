@@ -95,7 +95,6 @@ type
     procedure PleaseClearMyChilds (aPlate : TUramakiPlate); override;
     function GetInstanceIdentifier (aPlate : TUramakiPlate) : TGuid; override;
     procedure RegisterDropFileEventHandler(aPlate : TUramakiPlate; aEvent : TDropFilesEvent); override;
-    procedure RemoveHandlerAndFree(aHandler: TObject);
     {$IFDEF MSWINDOWS}
     function GetHandlerCountForHandle(aHandle: HWND): Integer;
     procedure ProcessOLEAndNotify(APlate: TWinControl; const aFiles: TDropFilesList);
@@ -163,8 +162,6 @@ type
   { TDropFilesEventHandler }
 
   TDropFilesEventHandler = class
-  private
-    FIsFreeing: Boolean;
   public
     plate : TUramakiPlate;
     event : TDropFilesEvent;
@@ -173,10 +170,9 @@ type
     {$IFDEF MSWINDOWS}
     RegisteredHandle: HWND;
     {$ENDIF}
-    procedure HookedDestroy(Sender: TObject);
   end;
 
-  {$IFDEF MSWINDOWS}
+{$IFDEF MSWINDOWS}
   TFileDescriptorArray = array[0..MaxInt div SizeOf(TFileDescriptor) - 1] of TFileDescriptor;
   PFileDescriptorArray = ^TFileDescriptorArray;
 
@@ -197,42 +193,7 @@ type
     function Drop(const dataObj: IDataObject; grfKeyState: DWORD;
       pt: TPoint; var dwEffect: DWORD): HResult; stdcall;
   end;
-  {$ENDIF}
 
-procedure TDropFilesEventHandler.HookedDestroy(Sender: TObject);
-var
-  LocalOldEvent: TNotifyEvent;
-  LocalMediator: TUramakiEngineMediator;
-  {$IFDEF MSWINDOWS}
-  h: HWND;
-  {$ENDIF}
-begin
-  if FIsFreeing then Exit;
-  FIsFreeing := True;
-
-  LocalOldEvent := OldPlateDestroy;
-  LocalMediator := TUramakiEngineMediator(OwnerMediator);
-  {$IFDEF MSWINDOWS}
-  h := RegisteredHandle;
-  {$ENDIF}
-
-  if Assigned(plate) then
-    plate.OnDestroy := LocalOldEvent;
-
-  if Assigned(LocalMediator) then
-  begin
-    {$IFDEF MSWINDOWS}
-    if LocalMediator.GetHandlerCountForHandle(h) = 1 then
-      RevokeDragDrop(h);
-    {$ENDIF}
-    LocalMediator.RemoveHandlerAndFree(Self);
-  end;
-
-  if Assigned(LocalOldEvent) then
-    LocalOldEvent(Sender);
-end;
-
-{$IFDEF MSWINDOWS}
 { TOLEDropTarget }
 
 destructor TOLEDropTarget.Destroy;
@@ -523,26 +484,27 @@ end;
 constructor TUramakiEngineMediator.Create(aEngine: TUramakiEngine);
 begin
   FEngine := aEngine;
-  FDropFileEventHandlers := TObjectList.Create(false);
+  FDropFileEventHandlers := TObjectList.Create(true);
 end;
 
 destructor TUramakiEngineMediator.Destroy;
 var
   hdl: TDropFilesEventHandler;
 begin
-  Application.ProcessMessages;
   if Assigned(FDropFileEventHandlers) then
   begin
     while FDropFileEventHandlers.Count > 0 do
     begin
       hdl := TDropFilesEventHandler(FDropFileEventHandlers[FDropFileEventHandlers.Count - 1]);
 
-      if Assigned(hdl.plate) then
-        hdl.plate.OnDestroy := hdl.OldPlateDestroy;
+      {$IFDEF MSWINDOWS}
+      if GetHandlerCountForHandle(hdl.RegisteredHandle) = 1 then
+        RevokeDragDrop(hdl.RegisteredHandle);
+      {$ENDIF}
 
-      hdl.Free;
       FDropFileEventHandlers.Delete(FDropFileEventHandlers.Count - 1);
     end;
+
     FDropFileEventHandlers.Free;
   end;
 
@@ -636,20 +598,9 @@ begin
   hdl.RegisteredHandle := frm.Handle;
   {$ENDIF}
 
-  hdl.OldPlateDestroy := aPlate.OnDestroy;
-  aPlate.OnDestroy := hdl.HookedDestroy;
-
   FDropFileEventHandlers.Add(hdl);
 end;
 
-procedure TUramakiEngineMediator.RemoveHandlerAndFree(aHandler: TObject);
-begin
-  if Assigned(FDropFileEventHandlers) then
-  begin
-    FDropFileEventHandlers.Remove(aHandler);
-    aHandler.Free;
-  end;
-end;
 {$IFDEF MSWINDOWS}
 function TUramakiEngineMediator.GetHandlerCountForHandle(aHandle: HWND): Integer;
 var

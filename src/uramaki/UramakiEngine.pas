@@ -264,6 +264,14 @@ var
   ControlP: TPoint;
   ParentForm: TCustomForm;
   LocalMediator : TUramakiEngineMediator;
+  hr : HRESULT;
+  Buffer : array of Byte;
+  BytesRead : LongInt;
+  LockBytes : ILockBytes;
+  MemStorage : IStorage;
+  StatLockBytes : TStatStg;
+  MemHandle : HGLOBAL;
+  MemPointer : Pointer;
 begin
   if not FCanHandle then
   begin
@@ -297,18 +305,62 @@ begin
         FE.lindex := I;
         FE.tymed := TYMED_ISTREAM;
 
-        if dataObj.GetData(FE, MediumCont) = S_OK then
+        hr := dataObj.GetData(FE, MediumCont);
+        if hr = S_OK then
         begin
           try
-            OleStream := TOleStream.Create(MediumCont.pstm);
+            OleStream := TOleStream.Create(IStream(MediumCont.pstm));
             try
-              DroppedFiles[I].Data.CopyFrom(OleStream, 0);
+              // we don't use the stream size (it is unreliable): we read in chunks until there is no more data
+              SetLength(Buffer, 65536);
+              repeat
+                BytesRead := OleStream.Read(Buffer[0], Length(Buffer));
+                if BytesRead > 0 then
+                  DroppedFiles[I].Data.WriteBuffer(Buffer[0], BytesRead);
+              until BytesRead <= 0;
               DroppedFiles[I].Data.Position := 0;
             finally
               OleStream.Free;
             end;
           finally
             ReleaseStgMedium(MediumCont);
+          end;
+        end
+        else
+        begin
+          // Outlook emails are not available as a stream but as a storage (.msg format)
+          FE.tymed := TYMED_ISTORAGE;
+          hr := dataObj.GetData(FE, MediumCont);
+          if hr = S_OK then
+          begin
+            try
+              LockBytes := nil;
+              MemStorage := nil;
+              if (CreateILockBytesOnHGlobal(0, True, LockBytes) = S_OK) and
+                 (StgCreateDocfileOnILockBytes(LockBytes, STGM_CREATE or STGM_READWRITE or STGM_SHARE_EXCLUSIVE, 0, MemStorage) = S_OK) then
+              begin
+                if (IStorage(MediumCont.pstg).CopyTo(0, nil, nil, MemStorage) = S_OK) and
+                   (MemStorage.Commit(STGC_DEFAULT) = S_OK) and
+                   (LockBytes.Stat(StatLockBytes, STATFLAG_NONAME) = S_OK) and
+                   (GetHGlobalFromILockBytes(LockBytes, MemHandle) = S_OK) then
+                begin
+                  MemPointer := GlobalLock(MemHandle);
+                  if Assigned(MemPointer) then
+                  begin
+                    try
+                      DroppedFiles[I].Data.WriteBuffer(MemPointer^, Int64(StatLockBytes.cbSize));
+                      DroppedFiles[I].Data.Position := 0;
+                    finally
+                      GlobalUnlock(MemHandle);
+                    end;
+                  end;
+                end;
+              end;
+            finally
+              MemStorage := nil;
+              LockBytes := nil;
+              ReleaseStgMedium(MediumCont);
+            end;
           end;
         end;
 
